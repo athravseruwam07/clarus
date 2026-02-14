@@ -25,63 +25,27 @@ export const laneLabels: Record<FeatureLane, string> = {
 
 export const featureRoadmap: FeatureRoadmapItem[] = [
   {
-    slug: "sync-center",
-    title: "1) Auto Course Sync",
-    route: "/dashboard/sync-center",
-    summary:
-      "Sync courses, modules, assessments, announcements, discussions, files, and grade items from D2L.",
-    lane: "member-1-foundation-modeling",
-    status: "foundation-ready",
-    backendContracts: ["POST /v1/sync/full", "GET /v1/sync/status"],
-    frontendWorkspace: "FE/app/dashboard/(member-1-foundation-modeling)/sync-center/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member1.foundation.ts",
-    ownership: "Data ingestion, normalization, and sync reliability",
-    starterChecklist: [
-      "Expand sync coverage beyond courses to all LMS item types listed in the plan.",
-      "Add sync status telemetry (duration, counts, failures).",
-      "Persist source metadata needed by risk/effort/prioritization engines."
-    ]
-  },
-  {
     slug: "timeline-intelligence",
-    title: "2) Unified Deadline Timeline (AI-Ranked)",
+    title: "Calendar",
     route: "/dashboard/timeline-intelligence",
     summary:
-      "Rank assignments/quizzes/discussions by priority score, risk score, effort estimate, and recommended start date.",
+      "Unified calendar view of deadlines across assignments, quizzes, and exams, with clear AI ranking.",
     lane: "member-1-foundation-modeling",
     status: "scaffolded",
     backendContracts: ["GET /v1/timeline/intelligence"],
     frontendWorkspace:
       "FE/app/dashboard/(member-1-foundation-modeling)/timeline-intelligence/page.tsx",
     backendWorkspace: "BE/api/src/routes/workstreams/member1.foundation.ts",
-    ownership: "Unified task feed + ranking pipeline",
+    ownership: "Unified calendar feed + ranking pipeline",
     starterChecklist: [
-      "Define timeline item schema with rank components and explanations.",
+      "Define calendar item schema with rank components and explanations.",
       "Support filtering by course, due range, and assessment type.",
       "Expose rank drivers to keep scoring transparent for users."
     ]
   },
   {
-    slug: "change-impact",
-    title: "7) Deadline Change Detector + Impact Intelligence",
-    route: "/dashboard/change-impact",
-    summary:
-      "Detect due date/rubric/instruction changes, compute impact severity, and show before/after diff + plan adjustments.",
-    lane: "member-1-foundation-modeling",
-    status: "scaffolded",
-    backendContracts: ["GET /v1/changes/impact"],
-    frontendWorkspace: "FE/app/dashboard/(member-1-foundation-modeling)/change-impact/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member1.foundation.ts",
-    ownership: "Versioned LMS snapshot diffs + impact scoring",
-    starterChecklist: [
-      "Store item snapshots for temporal comparison.",
-      "Implement structured diff output (added/removed/modified constraints).",
-      "Recompute downstream effort/risk when critical deltas appear."
-    ]
-  },
-  {
     slug: "workload-forecast",
-    title: "8) Workload Radar + Forecast",
+    title: "Workload Forecast",
     route: "/dashboard/workload-forecast",
     summary:
       "Forecast heavy weeks using task mix, rubric density, deliverables, and estimated hours.",
@@ -98,63 +62,26 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
     ]
   },
   {
-    slug: "risk-prediction",
-    title: "9) Academic Risk Prediction Engine",
-    route: "/dashboard/risk-prediction",
+    slug: "upcoming",
+    title: "Upcoming",
+    route: "/dashboard/upcoming/assignments",
     summary:
-      "Predict deadline-miss and underperformance probabilities with explainable drivers and mitigation suggestions.",
-    lane: "member-1-foundation-modeling",
-    status: "scaffolded",
-    backendContracts: ["GET /v1/risk/predict"],
-    frontendWorkspace: "FE/app/dashboard/(member-1-foundation-modeling)/risk-prediction/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member1.foundation.ts",
-    ownership: "Risk feature modeling + explainability",
-    starterChecklist: [
-      "Define risk score schema and calibration strategy.",
-      "Surface top model drivers in user-facing language.",
-      "Attach mitigation actions that route into planning and copilot flows."
-    ]
-  },
-  {
-    slug: "effort-estimation",
-    title: "10) AI Effort Estimation Engine",
-    route: "/dashboard/effort-estimation",
-    summary:
-      "Estimate task effort, buffer time, and recommended start date using assignment structure and behavior-adjusted pace.",
-    lane: "member-1-foundation-modeling",
-    status: "scaffolded",
-    backendContracts: ["POST /v1/effort/estimate"],
-    frontendWorkspace: "FE/app/dashboard/(member-1-foundation-modeling)/effort-estimation/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member1.foundation.ts",
-    ownership: "Effort model and adaptation loop inputs",
-    starterChecklist: [
-      "Design effort inputs (rubric length, deliverables, word/page constraints).",
-      "Return base estimate + confidence + buffer recommendation.",
-      "Record actual completion time for future model correction."
-    ]
-  },
-  {
-    slug: "assignment-breakdown",
-    title: "3) AI Assignment Breakdown",
-    route: "/dashboard/assignment-breakdown",
-    summary:
-      "Extract constraints, rubric criteria, hidden requirements, complexity, effort, risk, and execution checklist.",
+      "Upcoming view with quick navigation between assignments, quizzes, and exams.",
     lane: "member-2-semantic-intelligence",
     status: "scaffolded",
-    backendContracts: ["POST /v1/assignments/breakdown"],
-    frontendWorkspace:
-      "FE/app/dashboard/(member-2-semantic-intelligence)/assignment-breakdown/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member2.intelligence.ts",
-    ownership: "Instruction parsing and structured requirement extraction",
+    backendContracts: [],
+    frontendWorkspace: "FE/app/dashboard/upcoming/*/page.tsx",
+    backendWorkspace: "TBD",
+    ownership: "Upcoming feed UX + filters",
     starterChecklist: [
-      "Define output schema for checklist tasks + evidence text spans.",
-      "Extract hidden constraints and map them to actionable checks.",
-      "Attach complexity and risk rationale fields for transparency."
+      "Define unified upcoming item schema (type, due date, course, priority).",
+      "Support filters for assignments/quizzes/exams and due range.",
+      "Add lightweight priority cues that don't overwhelm the dashboard."
     ]
   },
   {
     slug: "content-locator",
-    title: "4) AI Content Locator",
+    title: "Content Locator",
     route: "/dashboard/content-locator",
     summary:
       "Map each requirement to exact modules, lectures, slides/sections, files, and related resources with relevance explanation.",
@@ -171,82 +98,8 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
     ]
   },
   {
-    slug: "knowledge-gaps",
-    title: "12) Knowledge Gap Detection",
-    route: "/dashboard/knowledge-gaps",
-    summary:
-      "Infer concept weaknesses from rubric feedback, quiz patterns, and missed topics, then map them to review materials.",
-    lane: "member-2-semantic-intelligence",
-    status: "scaffolded",
-    backendContracts: ["GET /v1/knowledge-gaps/detect"],
-    frontendWorkspace: "FE/app/dashboard/(member-2-semantic-intelligence)/knowledge-gaps/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member2.intelligence.ts",
-    ownership: "Concept graph + weak-signal inference",
-    starterChecklist: [
-      "Define concept nodes and prerequisite relationships.",
-      "Generate per-concept confidence and severity scores.",
-      "Attach direct remediation links from content locator outputs."
-    ]
-  },
-  {
-    slug: "rubric-scoring",
-    title: "15) Draft Rubric Scoring",
-    route: "/dashboard/rubric-scoring",
-    summary:
-      "Score student drafts against rubric criteria, flag missing components, and propose targeted improvements.",
-    lane: "member-2-semantic-intelligence",
-    status: "scaffolded",
-    backendContracts: ["POST /v1/rubric/score-draft"],
-    frontendWorkspace: "FE/app/dashboard/(member-2-semantic-intelligence)/rubric-scoring/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member2.intelligence.ts",
-    ownership: "Rubric-aligned feedback generation",
-    starterChecklist: [
-      "Define rubric criterion scoring rubric for model output.",
-      "Return missing evidence + suggested revision actions.",
-      "Expose confidence and citation of matched rubric lines."
-    ]
-  },
-  {
-    slug: "smart-reminders",
-    title: "5) Smart Reminders (Adaptive)",
-    route: "/dashboard/smart-reminders",
-    summary:
-      "Adaptive reminders that shift timing and escalation based on behavior, workload spikes, and completion patterns.",
-    lane: "member-3-optimization-experience",
-    status: "scaffolded",
-    backendContracts: ["GET /v1/reminders/adaptive", "POST /v1/reminders/action"],
-    frontendWorkspace:
-      "FE/app/dashboard/(member-3-optimization-experience)/smart-reminders/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member3.optimization.ts",
-    ownership: "Reminder policy + behavior-driven adaptation",
-    starterChecklist: [
-      "Implement escalation timeline and adaptive rescheduling policy.",
-      "Track snooze/start-now/mark-done behavior events.",
-      "Expose reason codes for why each reminder fired when it did."
-    ]
-  },
-  {
-    slug: "submission-grade-tracker",
-    title: "6) Submission & Grade Tracker",
-    route: "/dashboard/submission-grade-tracker",
-    summary:
-      "Track submitted/graded/missing/pending status, current grade snapshot, what-if outcomes, and risk-to-grade forecast.",
-    lane: "member-3-optimization-experience",
-    status: "scaffolded",
-    backendContracts: ["GET /v1/performance/tracker"],
-    frontendWorkspace:
-      "FE/app/dashboard/(member-3-optimization-experience)/submission-grade-tracker/page.tsx",
-    backendWorkspace: "BE/api/src/routes/workstreams/member3.optimization.ts",
-    ownership: "Performance tracking + grade projection UX",
-    starterChecklist: [
-      "Normalize submission state across assignment/quiz/discussion types.",
-      "Bundle what-if grade estimator into same response contract.",
-      "Add risk-to-grade trajectory with short explanation."
-    ]
-  },
-  {
     slug: "study-plan-optimizer",
-    title: "11) Adaptive Study Plan Optimizer",
+    title: "Study Plan Optimizer",
     route: "/dashboard/study-plan-optimizer",
     summary:
       "Generate and continuously adapt study blocks, daily tasks, and spaced repetition sessions based on real behavior.",
@@ -265,7 +118,7 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "prioritization-engine",
-    title: "13) Autonomous Prioritization Engine",
+    title: "Prioritization Engine",
     route: "/dashboard/prioritization-engine",
     summary:
       "Compute highest-leverage next task from deadline proximity, risk, grade weight, complexity, effort, and knowledge-gap impact.",
@@ -284,7 +137,7 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "copilot-mode",
-    title: "14) Conversational Copilot Mode",
+    title: "Copilot Mode",
     route: "/dashboard/copilot-mode",
     summary:
       "Answer planning questions using prioritization, risk, effort, and content locator outputs with actionable plans.",

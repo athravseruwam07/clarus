@@ -173,7 +173,7 @@ export function ConnectForm() {
   }
 
   return (
-    <Card className="border-primary/20 bg-white/90">
+    <Card className="border-primary/20 bg-card">
       <CardHeader>
         <CardTitle>Connect your Brightspace</CardTitle>
         <CardDescription>
@@ -211,7 +211,7 @@ export function ConnectForm() {
 
             {isDropdownOpen ? (
               <div className="relative">
-                <div className="absolute left-0 z-50 mt-2 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+                <div className="absolute left-0 z-50 mt-2 w-full overflow-hidden rounded-md border border-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
                   <div className="max-h-72 overflow-auto">
                     {CANADIAN_UNIVERSITIES.map((option) => {
                       const isSelected = option.id === selectedUniversityId;
@@ -220,7 +220,7 @@ export function ConnectForm() {
                           key={option.id}
                           type="button"
                           className={cn(
-                            "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary/60",
+                            "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary",
                             isSelected ? "bg-secondary/40" : ""
                           )}
                           onClick={() => {
@@ -244,7 +244,7 @@ export function ConnectForm() {
                       <button
                         type="button"
                         className={cn(
-                          "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary/60",
+                          "flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary",
                           selectedUniversityId === "other" ? "bg-secondary/40" : ""
                         )}
                         onClick={() => {

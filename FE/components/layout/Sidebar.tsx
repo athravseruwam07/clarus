@@ -1,85 +1,108 @@
 "use client";
 
 import {
-  AlertTriangle,
   Bot,
-  BrainCircuit,
   CalendarClock,
+  CalendarRange,
+  ChevronDown,
   Compass,
   Gauge,
   LayoutDashboard,
-  Layers,
-  ListChecks,
-  Radar,
-  Route,
-  Scale,
   SearchCode,
-  Sparkles,
-  Timer,
   TrendingUp
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
+type NavigationItem =
+  | {
+      kind: "link";
+      label: string;
+      href: string;
+      icon: LucideIcon;
+    }
+  | {
+      kind: "group";
+      label: string;
+      baseHref: string;
+      icon: LucideIcon;
+      items: Array<{
+        label: string;
+        href: string;
+      }>;
+    };
+
 type NavigationSection = {
   label: string;
-  items: Array<{
-    label: string;
-    href: string;
-    icon: LucideIcon;
-  }>;
+  items: NavigationItem[];
 };
 
 const navSections: NavigationSection[] = [
   {
     label: "demo flow",
     items: [
-      { label: "overview", href: "/dashboard", icon: LayoutDashboard },
-      { label: "assignment intelligence", href: "/dashboard/assignments/asg-thermo-2", icon: Compass },
-      { label: "insights", href: "/dashboard/insights", icon: TrendingUp },
-      { label: "copilot q&a", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "overview", href: "/dashboard", icon: LayoutDashboard },
+      {
+        kind: "link",
+        label: "assignment intelligence",
+        href: "/dashboard/assignments/asg-thermo-2",
+        icon: Compass
+      },
+      { kind: "link", label: "insights", href: "/dashboard/insights", icon: TrendingUp },
+      { kind: "link", label: "copilot q&a", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   },
   {
     label: "member 1: foundation + modeling",
     items: [
-      { label: "sync center", href: "/dashboard/sync-center", icon: Route },
-      { label: "timeline intelligence", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
-      { label: "change impact", href: "/dashboard/change-impact", icon: Radar },
-      { label: "workload forecast", href: "/dashboard/workload-forecast", icon: Gauge },
-      { label: "risk prediction", href: "/dashboard/risk-prediction", icon: AlertTriangle },
-      { label: "effort estimation", href: "/dashboard/effort-estimation", icon: Timer }
+      { kind: "link", label: "calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
+      { kind: "link", label: "workload forecast", href: "/dashboard/workload-forecast", icon: Gauge }
     ]
   },
   {
     label: "member 2: semantic intelligence",
     items: [
-      { label: "assignment breakdown", href: "/dashboard/assignment-breakdown", icon: ListChecks },
-      { label: "content locator", href: "/dashboard/content-locator", icon: SearchCode },
-      { label: "knowledge gaps", href: "/dashboard/knowledge-gaps", icon: BrainCircuit },
-      { label: "rubric scoring", href: "/dashboard/rubric-scoring", icon: Scale }
+      {
+        kind: "group",
+        label: "upcoming",
+        baseHref: "/dashboard/upcoming",
+        icon: CalendarRange,
+        items: [
+          { label: "assignments", href: "/dashboard/upcoming/assignments" },
+          { label: "quizzes", href: "/dashboard/upcoming/quizzes" },
+          { label: "exams", href: "/dashboard/upcoming/exams" }
+        ]
+      },
+      { kind: "link", label: "content locator", href: "/dashboard/content-locator", icon: SearchCode }
     ]
   },
   {
     label: "member 3: optimization + copilot",
     items: [
-      { label: "smart reminders", href: "/dashboard/smart-reminders", icon: Sparkles },
-      { label: "submission + grade", href: "/dashboard/submission-grade-tracker", icon: Layers },
-      { label: "study plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
-      { label: "prioritization engine", href: "/dashboard/prioritization-engine", icon: TrendingUp },
-      { label: "copilot mode", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "study plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
+      { kind: "link", label: "prioritization engine", href: "/dashboard/prioritization-engine", icon: TrendingUp },
+      { kind: "link", label: "copilot mode", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   }
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const isUpcomingRoute = pathname.startsWith("/dashboard/upcoming");
+  const [isUpcomingOpen, setIsUpcomingOpen] = useState(isUpcomingRoute);
+
+  useEffect(() => {
+    if (isUpcomingRoute) {
+      setIsUpcomingOpen(true);
+    }
+  }, [isUpcomingRoute]);
 
   return (
-    <aside className="hidden w-80 shrink-0 border-r border-border/80 bg-white/85 p-4 backdrop-blur md:block">
+    <aside className="hidden w-72 shrink-0 border-r border-border/80 bg-card/50 p-4 backdrop-blur md:block">
       <p className="px-2 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         navigation
       </p>
@@ -91,6 +114,69 @@ export function Sidebar() {
               {section.label}
             </p>
             {section.items.map((item) => {
+              if (item.kind === "group") {
+                const isActiveGroup = pathname.startsWith(item.baseHref);
+
+                return (
+                  <details
+                    key={item.baseHref}
+                    open={item.baseHref === "/dashboard/upcoming" ? isUpcomingOpen : isActiveGroup}
+                    onToggle={(event) => {
+                      if (item.baseHref !== "/dashboard/upcoming") {
+                        return;
+                      }
+
+                      setIsUpcomingOpen((event.currentTarget as HTMLDetailsElement).open);
+                    }}
+                    className="space-y-1"
+                  >
+                    <summary
+                      className={cn(
+                        "flex cursor-pointer list-none items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors [&::-webkit-details-marker]:hidden",
+                        isActiveGroup
+                          ? "border-l-2 border-primary bg-primary/10 text-foreground animate-slide-in"
+                          : "text-muted-foreground hover:bg-secondary/50"
+                      )}
+                    >
+                      <item.icon
+                        className={cn("h-4 w-4", isActiveGroup ? "text-primary" : "text-muted-foreground")}
+                      />
+                      <span className="capitalize">{item.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "ml-auto h-4 w-4 transition-transform",
+                          (item.baseHref === "/dashboard/upcoming" ? isUpcomingOpen : isActiveGroup)
+                            ? "rotate-180"
+                            : "rotate-0"
+                        )}
+                      />
+                    </summary>
+
+                    <div className="space-y-1">
+                      {item.items.map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+
+                        return (
+                          <Link
+                            key={subItem.href}
+                            href={subItem.href as any}
+                            className={cn(
+                              "flex items-center gap-2 rounded-md py-1.5 pl-10 pr-3 text-sm transition-colors",
+                              isSubActive
+                                ? "border-l-2 border-primary bg-primary/10 text-foreground"
+                                : "text-muted-foreground hover:bg-secondary/50"
+                            )}
+                          >
+                            <span className={cn("h-1 w-1 rounded-full", isSubActive ? "bg-primary" : "bg-muted-foreground/40")} />
+                            <span className="capitalize">{subItem.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              }
+
               const isActive = pathname === item.href;
 
               return (
@@ -99,12 +185,10 @@ export function Sidebar() {
                   href={item.href as any}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "bg-primary/12 text-foreground"
-                      : "text-foreground/85 hover:bg-secondary/80"
+                    isActive ? "border-l-2 border-primary bg-primary/10 text-foreground animate-slide-in" : "text-muted-foreground hover:bg-secondary/50"
                   )}
                 >
-                  <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-primary/80")} />
+                  <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
                   <span className="capitalize">{item.label}</span>
                 </Link>
               );

@@ -82,7 +82,7 @@ export default function CopilotModePage() {
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 {response.linkedAssignments.map((item) => (
-                  <div key={item.assignmentId} className="rounded-md border border-border/80 bg-white/70 px-3 py-2">
+                  <div key={item.assignmentId} className="rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
                     <p className="font-medium text-foreground">{item.title}</p>
                     <p>{item.reason}</p>
                   </div>

@@ -8,7 +8,7 @@ interface CourseListProps {
 export function CourseList({ courses }: CourseListProps) {
   if (courses.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-white/75 p-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-8 text-center text-sm text-muted-foreground">
         no courses yet. run a sync to pull your enrolled courses.
       </div>
     );

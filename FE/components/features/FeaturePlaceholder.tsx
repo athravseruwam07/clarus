@@ -20,19 +20,19 @@ export function FeaturePlaceholder({ feature }: { feature: FeatureRoadmapItem })
           <CardDescription>{feature.summary}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 rounded-lg border border-border/80 bg-secondary/25 p-4">
+          <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               frontend workspace
             </p>
             <p className="font-mono text-xs text-foreground">{feature.frontendWorkspace}</p>
           </div>
-          <div className="space-y-2 rounded-lg border border-border/80 bg-secondary/25 p-4">
+          <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               backend workspace
             </p>
             <p className="font-mono text-xs text-foreground">{feature.backendWorkspace}</p>
           </div>
-          <div className="space-y-2 rounded-lg border border-border/80 bg-secondary/25 p-4 md:col-span-2">
+          <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4 md:col-span-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               ownership focus
             </p>

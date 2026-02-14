@@ -110,7 +110,7 @@ export default function AssignmentIntelligencePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {payload.checklist.map((item) => (
-              <div key={item.id} className="rounded-md border border-border/80 bg-white/70 px-3 py-2">
+              <div key={item.id} className="rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
                 <p className="text-sm">{item.text}</p>
                 <p className="text-xs text-muted-foreground">category: {item.category}</p>
               </div>
@@ -124,7 +124,7 @@ export default function AssignmentIntelligencePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {payload.contentLocator.map((resource) => (
-              <div key={`${resource.priority}-${resource.resource}`} className="rounded-md border border-border/80 bg-white/70 px-3 py-2">
+              <div key={`${resource.priority}-${resource.resource}`} className="rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
                 <p className="text-sm font-medium">
                   #{resource.priority} {resource.module} {" -> "} {resource.lecture}
                 </p>
@@ -145,7 +145,7 @@ export default function AssignmentIntelligencePage() {
         </CardHeader>
         <CardContent className="space-y-2">
           {payload.sessionPlan.map((session) => (
-            <div key={session.label} className="rounded-md border border-border/80 bg-white/70 px-3 py-2">
+            <div key={session.label} className="rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50">
               <p className="text-sm font-medium">
                 {session.label} · {session.durationMinutes} min
               </p>
