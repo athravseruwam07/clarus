@@ -182,6 +182,16 @@ All connector routes require:
 - selector overrides may be needed for custom login forms
 - this phase syncs courses only (no assignment/content semantic map yet)
 
+## parallel feature scaffolding
+
+The repo now includes merged-plan scaffolds (MVP + deep AI features) so a 3-person team can build in parallel:
+
+- frontend lane workspaces under `FE/app/dashboard/(member-*)/*`
+- backend lane workstreams under `BE/api/src/routes/workstreams/*`
+- demo flow endpoints under `BE/api/src/routes/demo.flow.ts`
+- full lane/task mapping and demo script in `docs/workstreams.md`
+- feature-by-feature owner/route/API matrix in `docs/feature-matrix.md`
+
 ## troubleshooting
 
 - login fails with custom sso/duo:
