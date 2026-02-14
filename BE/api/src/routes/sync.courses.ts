@@ -11,6 +11,19 @@ import {
   toDateOrNull
 } from "../lib/valence.js";
 
+function isCourseOffering(item: { OrgUnit: { Type?: { Id: number; Code: string } | null } }): boolean {
+  const type = item.OrgUnit.Type;
+  if (!type) {
+    return false;
+  }
+
+  if (type.Id === 3) {
+    return true;
+  }
+
+  return type.Code.toLowerCase() === "course offering";
+}
+
 const syncCoursesRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     "/sync/courses",
@@ -37,53 +50,72 @@ const syncCoursesRoute: FastifyPluginAsync = async (fastify) => {
         });
 
         const enrollmentItems = extractEnrollmentItems(enrollmentResponse.data);
+        const courseOfferingItems = enrollmentItems.filter((item) => isCourseOffering(item));
         const now = new Date();
 
-        await prisma.$transaction(
-          enrollmentItems.map((item) =>
-            prisma.course.upsert({
-              where: {
-                userId_brightspaceCourseId: {
-                  userId: user.id,
-                  brightspaceCourseId: item.OrgUnit.Id.toString()
-                }
-              },
-              update: {
-                courseName: item.OrgUnit.Name,
-                courseCode: item.OrgUnit.Code ?? null,
-                startDate: toDateOrNull(item.Access?.StartDate),
-                endDate: toDateOrNull(item.Access?.EndDate),
-                isActive: item.Access?.IsActive ?? true,
-                rawData: item as Prisma.InputJsonValue,
-                lastSyncedAt: now
-              },
-              create: {
-                userId: user.id,
-                brightspaceCourseId: item.OrgUnit.Id.toString(),
-                courseName: item.OrgUnit.Name,
-                courseCode: item.OrgUnit.Code ?? null,
-                startDate: toDateOrNull(item.Access?.StartDate),
-                endDate: toDateOrNull(item.Access?.EndDate),
-                isActive: item.Access?.IsActive ?? true,
-                rawData: item as Prisma.InputJsonValue,
-                lastSyncedAt: now
-              }
-            })
-          )
+        const courseIds = Array.from(
+          new Set(courseOfferingItems.map((item) => item.OrgUnit.Id.toString()))
         );
+
+        await prisma.$transaction(async (tx) => {
+          await Promise.all(
+            courseOfferingItems.map((item) =>
+              tx.course.upsert({
+                where: {
+                  userId_brightspaceCourseId: {
+                    userId: user.id,
+                    brightspaceCourseId: item.OrgUnit.Id.toString()
+                  }
+                },
+                update: {
+                  courseName: item.OrgUnit.Name,
+                  courseCode: item.OrgUnit.Code ?? null,
+                  startDate: toDateOrNull(item.Access?.StartDate),
+                  endDate: toDateOrNull(item.Access?.EndDate),
+                  isActive: item.Access?.IsActive ?? true,
+                  rawData: item as Prisma.InputJsonValue,
+                  lastSyncedAt: now
+                },
+                create: {
+                  userId: user.id,
+                  brightspaceCourseId: item.OrgUnit.Id.toString(),
+                  courseName: item.OrgUnit.Name,
+                  courseCode: item.OrgUnit.Code ?? null,
+                  startDate: toDateOrNull(item.Access?.StartDate),
+                  endDate: toDateOrNull(item.Access?.EndDate),
+                  isActive: item.Access?.IsActive ?? true,
+                  rawData: item as Prisma.InputJsonValue,
+                  lastSyncedAt: now
+                }
+              })
+            )
+          );
+
+          // clean up any previously stored non-course enrollments (groups/orgs) and dropped courses.
+          if (courseIds.length > 0) {
+            await tx.course.deleteMany({
+              where: {
+                userId: user.id,
+                brightspaceCourseId: {
+                  notIn: courseIds
+                }
+              }
+            });
+          }
+        });
 
         await prisma.syncLog.create({
           data: {
             userId: user.id,
             syncType: "full",
             status: "success",
-            itemsSynced: enrollmentItems.length
+            itemsSynced: courseOfferingItems.length
           }
         });
 
         return {
           success: true,
-          coursesSynced: enrollmentItems.length
+          coursesSynced: courseOfferingItems.length
         };
       } catch (error) {
         await prisma.syncLog

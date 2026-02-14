@@ -1,4 +1,4 @@
-import type { D2LEnrollmentItem, D2LEnrollmentsResponse } from "./types.js";
+import type { D2LAccess, D2LEnrollmentItem, D2LEnrollmentsResponse, D2LOrgUnit, D2LOrgUnitType } from "./types.js";
 
 export const WHOAMI_API_PATH = "/d2l/api/lp/1.28/users/whoami";
 export const MY_ENROLLMENTS_API_PATH =
@@ -59,7 +59,53 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function asAccess(value: unknown): { StartDate?: string | null; EndDate?: string | null; IsActive?: boolean } | null {
+function asOrgUnitType(value: unknown): D2LOrgUnitType | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const id = record["Id"];
+  const code = record["Code"];
+  const name = record["Name"];
+
+  if (typeof id !== "number" || typeof code !== "string" || typeof name !== "string") {
+    return null;
+  }
+
+  return {
+    Id: id,
+    Code: code,
+    Name: name
+  };
+}
+
+function asOrgUnit(value: unknown): D2LOrgUnit | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const id = record["Id"];
+  const name = record["Name"];
+
+  if (!(typeof id === "number" || typeof id === "string") || typeof name !== "string") {
+    return null;
+  }
+
+  const type = asOrgUnitType(record["Type"]);
+
+  return {
+    Id: id,
+    Name: name,
+    Code: typeof record["Code"] === "string" ? (record["Code"] as string) : null,
+    HomeUrl: typeof record["HomeUrl"] === "string" ? (record["HomeUrl"] as string) : null,
+    ImageUrl: typeof record["ImageUrl"] === "string" ? (record["ImageUrl"] as string) : null,
+    Type: type
+  };
+}
+
+function asAccess(value: unknown): D2LAccess | null {
   const record = asRecord(value);
   if (!record) {
     return null;
@@ -68,7 +114,8 @@ function asAccess(value: unknown): { StartDate?: string | null; EndDate?: string
   return {
     StartDate: typeof record["StartDate"] === "string" ? (record["StartDate"] as string) : null,
     EndDate: typeof record["EndDate"] === "string" ? (record["EndDate"] as string) : null,
-    IsActive: typeof record["IsActive"] === "boolean" ? (record["IsActive"] as boolean) : undefined
+    IsActive: typeof record["IsActive"] === "boolean" ? (record["IsActive"] as boolean) : undefined,
+    CanAccess: typeof record["CanAccess"] === "boolean" ? (record["CanAccess"] as boolean) : undefined
   };
 }
 
@@ -78,25 +125,14 @@ function toEnrollmentItem(value: unknown): D2LEnrollmentItem | null {
     return null;
   }
 
-  const orgUnit = asRecord(record["OrgUnit"]);
+  const orgUnit = asOrgUnit(record["OrgUnit"]);
   if (!orgUnit) {
-    return null;
-  }
-
-  const id = orgUnit["Id"];
-  const name = orgUnit["Name"];
-
-  if (!(typeof id === "number" || typeof id === "string") || typeof name !== "string") {
     return null;
   }
 
   return {
     ...record,
-    OrgUnit: {
-      Id: id,
-      Name: name,
-      Code: typeof orgUnit["Code"] === "string" ? (orgUnit["Code"] as string) : null
-    },
+    OrgUnit: orgUnit,
     Access: asAccess(record["Access"])
   };
 }

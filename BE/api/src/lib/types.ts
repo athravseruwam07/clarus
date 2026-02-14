@@ -13,12 +13,22 @@ export interface D2LAccess {
   StartDate?: string | null;
   EndDate?: string | null;
   IsActive?: boolean;
+  CanAccess?: boolean;
+}
+
+export interface D2LOrgUnitType {
+  Id: number;
+  Code: string;
+  Name: string;
 }
 
 export interface D2LOrgUnit {
   Id: number | string;
   Name: string;
   Code?: string | null;
+  HomeUrl?: string | null;
+  ImageUrl?: string | null;
+  Type?: D2LOrgUnitType | null;
 }
 
 export interface D2LEnrollmentItem {
