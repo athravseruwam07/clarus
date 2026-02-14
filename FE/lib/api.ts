@@ -19,8 +19,9 @@ export class ApiError extends Error {
 
 export interface ConnectPayload {
   instanceUrl: string;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
+  mode?: "manual" | "credentials";
 }
 
 export interface ConnectResponse {

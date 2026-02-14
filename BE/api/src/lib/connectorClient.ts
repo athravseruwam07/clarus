@@ -3,6 +3,8 @@ import { env } from "./env.js";
 import type { ConnectorLoginResponse, ConnectorRequestResponse } from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
+const DEFAULT_CONNECTOR_TIMEOUT_MS = 65000;
+const DEFAULT_CONNECTOR_LOGIN_TIMEOUT_MS = 240000;
 
 function getMessage(body: unknown): string | undefined {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -22,12 +24,19 @@ function getErrorCode(body: unknown): string | undefined {
   return typeof error === "string" ? error : undefined;
 }
 
-async function callConnector<TResponse>(path: string, payload: unknown): Promise<TResponse> {
+async function callConnector<TResponse>(
+  path: string,
+  payload: unknown,
+  options?: { timeoutMs?: number }
+): Promise<TResponse> {
   let response: Response;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 65000);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      options?.timeoutMs ?? DEFAULT_CONNECTOR_TIMEOUT_MS
+    );
 
     response = await fetch(`${env.CONNECTOR_URL}${path}`, {
       method: "POST",
@@ -83,6 +92,14 @@ export async function connectorLogin(payload: {
   password: string;
 }): Promise<ConnectorLoginResponse> {
   return callConnector<ConnectorLoginResponse>("/internal/login", payload);
+}
+
+export async function connectorManualLogin(payload: {
+  instanceUrl: string;
+}): Promise<ConnectorLoginResponse> {
+  return callConnector<ConnectorLoginResponse>("/internal/login/manual", payload, {
+    timeoutMs: DEFAULT_CONNECTOR_LOGIN_TIMEOUT_MS
+  });
 }
 
 export async function connectorRequest<TData>(payload: {

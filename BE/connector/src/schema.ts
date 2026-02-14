@@ -10,6 +10,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, "password is required")
 });
 
+export const manualLoginSchema = z.object({
+  instanceUrl: z
+    .string()
+    .trim()
+    .url("instanceUrl must be a valid url")
+    .refine((value) => value.startsWith("https://"), "instanceUrl must start with https://")
+});
+
 export const requestSchema = z.object({
   instanceUrl: z
     .string()

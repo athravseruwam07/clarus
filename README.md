@@ -33,9 +33,13 @@ Phase 1 delivers a hackathon-ready foundation for this system.
 
 ## auth strategy (hackathon option b2)
 
-This repo uses:
+This repo uses a hackathon-friendly connector:
 
-`credentials -> playwright login -> d2l /d2l/api json`
+`playwright login (manual popup) -> capture storageState -> d2l /d2l/api json`
+
+two modes are supported:
+- manual (default ui): you pick your university and sign in inside a popup window. clarus never receives your password.
+- credentials (optional): api can forward username/password once for schools without sso/2fa.
 
 Important constraints:
 - no browser extension
@@ -76,9 +80,12 @@ CONNECTOR_INTERNAL_SECRET=super-secret-shared-string
 ```env
 PORT=4002
 CONNECTOR_INTERNAL_SECRET=super-secret-shared-string
-PLAYWRIGHT_HEADFUL=false
-PLAYWRIGHT_SLOWMO_MS=0
-PLAYWRIGHT_AUTH_WAIT_MS=120000
+PLAYWRIGHT_HEADFUL=true
+PLAYWRIGHT_SLOWMO_MS=75
+PLAYWRIGHT_AUTH_WAIT_MS=180000
+PLAYWRIGHT_LOGIN_UI=popup
+PLAYWRIGHT_CLOSE_ON_SUCCESS=true
+PLAYWRIGHT_REUSE_LOGIN_WINDOW=false
 
 BS_USER_SELECTOR=input[name="username"]
 BS_PASS_SELECTOR=input[name="password"]
@@ -162,6 +169,7 @@ visit:
 
 ### internal connector api (`BE/connector`)
 - `POST /internal/login`
+- `POST /internal/login/manual`
 - `POST /internal/request`
 
 All connector routes require:
@@ -181,6 +189,21 @@ All connector routes require:
   - set `PLAYWRIGHT_SLOWMO_MS=100`
   - set `PLAYWRIGHT_AUTH_WAIT_MS=180000`
   - provide `BS_USER_SELECTOR`, `BS_PASS_SELECTOR`, `BS_SUBMIT_SELECTOR`
+- login opens a separate browser window and you want a new tab in your current chrome:
+  - this is only possible in local dev by attaching to chrome over the devtools protocol
+  - start a dedicated chrome instance with remote debugging:
+    - mac:
+      ```bash
+      npm run chrome:debug
+      ```
+    - or manually:
+      ```bash
+      /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\
+        --remote-debugging-port=9222 \\
+        --user-data-dir=/tmp/clarus-chrome \\
+        http://localhost:3000/login
+      ```
+  - set `PLAYWRIGHT_CONNECT_OVER_CDP=true` in `BE/connector/.env` and restart the connector
 - connector unavailable:
   - verify connector is running at `http://localhost:4002`
   - verify `CONNECTOR_INTERNAL_SECRET` matches in api and connector env files

@@ -1,5 +1,6 @@
 import {
   chromium,
+  type Browser,
   type BrowserContext,
   type BrowserContextOptions,
   type Locator,
@@ -40,6 +41,19 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
+function parsePositiveInt(value: string | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
 function getSlowMoMs(value: string | undefined): number {
   if (!value) {
     return 0;
@@ -65,13 +79,65 @@ function getAuthWaitMs(headless: boolean): number {
   return headless ? 25000 : 120000;
 }
 
-function buildLoginLaunchOptions(): { headless: boolean; slowMo: number } {
+function buildLoginLaunchOptions(): {
+  headless: boolean;
+  slowMo: number;
+  channel?: string;
+  args?: string[];
+} {
   const headful = parseBoolean(process.env.PLAYWRIGHT_HEADFUL, false);
+  const channel = selectorFromEnv("PLAYWRIGHT_BROWSER_CHANNEL") ?? (headful ? "chrome" : undefined);
+  const loginUi = selectorFromEnv("PLAYWRIGHT_LOGIN_UI")?.toLowerCase() ?? null;
+
+  const args: string[] = [];
+
+  if (headful) {
+    const width =
+      parsePositiveInt(process.env.PLAYWRIGHT_LOGIN_WINDOW_WIDTH) ?? (loginUi === "popup" ? 520 : null);
+    const height =
+      parsePositiveInt(process.env.PLAYWRIGHT_LOGIN_WINDOW_HEIGHT) ?? (loginUi === "popup" ? 760 : null);
+    const x = parsePositiveInt(process.env.PLAYWRIGHT_LOGIN_WINDOW_X);
+    const y = parsePositiveInt(process.env.PLAYWRIGHT_LOGIN_WINDOW_Y);
+
+    args.push("--no-first-run", "--no-default-browser-check", "--disable-save-password-bubble");
+
+    if (width && height) {
+      args.push(`--window-size=${width},${height}`);
+    }
+
+    if (x !== null && y !== null) {
+      args.push(`--window-position=${x},${y}`);
+    }
+  }
 
   return {
     headless: !headful,
-    slowMo: getSlowMoMs(process.env.PLAYWRIGHT_SLOWMO_MS)
+    slowMo: getSlowMoMs(process.env.PLAYWRIGHT_SLOWMO_MS),
+    channel,
+    args: args.length > 0 ? args : undefined
   };
+}
+
+function shouldReuseLoginWindow(headless: boolean): boolean {
+  if (headless) {
+    return false;
+  }
+
+  // default true for headful hackathon debugging
+  return parseBoolean(process.env.PLAYWRIGHT_REUSE_LOGIN_WINDOW, true);
+}
+
+function shouldConnectOverCdp(): boolean {
+  return parseBoolean(process.env.PLAYWRIGHT_CONNECT_OVER_CDP, false);
+}
+
+function shouldCloseOnSuccess(): boolean {
+  // default true so the login window doesn't linger after a successful connect.
+  return parseBoolean(process.env.PLAYWRIGHT_CLOSE_ON_SUCCESS, true);
+}
+
+function cdpEndpoint(): string {
+  return selectorFromEnv("PLAYWRIGHT_CDP_ENDPOINT") ?? "http://127.0.0.1:9222";
 }
 
 function buildRequestLaunchOptions(): { headless: true; slowMo: 0 } {
@@ -268,6 +334,170 @@ export function normalizeInstanceUrl(instanceUrl: string): string {
   return parsed.toString().replace(/\/$/, "");
 }
 
+type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
+
+function isHostSuffix(host: string, suffix: string): boolean {
+  if (host === suffix) {
+    return true;
+  }
+
+  return host.endsWith(`.${suffix}`);
+}
+
+function filterStorageStateForInstance(state: StorageState, instanceUrl: string): StorageState {
+  const hostname = new URL(instanceUrl).hostname.toLowerCase();
+
+  const cookies = state.cookies.filter((cookie) => {
+    const domain = cookie.domain.replace(/^\./, "").toLowerCase();
+    return isHostSuffix(hostname, domain);
+  });
+
+  const origins = state.origins.filter((originEntry) => {
+    try {
+      const originHost = new URL(originEntry.origin).hostname.toLowerCase();
+      return isHostSuffix(hostname, originHost);
+    } catch {
+      return false;
+    }
+  });
+
+  return { cookies, origins };
+}
+
+class Mutex {
+  private current: Promise<void> = Promise.resolve();
+
+  async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    // note: promise executors run sync, but ts doesn't track closure assignments reliably
+    let release!: () => void;
+    const next = new Promise<void>((resolve) => {
+      release = () => resolve();
+    });
+
+    const previous = this.current;
+    this.current = this.current.then(() => next);
+
+    await previous;
+
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+}
+
+const loginMutex = new Mutex();
+
+let sharedLoginBrowser: { browser: Browser; context: BrowserContext; keepAlivePage: Page } | null = null;
+
+async function getLoginContext(launchOptions: {
+  headless: boolean;
+  slowMo: number;
+  channel?: string;
+  args?: string[];
+}): Promise<{
+  browser: Browser;
+  context: BrowserContext;
+  keepAlivePage: Page | null;
+  closeAfter: boolean;
+}> {
+  const reuseWindow = shouldReuseLoginWindow(launchOptions.headless);
+
+  if (reuseWindow && sharedLoginBrowser) {
+    if (!sharedLoginBrowser.browser.isConnected()) {
+      sharedLoginBrowser = null;
+    } else if (sharedLoginBrowser.keepAlivePage.isClosed()) {
+      sharedLoginBrowser.keepAlivePage = await sharedLoginBrowser.context.newPage();
+    }
+  }
+
+  if (reuseWindow && sharedLoginBrowser) {
+    return {
+      browser: sharedLoginBrowser.browser,
+      context: sharedLoginBrowser.context,
+      keepAlivePage: sharedLoginBrowser.keepAlivePage,
+      closeAfter: false
+    };
+  }
+
+  let browser: Browser;
+  try {
+    browser = await chromium.launch(launchOptions);
+  } catch (error) {
+    // note: fall back to bundled chromium if system chrome isn't available
+    if (launchOptions.channel) {
+      browser = await chromium.launch({
+        headless: launchOptions.headless,
+        slowMo: launchOptions.slowMo,
+        args: launchOptions.args
+      });
+    } else {
+      throw error;
+    }
+  }
+  const context = await browser.newContext({
+    viewport: launchOptions.headless ? undefined : null
+  });
+
+  if (reuseWindow) {
+    // keep an idle tab open so the same window stays around between logins.
+    const keepAlivePage = await context.newPage();
+    await keepAlivePage.goto("about:blank").catch(() => undefined);
+    sharedLoginBrowser = { browser, context, keepAlivePage };
+    return { browser, context, keepAlivePage, closeAfter: false };
+  }
+
+  return { browser, context, keepAlivePage: null, closeAfter: true };
+}
+
+async function resetLoginContext(context: BrowserContext, keepAlivePage: Page | null): Promise<void> {
+  // best-effort cleanup to avoid leaking sessions across logins.
+  await context.clearCookies().catch(() => undefined);
+  await context.clearPermissions().catch(() => undefined);
+
+  const pages = context.pages();
+  await Promise.all(
+    pages
+      .filter((page) => page !== keepAlivePage)
+      .map((page) => page.close().catch(() => undefined))
+  );
+
+  if (keepAlivePage && !keepAlivePage.isClosed()) {
+    await keepAlivePage.goto("about:blank").catch(() => undefined);
+  }
+}
+
+async function getCdpLoginContext(): Promise<{
+  browser: Browser;
+  context: BrowserContext;
+  keepAlivePage: null;
+  closeAfter: boolean;
+}> {
+  const endpoint = cdpEndpoint();
+
+  let browser: Browser;
+  try {
+    browser = await chromium.connectOverCDP(endpoint, { timeout: 5000 });
+  } catch {
+    throw new ConnectorError(
+      400,
+      "cdp_unavailable",
+      `could not attach to chrome. start chrome with --remote-debugging-port and retry. (expected ${endpoint})`
+    );
+  }
+
+  const contexts = browser.contexts();
+  if (contexts.length === 0) {
+    // note: this is unexpected; fall back to an isolated context
+    const isolated = await browser.newContext();
+    return { browser, context: isolated, keepAlivePage: null, closeAfter: true };
+  }
+
+  const context = contexts[0];
+  return { browser, context, keepAlivePage: null, closeAfter: true };
+}
+
 export async function loginAndCaptureState(input: {
   instanceUrl: string;
   username: string;
@@ -276,34 +506,129 @@ export async function loginAndCaptureState(input: {
   storageState: Record<string, unknown>;
   whoami: Record<string, unknown>;
 }> {
-  const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
-  const launchOptions = buildLoginLaunchOptions();
-  const authWaitMs = getAuthWaitMs(launchOptions.headless);
-  const browser = await chromium.launch(launchOptions);
+  return loginMutex.runExclusive(async () => {
+    const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
+    const launchOptions = buildLoginLaunchOptions();
+    const authWaitMs = getAuthWaitMs(launchOptions.headless);
 
-  try {
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const { browser, context, keepAlivePage, closeAfter } = await getLoginContext(launchOptions);
 
-    await openLoginSurface(page, instanceUrl);
-    await submitCredentials(page, input.username, input.password);
+    let page: Page | null = null;
+    const usingKeepAlive = Boolean(keepAlivePage && !keepAlivePage.isClosed());
+    let isSuccess = false;
 
-    const whoami = await waitForWhoAmI(context, instanceUrl, authWaitMs);
-    const storageState = await context.storageState();
+    try {
+      await resetLoginContext(context, keepAlivePage);
+      page = usingKeepAlive ? keepAlivePage! : await context.newPage();
+      await page.bringToFront().catch(() => undefined);
 
-    return {
-      storageState: storageState as unknown as Record<string, unknown>,
-      whoami
-    };
-  } catch (error) {
-    if (error instanceof ConnectorError) {
-      throw error;
+      await openLoginSurface(page, instanceUrl);
+      await submitCredentials(page, input.username, input.password);
+
+      const whoami = await waitForWhoAmI(context, instanceUrl, authWaitMs);
+      const storageState = await context.storageState();
+      isSuccess = true;
+
+      return {
+        storageState: storageState as unknown as Record<string, unknown>,
+        whoami
+      };
+    } catch (error) {
+      if (error instanceof ConnectorError) {
+        throw error;
+      }
+
+      throw new ConnectorError(400, "login_failed", LOGIN_FAILURE_MESSAGE);
+    } finally {
+      const forceClose = isSuccess && shouldCloseOnSuccess();
+
+      // leave the browser open in reuse mode unless we explicitly want to close it.
+      if (page && (!usingKeepAlive || forceClose)) {
+        await page.close().catch(() => undefined);
+      }
+
+      if (forceClose && sharedLoginBrowser?.browser === browser) {
+        sharedLoginBrowser = null;
+      }
+
+      if (closeAfter || forceClose) {
+        await browser.close().catch(() => undefined);
+      }
+    }
+  });
+}
+
+export async function manualLoginAndCaptureState(input: {
+  instanceUrl: string;
+}): Promise<{
+  storageState: Record<string, unknown>;
+  whoami: Record<string, unknown>;
+}> {
+  return loginMutex.runExclusive(async () => {
+    const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
+    const launchOptions = buildLoginLaunchOptions();
+
+    if (launchOptions.headless) {
+      throw new ConnectorError(
+        400,
+        "manual_login_requires_headful",
+        "manual login requires PLAYWRIGHT_HEADFUL=true"
+      );
     }
 
-    throw new ConnectorError(400, "login_failed", LOGIN_FAILURE_MESSAGE);
-  } finally {
-    await browser.close();
-  }
+    const authWaitMs = getAuthWaitMs(launchOptions.headless);
+    const useCdp = shouldConnectOverCdp();
+
+    const { browser, context, keepAlivePage, closeAfter } = useCdp
+      ? await getCdpLoginContext()
+      : await getLoginContext(launchOptions);
+
+    let page: Page | null = null;
+    const usingKeepAlive = Boolean(keepAlivePage && !keepAlivePage.isClosed());
+    let isSuccess = false;
+
+    try {
+      if (!useCdp) {
+        await resetLoginContext(context, keepAlivePage);
+      }
+      page = usingKeepAlive ? keepAlivePage! : await context.newPage();
+      await page.bringToFront().catch(() => undefined);
+
+      await openLoginSurface(page, instanceUrl);
+      await waitForPageSettled(page);
+
+      // note: user completes login + mfa manually in the opened tab
+      const whoami = await waitForWhoAmI(context, instanceUrl, authWaitMs);
+      const storageState = await context.storageState();
+      const filteredState = useCdp ? filterStorageStateForInstance(storageState, instanceUrl) : storageState;
+      isSuccess = true;
+
+      return {
+        storageState: filteredState as unknown as Record<string, unknown>,
+        whoami
+      };
+    } catch (error) {
+      if (error instanceof ConnectorError) {
+        throw error;
+      }
+
+      throw new ConnectorError(400, "login_failed", LOGIN_FAILURE_MESSAGE);
+    } finally {
+      const forceClose = isSuccess && shouldCloseOnSuccess();
+
+      if (page && (!usingKeepAlive || forceClose)) {
+        await page.close().catch(() => undefined);
+      }
+
+      if (forceClose && sharedLoginBrowser?.browser === browser) {
+        sharedLoginBrowser = null;
+      }
+
+      if (closeAfter || forceClose) {
+        await browser.close().catch(() => undefined);
+      }
+    }
+  });
 }
 
 function getContextOptions(storageState: Record<string, unknown>): BrowserContextOptions {

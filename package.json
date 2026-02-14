@@ -6,6 +6,7 @@
     "dev": "bash scripts/dev-all.sh",
     "dev:be": "bash scripts/dev-be.sh",
     "dev:fe": "cd FE && npm run dev",
+    "chrome:debug": "bash scripts/chrome-debug.sh",
     "db:up": "cd BE && docker compose up -d",
     "db:down": "cd BE && docker compose down"
   }

@@ -3,8 +3,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 
-import { ConnectorError, loginAndCaptureState, requestWithStoredState } from "./d2l.js";
-import { loginSchema, requestSchema } from "./schema.js";
+import { ConnectorError, loginAndCaptureState, manualLoginAndCaptureState, requestWithStoredState } from "./d2l.js";
+import { loginSchema, manualLoginSchema, requestSchema } from "./schema.js";
 
 function requiredEnv(name: "CONNECTOR_INTERNAL_SECRET" | "PORT"): string {
   const value = process.env[name];
@@ -41,6 +41,19 @@ app.post("/internal/login", async (request) => {
     instanceUrl: parsedBody.instanceUrl,
     username: parsedBody.username,
     password: parsedBody.password
+  });
+
+  return {
+    storageState: result.storageState,
+    whoami: result.whoami
+  };
+});
+
+app.post("/internal/login/manual", async (request) => {
+  const parsedBody = manualLoginSchema.parse(request.body);
+
+  const result = await manualLoginAndCaptureState({
+    instanceUrl: parsedBody.instanceUrl
   });
 
   return {
