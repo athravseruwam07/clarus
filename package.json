@@ -1,0 +1,12 @@
+{
+  "name": "clarus",
+  "private": true,
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "dev": "bash scripts/dev-all.sh",
+    "dev:be": "bash scripts/dev-be.sh",
+    "dev:fe": "cd FE && npm run dev",
+    "db:up": "cd BE && docker compose up -d",
+    "db:down": "cd BE && docker compose down"
+  }
+}

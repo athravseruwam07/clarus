@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String    @id @default(cuid())
+  email                     String    @unique
+  name                      String?
+  institutionUrl            String?   @map("institution_url")
+  brightspaceUserId         String?   @unique @map("brightspace_user_id")
+  brightspaceUsername       String?   @map("brightspace_username")
+
+  // encrypted playwright storage state (cookies + local storage)
+  brightspaceStateEncrypted String?   @db.Text @map("brightspace_state_encrypted")
+  stateLastVerifiedAt       DateTime? @map("state_last_verified_at")
+
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  courses                   Course[]
+  syncLogs                  SyncLog[]
+  sessions                  Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Course {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  brightspaceCourseId String    @map("brightspace_course_id")
+  courseName          String    @map("course_name")
+  courseCode          String?   @map("course_code")
+  startDate           DateTime? @map("start_date")
+  endDate             DateTime? @map("end_date")
+  isActive            Boolean   @default(true) @map("is_active")
+  lastSyncedAt        DateTime? @map("last_synced_at")
+  rawData             Json?     @map("raw_data")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, brightspaceCourseId])
+  @@index([userId])
+  @@map("courses")
+}
+
+model SyncLog {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  syncType     String   @map("sync_type") // full, incremental (future)
+  status       String   // success, failed, partial
+  itemsSynced  Int      @default(0) @map("items_synced")
+  errorMessage String?  @db.Text @map("error_message")
+  syncedAt     DateTime @default(now()) @map("synced_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([syncedAt])
+  @@map("sync_logs")
+}
