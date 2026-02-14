@@ -76,13 +76,16 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
   let response: Response;
 
   try {
+    const headers = new Headers(init?.headers);
+    const hasBody = init?.body !== undefined && init?.body !== null;
+    if (hasBody && !headers.has("content-type")) {
+      headers.set("content-type", "application/json");
+    }
+
     response = await fetch(`${API_URL}${path}`, {
       ...init,
       credentials: "include",
-      headers: {
-        "content-type": "application/json",
-        ...(init?.headers ?? {})
-      }
+      headers
     });
   } catch {
     throw new ApiError(
