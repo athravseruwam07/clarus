@@ -45,22 +45,21 @@ const navSections: NavigationSection[] = [
   {
     label: "workspace",
     items: [
-      { kind: "link", label: "overview", href: "/dashboard", icon: LayoutDashboard },
+      { kind: "link", label: "Overview", href: "/dashboard", icon: LayoutDashboard },
       {
         kind: "link",
-        label: "assignment intelligence",
+        label: "Assignment Intelligence",
         href: "/dashboard/assignments/asg-thermo-2",
         icon: Compass
       },
-      { kind: "link", label: "insights", href: "/dashboard/insights", icon: TrendingUp },
-      { kind: "link", label: "ai copilot", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "Insights", href: "/dashboard/insights", icon: TrendingUp }
     ]
   },
   {
     label: "planning",
     items: [
-      { kind: "link", label: "calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
-      { kind: "link", label: "weekly workload", href: "/dashboard/workload-forecast", icon: Gauge }
+      { kind: "link", label: "Calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
+      { kind: "link", label: "Weekly Workload", href: "/dashboard/workload-forecast", icon: Gauge }
     ]
   },
   {
@@ -68,23 +67,23 @@ const navSections: NavigationSection[] = [
     items: [
       {
         kind: "group",
-        label: "upcoming",
+        label: "Upcoming",
         baseHref: "/dashboard/upcoming",
         icon: CalendarRange,
         items: [
-          { label: "assignments", href: "/dashboard/upcoming/assignments" },
-          { label: "quizzes", href: "/dashboard/upcoming/quizzes" },
-          { label: "exams", href: "/dashboard/upcoming/exams" }
+          { label: "Assignments", href: "/dashboard/upcoming/assignments" },
+          { label: "Quizzes", href: "/dashboard/upcoming/quizzes" },
+          { label: "Exams", href: "/dashboard/upcoming/exams" }
         ]
       },
-      { kind: "link", label: "content locator", href: "/dashboard/content-locator", icon: SearchCode }
+      { kind: "link", label: "Content Locator", href: "/dashboard/content-locator", icon: SearchCode }
     ]
   },
   {
     label: "optimization",
     items: [
-      { kind: "link", label: "work plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
-      { kind: "link", label: "copilot mode", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "Work Plan Optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
+      { kind: "link", label: "AI Copilot", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   }
 ];
@@ -140,7 +139,7 @@ export function Sidebar() {
                       <item.icon
                         className={cn("h-4 w-4", isActiveGroup ? "text-primary" : "text-muted-foreground")}
                       />
-                      <span className="capitalize">{item.label}</span>
+                      <span>{item.label}</span>
                       <ChevronDown
                         className={cn(
                           "ml-auto h-4 w-4 transition-transform",
@@ -166,8 +165,13 @@ export function Sidebar() {
                                 : "text-muted-foreground hover:bg-secondary/50"
                             )}
                           >
-                            <span className={cn("h-1 w-1 rounded-full", isSubActive ? "bg-primary" : "bg-muted-foreground/40")} />
-                            <span className="capitalize">{subItem.label}</span>
+                            <span
+                              className={cn(
+                                "h-1 w-1 rounded-full",
+                                isSubActive ? "bg-primary" : "bg-muted-foreground/40"
+                              )}
+                            />
+                            <span>{subItem.label}</span>
                           </Link>
                         );
                       })}
@@ -185,11 +189,13 @@ export function Sidebar() {
                   href={item.href as any}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive ? "border-l-2 border-primary bg-primary/10 text-foreground animate-slide-in" : "text-muted-foreground hover:bg-secondary/50"
+                    isActive
+                      ? "border-l-2 border-primary bg-primary/10 text-foreground animate-slide-in"
+                      : "text-muted-foreground hover:bg-secondary/50"
                   )}
                 >
                   <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="capitalize">{item.label}</span>
+                  <span>{item.label}</span>
                 </Link>
               );
             })}

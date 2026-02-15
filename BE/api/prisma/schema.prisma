@@ -26,6 +26,8 @@ model User {
   calendarEvents            CalendarEvent[]
   timelineEvents            TimelineEvent[]
   aiBriefs                  AiBrief[]
+  copilotThreads            CopilotThread[]
+  copilotMessages           CopilotMessage[]
   itemStates                ItemState[]
   syncLogs                  SyncLog[]
   sessions                  Session[]
@@ -200,4 +202,39 @@ model ItemState {
   @@unique([userId, targetType, targetKey])
   @@index([userId, targetType])
   @@map("item_states")
+}
+
+model CopilotThread {
+  id            String           @id @default(cuid())
+  userId        String           @map("user_id")
+  title         String
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  lastMessageAt DateTime         @default(now()) @map("last_message_at")
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      CopilotMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@map("copilot_threads")
+}
+
+model CopilotMessage {
+  id              String        @id @default(cuid())
+  threadId        String        @map("thread_id")
+  userId          String        @map("user_id")
+  role            String
+  content         String        @db.Text
+  citations       Json?         @map("citations")
+  contextSnapshot Json?         @map("context_snapshot")
+  model           String?       @map("model")
+  latencyMs       Int?          @map("latency_ms")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  thread          CopilotThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([userId, createdAt])
+  @@map("copilot_messages")
 }

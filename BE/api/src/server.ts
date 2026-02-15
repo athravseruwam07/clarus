@@ -13,6 +13,7 @@ import d2lDisconnectRoute from "./routes/d2l.disconnect.js";
 import d2lStatusRoute from "./routes/d2l.status.js";
 import dropboxAssignmentsRoute from "./routes/assignments.dropbox.js";
 import calendarEventsRoute from "./routes/calendar.events.js";
+import copilotRoute from "./routes/copilot.js";
 import contentTopicsRoute from "./routes/content.topics.js";
 import quizzesOverviewRoute from "./routes/quizzes.overview.js";
 import demoFlowRoutes from "./routes/demo.flow.js";
@@ -41,6 +42,7 @@ async function buildServer() {
   await app.register(syncCalendarRoute, { prefix: "/v1" });
   await app.register(dropboxAssignmentsRoute, { prefix: "/v1" });
   await app.register(calendarEventsRoute, { prefix: "/v1" });
+  await app.register(copilotRoute, { prefix: "/v1" });
   await app.register(contentTopicsRoute, { prefix: "/v1" });
   await app.register(quizzesOverviewRoute, { prefix: "/v1" });
   await app.register(itemsStateRoute, { prefix: "/v1" });
