@@ -86,6 +86,188 @@ export interface PlaceholderResponse {
   };
 }
 
+export type WorkItemType =
+  | "assignment"
+  | "quiz"
+  | "test"
+  | "discussion"
+  | "lab"
+  | "project"
+  | "reading"
+  | "presentation"
+  | "other";
+
+export interface WorkPlanWorkItemInput {
+  id: string;
+  title: string;
+  type: WorkItemType;
+  dueAt: string;
+  estimatedMinutes: number;
+  complexityScore: number;
+  riskScore: number;
+  priorityScore: number;
+  gradeWeight: number;
+}
+
+export interface WorkPlanOptimizeRequest {
+  availability: {
+    timezone: string;
+    weekdayMinutes: number;
+    weekendMinutes: number;
+    overrides: Partial<
+      Record<
+        "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday",
+        number
+      >
+    >;
+  };
+  pace: {
+    productivityProfile: "slow" | "steady" | "fast";
+    focusMinutesPerSession: number;
+    breakMinutes: number;
+  };
+  priorities: {
+    preferHighRisk: boolean;
+    preferHighWeight: boolean;
+    preferNearDeadline: boolean;
+  };
+  behavior: {
+    sessionsSkippedLast7d: number;
+    recentSnoozeRate: number;
+    avgCompletionDriftPct: number;
+    preferredTimeOfDay: "morning" | "afternoon" | "evening";
+  };
+  recompute: {
+    trigger: "initial" | "session_skipped" | "workload_changed";
+    workloadChangeNote: string;
+    newAssessmentsAdded: number;
+  };
+  workItems: WorkPlanWorkItemInput[];
+}
+
+export interface WorkPlanOptimizeResponse {
+  planType: "student_work_plan_optimizer";
+  generatedAt: string;
+  summary: {
+    totalWorkItems: number;
+    totalEstimatedHours: number;
+    totalScheduledHours: number;
+    daysPlanned: number;
+    recomputed: boolean;
+    spacedRepetitionBlocks: number;
+  };
+  nextBestAction: {
+    workItemId: string;
+    title: string;
+    action: string;
+    reason: string;
+    recommendedTodayMinutes: number;
+  };
+  adjustments: Array<{
+    kind: "behavior" | "workload" | "risk" | "capacity";
+    title: string;
+    description: string;
+  }>;
+  explanations: string[];
+  dailyPlan: Array<{
+    date: string;
+    totalMinutes: number;
+    focusWindow: "morning" | "afternoon" | "evening";
+    tasks: Array<{
+      blockId: string;
+      workItemId: string;
+      title: string;
+      type: WorkItemType;
+      mode: "prep" | "execution" | "spaced_repetition" | "review";
+      minutes: number;
+      dueAt: string;
+      priorityRank: number;
+      isLatePlacement: boolean;
+      reason: string;
+    }>;
+  }>;
+}
+
+export interface WorkPlanContextItem {
+  id: string;
+  courseId: string;
+  courseName: string;
+  title: string;
+  type: "assignment" | "quiz" | "discussion" | "project" | "lab" | "other";
+  dueAt: string;
+  taskUrl: string;
+  submissionUrl: string;
+  assignmentUrl: string;
+  estimatedMinutes: number;
+  complexityScore: number;
+  riskScore: number;
+  gradeWeight: number;
+  priorityScore: number;
+  priorityBreakdown: {
+    deadlineProximity: number;
+    risk: number;
+    gradeWeight: number;
+    complexity: number;
+    effort: number;
+    knowledgeGapImpact: number;
+    total: number;
+  };
+  delayImpactIfDeferred24h: number;
+  contentLocator: Array<{
+    module: string;
+    lecture: string;
+    resource: string;
+    section: string;
+    url: string;
+    whyRelevant: string;
+    confidence: number;
+  }>;
+  checklistTasks: Array<{
+    id: string;
+    text: string;
+  }>;
+  recentlyChanged: boolean;
+}
+
+export interface WorkPlanContextResponse {
+  generatedAt: string;
+  currentDateIso: string;
+  activeCourses: Array<{
+    courseId: string;
+    courseName: string;
+    courseCode: string | null;
+    courseUrl: string;
+    moduleCount: number;
+    contentPreview: Array<{
+      module: string;
+      lecture: string;
+      resource: string;
+      section: string;
+      url: string;
+      whyRelevant: string;
+      confidence: number;
+    }>;
+  }>;
+  workItems: WorkPlanContextItem[];
+  highestLeverageTask: {
+    id: string;
+    title: string;
+    courseName: string;
+    priorityScore: number;
+    delayImpactIfDeferred24h: number;
+    scoreBreakdown: {
+      deadlineProximity: number;
+      risk: number;
+      gradeWeight: number;
+      complexity: number;
+      effort: number;
+      knowledgeGapImpact: number;
+      total: number;
+    };
+    reason: string;
+  } | null;
+}
+
 export interface RoadmapFeatureContract {
   feature: string;
   lane: string;
@@ -666,11 +848,25 @@ export async function getSubmissionGradeTrackerPlaceholder(): Promise<Placeholde
   });
 }
 
-export async function getStudyPlanOptimizerPlaceholder(payload: unknown): Promise<PlaceholderResponse> {
-  return request<PlaceholderResponse>("/v1/study-plan/optimize", {
+export async function optimizeStudentWorkPlan(
+  payload: WorkPlanOptimizeRequest
+): Promise<WorkPlanOptimizeResponse> {
+  return request<WorkPlanOptimizeResponse>("/v1/work-plan/optimize", {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export async function getWorkPlanContext(): Promise<WorkPlanContextResponse> {
+  return request<WorkPlanContextResponse>("/v1/work-plan/context", {
+    method: "GET"
+  });
+}
+
+export async function getStudyPlanOptimizerPlaceholder(
+  payload: WorkPlanOptimizeRequest
+): Promise<WorkPlanOptimizeResponse> {
+  return optimizeStudentWorkPlan(payload);
 }
 
 export async function getPrioritizationEnginePlaceholder(): Promise<PlaceholderResponse> {

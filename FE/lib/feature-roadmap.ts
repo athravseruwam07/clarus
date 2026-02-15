@@ -99,17 +99,17 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "study-plan-optimizer",
-    title: "Study Plan Optimizer",
+    title: "Work Plan Optimizer",
     route: "/dashboard/study-plan-optimizer",
     summary:
-      "Generate and continuously adapt study blocks, daily tasks, and spaced repetition sessions based on real behavior.",
+      "Generate and continuously adapt work blocks across assignments, quizzes, tests, labs, discussions, projects, and study sessions based on real behavior.",
     lane: "member-3-optimization-experience",
     status: "scaffolded",
-    backendContracts: ["POST /v1/study-plan/optimize"],
+    backendContracts: ["POST /v1/work-plan/optimize"],
     frontendWorkspace:
       "FE/app/dashboard/(member-3-optimization-experience)/study-plan-optimizer/page.tsx",
     backendWorkspace: "BE/api/src/routes/workstreams/member3.optimization.ts",
-    ownership: "Adaptive scheduler + plan re-optimization",
+    ownership: "Adaptive work scheduler + plan re-optimization",
     starterChecklist: [
       "Define schedule inputs (availability, pace, priorities).",
       "Recompute plan when sessions are skipped or workload changes.",

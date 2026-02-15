@@ -1,6 +1,5 @@
-import { FeaturePlaceholder } from "@/components/features/FeaturePlaceholder";
-import { getFeatureBySlug } from "@/lib/feature-roadmap";
+import { redirect } from "next/navigation";
 
 export default function PrioritizationEnginePage() {
-  return <FeaturePlaceholder feature={getFeatureBySlug("prioritization-engine")} />;
+  redirect("/dashboard/study-plan-optimizer#prioritization-engine");
 }
