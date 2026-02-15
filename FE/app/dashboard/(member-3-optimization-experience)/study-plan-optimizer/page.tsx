@@ -3,14 +3,14 @@
 import {
   BookOpen,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
-  Clock3,
   FileText,
   FolderOpen,
   Info,
   Loader2,
   Pencil,
-  PlayCircle,
   RefreshCcw,
   Sparkles,
   TriangleAlert
@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import {
   ApiError,
   getWorkPlanContext,
-  startDemoSession,
   type WorkPlanContextItem,
   type WorkPlanContextResponse
 } from "@/lib/api";
@@ -60,7 +59,6 @@ type PlannerProfileResolved = {
 type ProfileKey = keyof PlannerProfile;
 type RecomputeMode = "initial" | "session_skipped" | "workload_changed";
 type SessionStatus = "pending" | "in_progress" | "completed" | "skipped";
-type ScheduleViewMode = "weekly" | "daily";
 type FrictionReason =
   | "too_tired"
   | "too_busy"
@@ -286,15 +284,9 @@ export default function WorkPlanOptimizerPage() {
   const [wizardOpen, setWizardOpen] = useState(true);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("weekly");
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedDayIso, setSelectedDayIso] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [isStartingSession, setIsStartingSession] = useState(false);
-  const [sessionAdaptiveNote, setSessionAdaptiveNote] = useState("");
-  const [actualMinutesChoice, setActualMinutesChoice] = useState<number | null>(null);
-  const [frictionChoice, setFrictionChoice] = useState<FrictionReason>("none");
   const [behaviorEvents, setBehaviorEvents] = useState<BehaviorEvent[]>([]);
 
   const question = wizardQuestions[wizardStep];
@@ -323,25 +315,7 @@ export default function WorkPlanOptimizerPage() {
     () => weekGroups[selectedWeekIndex] ?? weekGroups[0] ?? [],
     [selectedWeekIndex, weekGroups]
   );
-
-  const weeklySessionsByDay = useMemo(() => {
-    if (!plan || activeWeekDays.length === 0) {
-      return new Map<string, PlannedSession[]>();
-    }
-
-    const daySet = new Set(activeWeekDays.map((day) => day.dateIso));
-    const map = new Map<string, PlannedSession[]>();
-    plan.sessions.forEach((session) => {
-      if (!daySet.has(session.dateIso)) {
-        return;
-      }
-      const list = map.get(session.dateIso) ?? [];
-      list.push(session);
-      map.set(session.dateIso, list);
-    });
-    map.forEach((list) => list.sort((a, b) => a.startMinutes - b.startMinutes));
-    return map;
-  }, [activeWeekDays, plan]);
+  const maxWeekIndex = Math.max(0, weekGroups.length - 1);
 
   const activeWeekLabel = useMemo(() => {
     if (activeWeekDays.length === 0) {
@@ -354,6 +328,21 @@ export default function WorkPlanOptimizerPage() {
     }
     return `${formatDateShort(first)} - ${formatDateShort(last)}`;
   }, [activeWeekDays]);
+
+  const activeWeekSessionCounts = useMemo(() => {
+    if (!plan || activeWeekDays.length === 0) {
+      return new Map<string, number>();
+    }
+    const daySet = new Set(activeWeekDays.map((day) => day.dateIso));
+    const counts = new Map<string, number>();
+    for (const session of plan.sessions) {
+      if (!daySet.has(session.dateIso)) {
+        continue;
+      }
+      counts.set(session.dateIso, (counts.get(session.dateIso) ?? 0) + 1);
+    }
+    return counts;
+  }, [activeWeekDays, plan]);
 
   const selectedDayTimeline = useMemo(() => {
     if (selectedDaySessions.length === 0) {
@@ -377,11 +366,6 @@ export default function WorkPlanOptimizerPage() {
   const selectedSession = useMemo(
     () => plan?.sessions.find((session) => session.id === selectedSessionId) ?? null,
     [plan, selectedSessionId]
-  );
-
-  const activeSession = useMemo(
-    () => plan?.sessions.find((session) => session.id === activeSessionId) ?? null,
-    [plan, activeSessionId]
   );
   const getPrimaryStudyLink = useCallback((session: PlannedSession) => {
     const contentFirst = session.contentLocator.find((link) =>
@@ -495,9 +479,8 @@ export default function WorkPlanOptimizerPage() {
       return;
     }
 
-    const maxWeekIndex = Math.max(0, Math.ceil(plan.days.length / DAYS_PER_WEEK) - 1);
     setSelectedWeekIndex((prev) => Math.min(prev, maxWeekIndex));
-  }, [plan]);
+  }, [maxWeekIndex, plan]);
 
   useEffect(() => {
     if (!plan || activeWeekDays.length === 0) {
@@ -517,6 +500,25 @@ export default function WorkPlanOptimizerPage() {
 
     setSelectedDayIso(firstWithSession?.dateIso ?? activeWeekDays[0]?.dateIso ?? null);
   }, [activeWeekDays, plan, selectedDayIso]);
+
+  useEffect(() => {
+    if (!plan || !selectedDayIso) {
+      return;
+    }
+
+    const sessionsForDay = plan.sessions
+      .filter((session) => session.dateIso === selectedDayIso)
+      .sort((a, b) => a.startMinutes - b.startMinutes);
+
+    if (sessionsForDay.length === 0) {
+      setSelectedSessionId(null);
+      return;
+    }
+
+    setSelectedSessionId((prev) =>
+      prev && sessionsForDay.some((session) => session.id === prev) ? prev : sessionsForDay[0]?.id ?? null
+    );
+  }, [plan, selectedDayIso]);
 
   useEffect(() => {
     if (!hasHydratedLocalState || isLoadingContext || contextError || !context || plan) {
@@ -542,9 +544,15 @@ export default function WorkPlanOptimizerPage() {
       nextPlan.sessions.some((session) => session.dateIso === day.dateIso)
     );
     const nextSelectedDay = initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null;
+    const nextSelectedSession =
+      nextPlan.sessions
+        .filter((session) => session.dateIso === nextSelectedDay)
+        .sort((a, b) => a.startMinutes - b.startMinutes)[0]?.id ??
+      nextPlan.sessions[0]?.id ??
+      null;
     setSelectedDayIso(nextSelectedDay);
     setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
-    setSelectedSessionId(nextPlan.sessions[0]?.id ?? null);
+    setSelectedSessionId(nextSelectedSession);
   }, [
     behaviorEvents,
     context,
@@ -619,9 +627,15 @@ export default function WorkPlanOptimizerPage() {
         nextPlan.sessions.some((session) => session.dateIso === day.dateIso)
       );
       const nextSelectedDay = initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null;
+      const nextSelectedSession =
+        nextPlan.sessions
+          .filter((session) => session.dateIso === nextSelectedDay)
+          .sort((a, b) => a.startMinutes - b.startMinutes)[0]?.id ??
+        nextPlan.sessions[0]?.id ??
+        null;
       setSelectedDayIso(nextSelectedDay);
       setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
-      setSelectedSessionId(nextPlan.sessions[0]?.id ?? null);
+      setSelectedSessionId(nextSelectedSession);
       toast.success(
         mode === "initial"
           ? "plan generated"
@@ -678,13 +692,6 @@ export default function WorkPlanOptimizerPage() {
     await generatePlan("session_skipped");
   }
 
-  function openStartSession(sessionId: string) {
-    setActiveSessionId(sessionId);
-    setActualMinutesChoice(null);
-    setFrictionChoice("none");
-    setSessionAdaptiveNote("");
-  }
-
   function focusSessionDetails(sessionId: string) {
     setSelectedSessionId(sessionId);
     if (typeof document === "undefined") {
@@ -708,7 +715,6 @@ export default function WorkPlanOptimizerPage() {
     setSelectedSessionId(session.id);
     setSelectedDayIso(session.dateIso);
     setSelectedWeekIndex(getWeekIndexForDate(plan.days, session.dateIso));
-    setScheduleView("daily");
 
     if (typeof document === "undefined") {
       return;
@@ -718,71 +724,13 @@ export default function WorkPlanOptimizerPage() {
     schedulePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  async function startSessionNow() {
-    if (!activeSession || isStartingSession) {
-      return;
-    }
-
-    setIsStartingSession(true);
-    try {
-      const started = await startDemoSession({
-        assignmentId: activeSession.itemId,
-        plannedMinutes: activeSession.durationMinutes
-      });
-      updateSessionStatus(activeSession.id, "in_progress");
-      setSessionAdaptiveNote(started.adaptiveNote);
-      toast.success("session started");
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "failed to start";
-      toast.error("session start failed", { description: detail });
-    } finally {
-      setIsStartingSession(false);
-    }
+  function goToPreviousWeek() {
+    setSelectedWeekIndex((prev) => Math.max(0, prev - 1));
   }
 
-  function markSessionCompleted() {
-    if (!activeSession) {
-      return;
-    }
-
-    setBehaviorEvents((prev) => [
-      {
-        sessionId: activeSession.id,
-        itemId: activeSession.itemId,
-        status: "completed",
-        actualMinutes: actualMinutesChoice ?? activeSession.durationMinutes,
-        frictionReason: "none",
-        createdAt: new Date().toISOString()
-      },
-      ...prev
-    ]);
-    updateSessionStatus(activeSession.id, "completed");
-    setActiveSessionId(null);
-    toast.success("session completed");
+  function goToNextWeek() {
+    setSelectedWeekIndex((prev) => Math.min(maxWeekIndex, prev + 1));
   }
-
-  function markSessionSkipped() {
-    if (!activeSession) {
-      return;
-    }
-
-    setBehaviorEvents((prev) => [
-      {
-        sessionId: activeSession.id,
-        itemId: activeSession.itemId,
-        status: "skipped",
-        actualMinutes: 0,
-        frictionReason: frictionChoice,
-        createdAt: new Date().toISOString()
-      },
-      ...prev
-    ]);
-    updateSessionStatus(activeSession.id, "skipped");
-    setActiveSessionId(null);
-    toast.message("session skipped logged");
-  }
-
-  const profileSummary = summarizeProfile(profile);
 
   return (
     <div className="space-y-5">
@@ -838,7 +786,7 @@ export default function WorkPlanOptimizerPage() {
       ) : null}
 
       {!plan && !isLoadingContext && !contextError && !requiredAnswered ? (
-        <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-4">
           <Card className="border-primary/30">
             <CardHeader className="space-y-2">
               <div className="flex items-center justify-between">
@@ -907,27 +855,6 @@ export default function WorkPlanOptimizerPage() {
                     </Button>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">profile summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <SummaryRow label="weekday budget" value={profileSummary.weekdayBudget} />
-              <SummaryRow label="weekend budget" value={profileSummary.weekendBudget} />
-              <SummaryRow label="preferred time" value={profileSummary.preferredTime} />
-              <SummaryRow label="block length" value={profileSummary.blockLength} />
-              <SummaryRow label="start style" value={profileSummary.startBehavior} />
-              <SummaryRow label="split style" value={profileSummary.splitPreference} />
-              <SummaryRow label="buffer" value={profileSummary.bufferPreference} />
-              <SummaryRow label="outside load" value={profileSummary.outsideLoad} />
-              <SummaryRow label="reminders" value={profileSummary.reminderAggressiveness} />
-              <div className="mt-3 rounded-md border border-border/70 bg-secondary/20 p-2 text-xs">
-                using {context?.activeCourses.length ?? 0} active courses and{" "}
-                {context?.workItems.length ?? 0} active assessments from D2L.
               </div>
             </CardContent>
           </Card>
@@ -1012,43 +939,51 @@ export default function WorkPlanOptimizerPage() {
 
           <section className="space-y-4">
             <Card id="schedule-panel">
-              <CardHeader className="space-y-3">
+              <CardHeader className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-xl">schedule</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {PLANNING_WEEKS}-week horizon · {activeWeekLabel || "select a week"}
+                      {PLANNING_WEEKS}-week horizon
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={scheduleView === "weekly" ? "default" : "secondary"}
-                      onClick={() => setScheduleView("weekly")}
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                      weekly
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={scheduleView === "daily" ? "default" : "secondary"}
-                      onClick={() => setScheduleView("daily")}
-                    >
-                      <Clock3 className="h-4 w-4" />
-                      daily
-                    </Button>
-                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {weekGroups.map((week, index) => {
-                    const first = week[0]?.dateIso;
-                    const last = week[week.length - 1]?.dateIso;
-                    const selected = selectedWeekIndex === index;
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-secondary/20 p-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 w-8 px-0"
+                    onClick={goToPreviousWeek}
+                    disabled={selectedWeekIndex === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="text-center">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      week {selectedWeekIndex + 1} of {Math.max(1, weekGroups.length)}
+                    </p>
+                    <p className="text-sm font-medium text-foreground">{activeWeekLabel || "No week selected"}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 w-8 px-0"
+                    onClick={goToNextWeek}
+                    disabled={selectedWeekIndex >= maxWeekIndex}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+                  {activeWeekDays.map((day) => {
+                    const selected = selectedDayIso === day.dateIso;
                     return (
                       <button
-                        key={`week-${index}`}
+                        key={`day-picker-${day.dateIso}`}
                         type="button"
-                        onClick={() => setSelectedWeekIndex(index)}
+                        onClick={() => setSelectedDayIso(day.dateIso)}
                         className={cn(
                           "rounded-md border px-3 py-2 text-left transition-colors",
                           selected
@@ -1056,228 +991,137 @@ export default function WorkPlanOptimizerPage() {
                             : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
                         )}
                       >
-                        <p className="text-xs font-medium text-foreground">week {index + 1}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {first ? formatDateShort(first) : ""} - {last ? formatDateShort(last) : ""}
-                        </p>
+                        <p className="text-xs font-medium text-foreground">{day.dayLabel}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateShort(day.dateIso)}</p>
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{activeWeekSessionCounts.get(day.dateIso) ?? 0} block(s)</span>
+                          <span>
+                            {day.usedMinutes}/{day.capacityMinutes}m
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {scheduleView === "weekly" ? (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {activeWeekDays.map((day) => {
-                      const daySessions = weeklySessionsByDay.get(day.dateIso) ?? [];
-                      return (
+
+                {selectedDayTimeline ? (
+                  <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>12 AM</span>
+                      <span>6 AM</span>
+                      <span>12 PM</span>
+                      <span>6 PM</span>
+                      <span>12 AM</span>
+                    </div>
+                    <div className="relative mt-2 h-16 rounded-md border border-border/60 bg-background/70">
+                      {Array.from({ length: 9 }).map((_, idx) => (
+                        <span
+                          key={`hour-grid-${idx}`}
+                          className={cn(
+                            "absolute bottom-0 top-0 w-px",
+                            idx % 2 === 0 ? "bg-border/35" : "bg-border/20"
+                          )}
+                          style={{ left: `${(idx / 8) * 100}%` }}
+                        />
+                      ))}
+                      {selectedDayTimeline.segments.map((segment) => (
                         <button
-                          key={`week-day-${day.dateIso}`}
+                          key={`timeline-${segment.id}`}
                           type="button"
-                          onClick={() => {
-                            setSelectedDayIso(day.dateIso);
-                            setSelectedSessionId(daySessions[0]?.id ?? null);
-                            setScheduleView("daily");
+                          onClick={() => focusSessionDetails(segment.id)}
+                          className={cn(
+                            "absolute top-2 h-12 overflow-hidden rounded-md border px-2 text-left text-[11px] leading-tight",
+                            selectedSessionId === segment.id
+                              ? "border-primary/70 bg-primary/30 text-foreground"
+                              : "border-primary/45 bg-primary/15 text-foreground/90 hover:bg-primary/20"
+                          )}
+                          style={{
+                            left: `${segment.leftPct}%`,
+                            width: `${segment.widthPct}%`
                           }}
-                          className="rounded-md border border-border/70 bg-secondary/20 p-3 text-left transition-colors hover:bg-secondary/35"
+                          title={`${segment.label} · ${segment.timeLabel}`}
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-medium text-foreground">
-                              {day.dayLabel} · {formatDateShort(day.dateIso)}
-                            </p>
-                            <Badge variant="secondary">{daySessions.length} block(s)</Badge>
-                          </div>
-                          <div className="relative mt-2 h-9 rounded-md border border-border/60 bg-background/70">
-                            {[0, 6, 12, 18, 24].map((hour) => (
-                              <span
-                                key={`week-hour-${day.dateIso}-${hour}`}
-                                className="absolute bottom-0 top-0 w-px bg-border/35"
-                                style={{ left: `${(hour / 24) * 100}%` }}
-                              />
-                            ))}
-                            {daySessions.map((session) => (
-                              <span
-                                key={`week-segment-${session.id}`}
-                                className={cn(
-                                  "absolute top-1 h-7 rounded border border-primary/55 bg-primary/20",
-                                  selectedSessionId === session.id ? "bg-primary/35" : ""
-                                )}
-                                style={{
-                                  left: `${(session.startMinutes / (24 * 60)) * 100}%`,
-                                  width: `${Math.max(4, (session.durationMinutes / (24 * 60)) * 100)}%`
-                                }}
-                                title={`${session.title} · ${session.startLabel} - ${formatTime(
-                                  session.startMinutes + session.durationMinutes
-                                )}`}
-                              />
-                            ))}
-                          </div>
-                          <p className="mt-2 text-[11px] text-muted-foreground">
-                            {day.usedMinutes}/{day.capacityMinutes}m planned
-                          </p>
+                          {segment.label}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Full-day timeline (24h). Click a block for details.
+                    </p>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      {activeWeekDays.map((day) => {
-                        const selected = selectedDayIso === day.dateIso;
-                        return (
-                          <button
-                            key={`day-picker-${day.dateIso}`}
-                            type="button"
-                            onClick={() => setSelectedDayIso(day.dateIso)}
-                            className={cn(
-                              "rounded-md border px-3 py-2 text-left transition-colors",
-                              selected
-                                ? "border-primary/60 bg-primary/10"
-                                : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
-                            )}
-                          >
-                            <p className="text-xs font-medium text-foreground">
-                              {day.dayLabel} · {formatDateShort(day.dateIso)}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {day.usedMinutes}/{day.capacityMinutes}m
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                ) : null}
 
-                    {selectedDayTimeline ? (
-                      <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>12 AM</span>
-                          <span>6 AM</span>
-                          <span>12 PM</span>
-                          <span>6 PM</span>
-                          <span>12 AM</span>
-                        </div>
-                        <div className="relative mt-2 h-16 rounded-md border border-border/60 bg-background/70">
-                          {Array.from({ length: 9 }).map((_, idx) => (
-                            <span
-                              key={`hour-grid-${idx}`}
-                              className={cn(
-                                "absolute bottom-0 top-0 w-px",
-                                idx % 2 === 0 ? "bg-border/35" : "bg-border/20"
-                              )}
-                              style={{ left: `${(idx / 8) * 100}%` }}
-                            />
-                          ))}
-                          {selectedDayTimeline.segments.map((segment) => (
-                            <button
-                              key={`timeline-${segment.id}`}
-                              type="button"
-                              onClick={() => focusSessionDetails(segment.id)}
-                              className={cn(
-                                "absolute top-2 h-12 overflow-hidden rounded-md border px-2 text-left text-[11px] leading-tight",
-                                selectedSessionId === segment.id
-                                  ? "border-primary/70 bg-primary/30 text-foreground"
-                                  : "border-primary/45 bg-primary/15 text-foreground/90 hover:bg-primary/20"
-                              )}
-                              style={{
-                                left: `${segment.leftPct}%`,
-                                width: `${segment.widthPct}%`
-                              }}
-                              title={`${segment.label} · ${segment.timeLabel}`}
-                            >
-                              {segment.label}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Full-day timeline (24h). Click a block for details.
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
-                    )}
-
-                    <div className="space-y-2">
-                      {selectedDaySessions.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
-                      ) : (
-                        selectedDaySessions.map((session) => {
-                          const studyLink = getPrimaryStudyLink(session);
-                          return (
-                            <div
-                              key={session.id}
-                              className={cn(
-                                "rounded-md border px-3 py-3",
-                                selectedSessionId === session.id
-                                  ? "border-primary/60 bg-primary/10"
-                                  : "border-border/70 bg-secondary/20"
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div>
-                                  <p className="text-sm font-medium text-foreground">{session.title}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {session.startLabel} - {formatTime(session.startMinutes + session.durationMinutes)} ·{" "}
-                                    {session.durationMinutes}m
-                                  </p>
-                                </div>
-                                <Badge variant="secondary">{session.status}</Badge>
-                              </div>
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="h-8 text-xs"
-                                  onClick={() => focusSessionDetails(session.id)}
-                                >
-                                  <Info className="h-3.5 w-3.5" />
-                                  details
-                                </Button>
-                                <a
-                                  href={session.taskUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
-                                >
-                                  <FileText className="h-3.5 w-3.5" />
-                                  open task
-                                </a>
-                                <a
-                                  href={session.submissionUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
-                                >
-                                  <FolderOpen className="h-3.5 w-3.5" />
-                                  dropbox/rubric
-                                </a>
-                                {studyLink ? (
-                                  <a
-                                    href={studyLink.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
-                                  >
-                                    <BookOpen className="h-3.5 w-3.5" />
-                                    open resources
-                                  </a>
-                                ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="ml-auto h-8 text-xs"
-                                  onClick={() => openStartSession(session.id)}
-                                >
-                                  <PlayCircle className="h-3.5 w-3.5" />
-                                  start
-                                </Button>
-                              </div>
+                <div className="space-y-2">
+                  {selectedDaySessions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
+                  ) : (
+                    selectedDaySessions.map((session) => {
+                      const studyLink = getPrimaryStudyLink(session);
+                      return (
+                        <div
+                          key={session.id}
+                          className={cn(
+                            "rounded-md border px-3 py-3",
+                            selectedSessionId === session.id
+                              ? "border-primary/60 bg-primary/10"
+                              : "border-border/70 bg-secondary/20"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{session.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {session.startLabel} - {formatTime(session.startMinutes + session.durationMinutes)} ·{" "}
+                                {session.durationMinutes}m
+                              </p>
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </>
-                )}
+                            <Badge variant="secondary">{session.status}</Badge>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 text-xs"
+                              onClick={() => focusSessionDetails(session.id)}
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                              details
+                            </Button>
+                            <a
+                              href={session.taskUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              open task
+                            </a>
+                            <a
+                              href={session.submissionUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
+                            >
+                              <FolderOpen className="h-3.5 w-3.5" />
+                              dropbox/rubric
+                            </a>
+                            {studyLink ? (
+                              <a
+                                href={studyLink.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
+                              >
+                                <BookOpen className="h-3.5 w-3.5" />
+                                open resources
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -1346,15 +1190,11 @@ export default function WorkPlanOptimizerPage() {
                               target="_blank"
                               rel="noreferrer"
                               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                            >
-                              <BookOpen className="h-4 w-4" />
-                              open resources
-                            </a>
-                          ) : null}
-                          <Button size="sm" onClick={() => openStartSession(topTaskSession.id)}>
-                            <PlayCircle className="h-4 w-4" />
-                            start now
-                          </Button>
+                          >
+                            <BookOpen className="h-4 w-4" />
+                            open resources
+                          </a>
+                        ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -1494,10 +1334,6 @@ export default function WorkPlanOptimizerPage() {
                             open resources
                           </a>
                         ) : null}
-                        <Button size="sm" onClick={() => openStartSession(selectedSession.id)}>
-                          <PlayCircle className="h-4 w-4" />
-                          start session
-                        </Button>
                       </div>
                     </div>
 
@@ -1620,110 +1456,6 @@ export default function WorkPlanOptimizerPage() {
         </div>
       ) : null}
 
-      {activeSession ? (
-        <div className="fixed inset-0 z-50 bg-black/45">
-          <div className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto bg-background p-4">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">start session</p>
-                  <h3 className="text-lg font-semibold">{activeSession.title}</h3>
-                </div>
-                <Button variant="secondary" size="sm" onClick={() => setActiveSessionId(null)}>
-                  close
-                </Button>
-              </div>
-
-              <Card>
-                <CardContent className="space-y-2 p-4 text-sm">
-                  <p>
-                    <Clock3 className="mr-1 inline h-4 w-4" />
-                    {activeSession.durationMinutes} min planned
-                  </p>
-                  <p className="text-muted-foreground">goal: {activeSession.goal}</p>
-                  <p className="text-muted-foreground">
-                    where to start: {getPrimaryStudyLink(activeSession)?.module ?? "course content"} to{" "}
-                    {getPrimaryStudyLink(activeSession)?.lecture ?? "relevant lecture"}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => void startSessionNow()} disabled={isStartingSession}>
-                      {isStartingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-                      start session
-                    </Button>
-                    <Button variant="secondary" onClick={markSessionCompleted}>
-                      <CheckCircle2 className="h-4 w-4" />
-                      mark completed
-                    </Button>
-                    <Button variant="secondary" onClick={markSessionSkipped}>
-                      <TriangleAlert className="h-4 w-4" />
-                      mark skipped
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">session log</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm text-muted-foreground">
-                  <div>
-                    <p className="mb-1 text-xs uppercase tracking-wide">actual time spent</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[20, 30, 45, 60, 90, 120].map((minutes) => (
-                        <button
-                          key={`${activeSession.id}-${minutes}`}
-                          type="button"
-                          onClick={() => setActualMinutesChoice(minutes)}
-                          className={cn(
-                            "rounded-md border px-2 py-1 text-xs",
-                            actualMinutesChoice === minutes
-                              ? "border-primary/60 bg-primary/10 text-foreground"
-                              : "border-border/70 bg-secondary/20"
-                          )}
-                        >
-                          {minutes}m
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs uppercase tracking-wide">if skipped, why?</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { value: "too_tired", label: "too tired" },
-                        { value: "too_busy", label: "too busy" },
-                        { value: "did_not_know_where_to_start", label: "didn't know where to start" },
-                        { value: "task_too_big", label: "task too big" }
-                      ].map((option) => (
-                        <button
-                          key={`${activeSession.id}-${option.value}`}
-                          type="button"
-                          onClick={() => setFrictionChoice(option.value as FrictionReason)}
-                          className={cn(
-                            "rounded-md border px-2 py-1 text-xs",
-                            frictionChoice === option.value
-                              ? "border-primary/60 bg-primary/10 text-foreground"
-                              : "border-border/70 bg-secondary/20"
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {sessionAdaptiveNote ? (
-                    <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs text-foreground">
-                      {sessionAdaptiveNote}
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {!isLoadingContext && !contextError && context && context.workItems.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
@@ -1733,40 +1465,6 @@ export default function WorkPlanOptimizerPage() {
       ) : null}
     </div>
   );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-xs uppercase tracking-wide">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function summarizeProfile(profile: PlannerProfile): Record<string, string> {
-  return {
-    weekdayBudget: prettyValue(profile.weekdayBudget),
-    weekendBudget: prettyValue(profile.weekendBudget),
-    preferredTime: prettyValue(profile.preferredTime),
-    blockLength:
-      profile.workStyle === "deep"
-        ? "90-120 min"
-        : profile.workStyle === "short"
-          ? "20-30 min"
-          : profile.workStyle === "medium"
-            ? "45-60 min"
-            : "not set",
-    startBehavior: prettyValue(profile.startBehavior),
-    splitPreference: prettyValue(profile.splitPreference),
-    bufferPreference: prettyValue(profile.bufferPreference),
-    outsideLoad: prettyValue(profile.outsideLoad),
-    reminderAggressiveness: prettyValue(profile.reminderAggressiveness)
-  };
-}
-
-function prettyValue(value: string | null): string {
-  return value ? value.replace(/_/g, " ") : "not set";
 }
 
 function buildTopTaskGuidance(topTask: GeneratedPlan["topTask"]): {
@@ -1803,7 +1501,7 @@ function buildTopTaskGuidance(topTask: GeneratedPlan["topTask"]): {
   return {
     summary: topTask.reason,
     reasons,
-    nextStep: "Open the task, review the first checklist item, and start one focused session now."
+    nextStep: "Open the task, review the first checklist item, and complete one focused block now."
   };
 }
 
