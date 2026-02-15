@@ -18,9 +18,9 @@ export interface FeatureRoadmapItem {
 }
 
 export const laneLabels: Record<FeatureLane, string> = {
-  "member-1-foundation-modeling": "Member 1: LMS Foundation + Predictive Modeling",
-  "member-2-semantic-intelligence": "Member 2: Semantic Intelligence + Knowledge Mapping",
-  "member-3-optimization-experience": "Member 3: Optimization + Copilot Experience"
+  "member-1-foundation-modeling": "Planning + Calendar",
+  "member-2-semantic-intelligence": "Coursework Intelligence",
+  "member-3-optimization-experience": "Optimization + Copilot"
 };
 
 export const featureRoadmap: FeatureRoadmapItem[] = [
@@ -45,7 +45,7 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "workload-forecast",
-    title: "Workload Forecast",
+    title: "Weekly Workload",
     route: "/dashboard/workload-forecast",
     summary:
       "Forecast heavy weeks using task mix, rubric density, deliverables, and estimated hours.",

@@ -62,7 +62,8 @@ const corsPlugin: FastifyPluginAsync = async (fastify) => {
 
       callback(null, false);
     },
-    credentials: true
+    credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"]
   });
 };
 

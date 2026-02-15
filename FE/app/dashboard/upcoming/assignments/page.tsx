@@ -1,48 +1,71 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
 
-const placeholders = [
-  { title: "Problem Set Draft", course: "Thermodynamics", due: "Due: TBD", priority: "high" as const },
-  { title: "Lab Writeup", course: "Physics Lab", due: "Due: TBD", priority: "medium" as const },
-  { title: "Reading Reflection", course: "Humanities", due: "Due: TBD", priority: "low" as const },
-  { title: "Project Milestone", course: "Design Studio", due: "Due: TBD", priority: "high" as const }
-];
+import { format } from "date-fns";
+import { useMemo } from "react";
 
-function priorityVariant(priority: (typeof placeholders)[number]["priority"]) {
-  if (priority === "high") {
-    return "destructive";
-  }
-  if (priority === "medium") {
-    return "default";
-  }
-  return "secondary";
-}
+import { safeDateFromIso, sortByStartAt } from "@/lib/classifyEvent";
+import {
+  buildOverviewHref,
+  computeUrgency,
+  deduplicateBySource,
+  filterAssignments,
+  groupEventsByTime
+} from "@/lib/upcomingUtils";
+import UpcomingEmptyState from "@/components/upcoming/UpcomingEmptyState";
+import UpcomingItemCard from "@/components/upcoming/UpcomingItemCard";
+import UpcomingPageShell from "@/components/upcoming/UpcomingPageShell";
+import UpcomingSkeleton from "@/components/upcoming/UpcomingSkeleton";
+import UpcomingTimeGroup from "@/components/upcoming/UpcomingTimeGroup";
 
 export default function UpcomingAssignmentsPage() {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Assignments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {placeholders.map((item) => (
-            <div
-              key={`${item.course}-${item.title}`}
-              className="flex items-start justify-between gap-3 rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/50"
-            >
-              <div>
-                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.course} · {item.due}
-                </p>
-              </div>
-              <Badge variant={priorityVariant(item.priority)}>{item.priority} priority</Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+    <UpcomingPageShell>
+      {({ events, isLoading }) => {
+        const now = new Date();
+
+        const grouped = useMemo(() => {
+          const filtered = filterAssignments(events);
+          const deduped = deduplicateBySource(filtered, "due");
+          const sorted = [...deduped].sort(sortByStartAt);
+          // Future-only: filter out events in the past.
+          const futureOnly = sorted.filter((e) => {
+            const d = safeDateFromIso(e.startAt);
+            return d && d >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          });
+          return groupEventsByTime(futureOnly, now);
+        }, [events]);
+
+        if (isLoading) return <UpcomingSkeleton />;
+        if (grouped.length === 0) return <UpcomingEmptyState itemType="assignments" />;
+
+        return (
+          <div className="space-y-4">
+            {grouped.map((group) => (
+              <UpcomingTimeGroup key={group.key} label={group.label} count={group.events.length}>
+                {group.events.map((event) => {
+                  const startAt = safeDateFromIso(event.startAt);
+                  const dateLabel = startAt
+                    ? `Due: ${format(startAt, "EEE, MMM d 'at' p")}`
+                    : "Due: TBD";
+                  const urgency = startAt ? computeUrgency(startAt, now) : "upcoming";
+                  const courseLabel = event.courseCode ?? event.courseName;
+
+                  return (
+                    <UpcomingItemCard
+                      key={event.id}
+                      title={event.title}
+                      courseLabel={courseLabel}
+                      dateLabel={dateLabel}
+                      urgency={urgency}
+                      overviewHref={buildOverviewHref(event)}
+                    />
+                  );
+                })}
+              </UpcomingTimeGroup>
+            ))}
+          </div>
+        );
+      }}
+    </UpcomingPageShell>
   );
 }
-

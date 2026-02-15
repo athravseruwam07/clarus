@@ -3,6 +3,8 @@ import type { FastifyPluginAsync } from "fastify";
 import { AppError } from "../../lib/errors.js";
 import { buildPlaceholderResponse } from "../../lib/placeholder.js";
 import { prisma } from "../../lib/prisma.js";
+import { getCurrentMonday, buildForecast } from "../../lib/workloadForecast.js";
+import type { ForecastAssessment } from "../../lib/workloadForecast.js";
 
 const CALENDAR_SYNC_STALE_MS = 12 * 60 * 60 * 1000;
 
@@ -202,13 +204,173 @@ const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: fastify.requireAuth
     },
     async (request) => {
-      return buildPlaceholderResponse({
-        request,
-        feature: "workload_radar_forecast",
-        lane: "member-1-foundation-modeling",
-        nextAction:
-          "Generate week-level workload forecast using assessment density, rubric complexity, and effort inputs."
+      if (!request.auth) {
+        throw new AppError(401, "authentication required", "unauthorized");
+      }
+
+      const monday = getCurrentMonday();
+      const fourWeeksOut = new Date(monday);
+      fourWeeksOut.setDate(monday.getDate() + 28);
+
+      const events = await prisma.timelineEvent.findMany({
+        where: {
+          userId: request.auth.user.id,
+          startAt: { gte: monday, lt: fourWeeksOut },
+          dateKind: { in: ["due", "event"] }
+        },
+        include: {
+          course: { select: { courseName: true, courseCode: true } }
+        },
+        orderBy: { startAt: "asc" }
       });
+
+      // Build brief lookup keys based on how each source type stores its targetKey
+      const briefLookups: { targetType: string; targetKey: string }[] = [];
+      for (const e of events) {
+        switch (e.sourceType) {
+          case "dropbox_folder":
+            briefLookups.push({ targetType: "dropbox", targetKey: `${e.brightspaceOrgUnitId}:${e.sourceId}` });
+            break;
+          case "content_topic":
+            briefLookups.push({ targetType: "content_topic", targetKey: `${e.brightspaceOrgUnitId}:${e.sourceId}` });
+            break;
+          case "quiz":
+            briefLookups.push({ targetType: "quiz", targetKey: `${e.brightspaceOrgUnitId}:${e.sourceId}` });
+            break;
+          case "calendar":
+            briefLookups.push({ targetType: "calendar_event", targetKey: e.sourceId });
+            break;
+          default:
+            break;
+        }
+      }
+
+      // Batch-fetch AI briefs where available
+      const briefs = briefLookups.length > 0
+        ? await prisma.aiBrief.findMany({
+            where: {
+              userId: request.auth.user.id,
+              OR: briefLookups.map((l) => ({ targetType: l.targetType, targetKey: l.targetKey }))
+            }
+          })
+        : [];
+
+      const briefMap = new Map(briefs.map((b) => [`${b.targetType}:${b.targetKey}`, b.briefJson]));
+
+      // Helper: resolve the brief lookup key for an event
+      function briefKeyFor(e: typeof events[number]): string | null {
+        switch (e.sourceType) {
+          case "dropbox_folder": return `dropbox:${e.brightspaceOrgUnitId}:${e.sourceId}`;
+          case "content_topic": return `content_topic:${e.brightspaceOrgUnitId}:${e.sourceId}`;
+          case "quiz": return `quiz:${e.brightspaceOrgUnitId}:${e.sourceId}`;
+          case "calendar": return `calendar_event:${e.sourceId}`;
+          default: return null;
+        }
+      }
+
+      // Map sourceType → assessmentType
+      function inferAssessmentType(e: typeof events[number]): ForecastAssessment["assessmentType"] {
+        switch (e.sourceType) {
+          case "dropbox_folder": return "assignment";
+          case "quiz": return "quiz";
+          case "content_topic": return "assignment";
+          case "discussion_forum":
+          case "discussion_topic": return "discussion";
+          case "checklist": return "assignment";
+          case "content_module": return "assignment";
+          case "generic": return "assignment";
+          case "calendar": {
+            const t = e.title.toLowerCase();
+            if (/\b(midterm|exam|final)\b/.test(t)) return "midterm";
+            if (/\blab\b/.test(t)) return "lab";
+            if (/\bquiz\b/.test(t)) return "quiz";
+            if (/\bproject\b/.test(t)) return "project";
+            if (/\bdiscussion\b/.test(t)) return "discussion";
+            return "assignment";
+          }
+          default: return "assignment";
+        }
+      }
+
+      // Default hour estimates by assessment type
+      const DEFAULT_HOURS: Record<ForecastAssessment["assessmentType"], number> = {
+        midterm: 5,
+        assignment: 3,
+        project: 4,
+        quiz: 1.5,
+        lab: 2,
+        discussion: 1
+      };
+
+      // Estimate hours from AI brief checklist or fall back to defaults
+      function estimateHours(briefJson: unknown, assessmentType: ForecastAssessment["assessmentType"]): number {
+        if (briefJson && typeof briefJson === "object" && !Array.isArray(briefJson)) {
+          const brief = briefJson as { checklist?: Array<{ estimatedMinutes?: number | null }> };
+          if (Array.isArray(brief.checklist) && brief.checklist.length > 0) {
+            const totalMinutes = brief.checklist.reduce(
+              (sum, item) => sum + (item.estimatedMinutes ?? 0), 0
+            );
+            if (totalMinutes > 0) {
+              return Math.round((totalMinutes / 60) * 10) / 10;
+            }
+          }
+        }
+        return DEFAULT_HOURS[assessmentType];
+      }
+
+      // Derive complexity from assessment type, override if brief has 2+ risk flags
+      function deriveComplexity(assessmentType: ForecastAssessment["assessmentType"], briefJson: unknown): ForecastAssessment["complexity"] {
+        let base: ForecastAssessment["complexity"];
+        switch (assessmentType) {
+          case "midterm":
+          case "project":
+            base = "high";
+            break;
+          case "discussion":
+            base = "low";
+            break;
+          default:
+            base = "medium";
+        }
+
+        if (briefJson && typeof briefJson === "object" && !Array.isArray(briefJson)) {
+          const brief = briefJson as { riskFlags?: string[] };
+          if (Array.isArray(brief.riskFlags) && brief.riskFlags.length >= 2) {
+            base = "high";
+          }
+        }
+
+        return base;
+      }
+
+      // Map events to ForecastAssessment[]
+      const assessments: ForecastAssessment[] = events.map((e) => {
+        const assessmentType = inferAssessmentType(e);
+        const bKey = briefKeyFor(e);
+        const briefJson = bKey ? briefMap.get(bKey) ?? null : null;
+        const estimatedHours = estimateHours(briefJson, assessmentType);
+        const complexity = deriveComplexity(assessmentType, briefJson);
+
+        return {
+          id: `${e.sourceType}:${e.sourceId}`,
+          title: e.title,
+          courseName: e.course?.courseName ?? "Unknown Course",
+          courseCode: e.course?.courseCode ?? "",
+          assessmentType,
+          dueDate: e.startAt.toISOString(),
+          estimatedHours,
+          complexity,
+          weight: 0,
+          sourceType: e.sourceType,
+          sourceId: e.sourceId,
+          orgUnitId: e.brightspaceOrgUnitId,
+          associatedEntityType: e.associatedEntityType ?? null,
+          associatedEntityId: e.associatedEntityId ?? null,
+          viewUrl: e.viewUrl ?? null
+        };
+      });
+
+      return buildForecast(assessments);
     }
   );
 

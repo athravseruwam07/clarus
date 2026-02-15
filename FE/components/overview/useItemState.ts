@@ -18,6 +18,12 @@ function toCheckedIds(map: CheckedById): string[] {
     .map(([id]) => id);
 }
 
+const EMPTY_BASELINE = {
+  checkedIds: [] as string[],
+  locationText: null as string | null,
+  notesText: null as string | null
+};
+
 export function useItemState(params: {
   targetType: OverviewTargetType;
   targetKey: string;
@@ -57,16 +63,12 @@ export function useItemState(params: {
           locationText: payload.locationText ?? null,
           notesText: payload.notesText ?? null
         };
-      } catch (error) {
+      } catch {
         if (cancelled) return;
-        if (error instanceof ApiError && error.code === "state_not_found") {
-          lastSavedRef.current = {
-            checkedIds: [],
-            locationText: null,
-            notesText: null
-          };
-          return;
-        }
+        // Always initialise the baseline so the auto-save mechanism works
+        // regardless of whether the record doesn't exist yet ("state_not_found")
+        // or the request failed for any other reason.
+        lastSavedRef.current = { ...EMPTY_BASELINE };
       } finally {
         if (!cancelled) setIsLoadingState(false);
       }
@@ -84,6 +86,33 @@ export function useItemState(params: {
       notesText: notesText.trim().length > 0 ? notesText.trim() : null
     };
   }, [checkedById, locationText, notesText]);
+
+  // Refs so the flush helpers always see the latest values.
+  const currentPayloadRef = useRef(currentPayload);
+  currentPayloadRef.current = currentPayload;
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+
+  // Flush: fire-and-forget save if there are unsaved changes.
+  const flush = useRef(() => {});
+  flush.current = () => {
+    const baseline = lastSavedRef.current;
+    if (!baseline) return;
+    const p = currentPayloadRef.current;
+    const changed =
+      JSON.stringify(baseline.checkedIds) !== JSON.stringify(p.checkedIds) ||
+      baseline.locationText !== p.locationText ||
+      baseline.notesText !== p.notesText;
+    if (!changed) return;
+    const t = paramsRef.current;
+    void putItemState({
+      targetType: t.targetType,
+      targetKey: t.targetKey,
+      checkedIds: p.checkedIds,
+      locationText: p.locationText,
+      notesText: p.notesText
+    });
+  };
 
   // Debounced autosave
   useEffect(() => {
@@ -137,6 +166,18 @@ export function useItemState(params: {
     return () => clearTimeout(handle);
   }, [currentPayload, params.targetKey, params.targetType]);
 
+  // Flush unsaved changes when navigating away (client-side navigation).
+  useEffect(() => {
+    return () => { flush.current(); };
+  }, []);
+
+  // Flush unsaved changes when the browser tab is closed.
+  useEffect(() => {
+    const handler = () => flush.current();
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
   return {
     isLoadingState,
     checkedById,
@@ -150,4 +191,3 @@ export function useItemState(params: {
     resetChecked: () => setCheckedById({})
   };
 }
-
