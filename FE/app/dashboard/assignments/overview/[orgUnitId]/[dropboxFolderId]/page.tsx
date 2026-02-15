@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
+import { FileText, NotebookPen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,15 +17,13 @@ import {
 } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { AiBriefingCard } from "@/components/overview/AiBriefingCard";
 import { AiChecklistCard } from "@/components/overview/AiChecklistCard";
 import { AiScheduleCard } from "@/components/overview/AiScheduleCard";
-import { AiWorkspacePanel } from "@/components/overview/AiWorkspacePanel";
-import { KeyValueCard } from "@/components/overview/KeyValueCard";
 import { NotesCard } from "@/components/overview/NotesCard";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { OverviewLayout } from "@/components/overview/OverviewLayout";
@@ -221,8 +220,14 @@ export default function DropboxAssignmentOverviewPage() {
   }, [aiBrief, folderId, isGenerating, itemState, orgUnitId, overview]);
 
   const dueBadge = overview?.dueAt ? `Due ${formatLocal(overview.dueAt)}` : null;
-  const pointsBadge = overview && overview.pointsPossible !== null ? `${overview.pointsPossible} pts` : null;
   const instructionsText = normalizeRichText(overview?.instructionsText ?? overview?.instructionsHtml ?? "");
+
+  const aiBadge = useMemo(() => {
+    if (!aiBrief) return undefined;
+    const total = aiBrief.checklist.length;
+    const done = aiBrief.checklist.reduce((sum, item) => sum + (itemState.checkedById[item.id] ? 1 : 0), 0);
+    return `${done}/${total}`;
+  }, [aiBrief, itemState.checkedById]);
 
   return (
     <div className="space-y-6">
@@ -244,204 +249,219 @@ export default function DropboxAssignmentOverviewPage() {
         badgeText={dueBadge}
         openUrl={openUrl}
         onBack={() => router.back()}
+        metadataItems={[
+          {
+            label: "availability",
+            value: (
+              <span className="font-mono text-[11px]">
+                {formatLocal(overview?.availableFrom ?? null)} {" -> "} {formatLocal(overview?.availableUntil ?? null)}
+              </span>
+            )
+          },
+          {
+            label: "points",
+            value: <span className="font-mono text-[11px]">{overview?.pointsPossible ?? "unknown"}</span>
+          },
+          { label: "submission", value: <span className="text-foreground/80">{submissionTypeLabel(overview?.submissionType ?? "unknown")}</span> },
+          { label: "completion", value: <span className="text-foreground/80">{completionTypeLabel(overview?.completionType ?? "unknown")}</span> },
+          { label: "mode", value: <span className="text-foreground/80">{dropboxTypeLabel(overview?.dropboxType ?? "unknown")}</span> }
+        ]}
         isLoading={isLoading}
       />
 
       <OverviewLayout
-        left={
-          <>
-            <NotesCard
-              locationText={itemState.locationText}
-              onLocationChange={itemState.setLocationText}
-              notesText={itemState.notesText}
-              onNotesChange={itemState.setNotesText}
-              isSaving={itemState.isSaving}
-              saveError={itemState.saveError}
-            />
+        defaultTab={!instructionsText ? "notes" : "overview"}
+        tabs={[
+          {
+            id: "overview",
+            label: "overview",
+            icon: FileText,
+            content: (
+              <div className="space-y-4">
+                <Card className="card-glow">
+                  <CardHeader>
+                    <CardTitle className="text-base">instructions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    {isLoading || !overview ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <Skeleton key={index} className="h-4 w-full" />
+                        ))}
+                      </div>
+                    ) : instructionsText ? (
+                      <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{instructionsText}</p>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
+                        <p className="text-sm text-muted-foreground">no instructions provided by brightspace.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-            <KeyValueCard
-              title="details"
-              items={[
-                { label: "due", value: <span className="font-mono text-xs">{formatLocal(overview?.dueAt ?? null)}</span> },
-                {
-                  label: "availability",
-                  value: (
-                    <span className="font-mono text-xs">
-                      {formatLocal(overview?.availableFrom ?? null)} {" -> "} {formatLocal(overview?.availableUntil ?? null)}
-                    </span>
-                  )
-                },
-                { label: "points", value: <span className="font-mono text-xs">{overview?.pointsPossible ?? "unknown"}</span> },
-                { label: "submission", value: submissionTypeLabel(overview?.submissionType ?? "unknown") },
-                { label: "completion", value: completionTypeLabel(overview?.completionType ?? "unknown") },
-                { label: "mode", value: dropboxTypeLabel(overview?.dropboxType ?? "unknown") }
-              ]}
-            />
-
-            <Card className="card-glow">
-              <CardHeader>
-                <CardTitle className="text-base">instructions</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm">
-                {isLoading || !overview ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <Skeleton key={index} className="h-4 w-full" />
-                    ))}
-                  </div>
-                ) : instructionsText ? (
-                  <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{instructionsText}</p>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                    <p className="text-sm text-muted-foreground">no instructions provided by brightspace.</p>
-                    <p className="mt-1 text-xs text-muted-foreground">open in brightspace for more details, then add notes above.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-          <Card className="card-glow">
-            <CardHeader>
-              <CardTitle className="text-base">rubric</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading || !overview ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <Skeleton key={index} className="h-4 w-full" />
-                  ))}
-                </div>
-              ) : overview.rubrics.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
-                  no rubric data available for this assignment.
-                </div>
-              ) : (
-                <details className="rounded-xl border border-border/80 bg-secondary/20 p-4">
-                  <summary className="cursor-pointer select-none text-sm font-semibold text-foreground">
-                    view rubric criteria ({overview.rubrics.reduce((sum, r) => sum + r.criteria.length, 0)})
-                  </summary>
-                  <div className="mt-3 space-y-3">
-                    {overview.rubrics.map((rubric) => (
-                      <div key={rubric.rubricId} className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">{rubric.name}</p>
-                        <div className="space-y-2">
-                          {rubric.criteria.map((criterion) => (
-                            <details
-                              key={criterion.id}
-                              className="rounded-md border border-border/80 bg-card/30 px-3 py-2"
-                            >
-                              <summary className="cursor-pointer select-none text-sm text-foreground/90">
-                                {criterion.name}
-                              </summary>
-                              <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                                {criterion.exemplaryText ?? "no criterion text available."}
+                <Card className="card-glow">
+                  <CardHeader>
+                    <CardTitle className="text-base">rubric</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading || !overview ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                          <Skeleton key={index} className="h-4 w-full" />
+                        ))}
+                      </div>
+                    ) : overview.rubrics.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
+                        no rubric data available for this assignment.
+                      </div>
+                    ) : (
+                      <details className="rounded-xl border border-border/80 bg-secondary/20 p-4">
+                        <summary className="cursor-pointer select-none text-sm font-semibold text-foreground">
+                          view rubric criteria ({overview.rubrics.reduce((sum, r) => sum + r.criteria.length, 0)})
+                        </summary>
+                        <div className="mt-3 space-y-3">
+                          {overview.rubrics.map((rubric) => (
+                            <div key={rubric.rubricId} className="space-y-2">
+                              <p className="text-sm font-medium text-foreground">{rubric.name}</p>
+                              <div className="space-y-2">
+                                {rubric.criteria.map((criterion) => (
+                                  <details
+                                    key={criterion.id}
+                                    className="rounded-md border border-border/80 bg-card/30 px-3 py-2"
+                                  >
+                                    <summary className="cursor-pointer select-none text-sm text-foreground/90">
+                                      {criterion.name}
+                                    </summary>
+                                    <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                                      {criterion.exemplaryText ?? "no criterion text available."}
+                                    </div>
+                                  </details>
+                                ))}
                               </div>
-                            </details>
+                            </div>
                           ))}
                         </div>
+                      </details>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="card-glow">
+                  <CardHeader>
+                    <CardTitle className="text-base">attachments</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {isLoading || !overview ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                          <Skeleton key={index} className="h-10 w-full" />
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </CardContent>
-          </Card>
+                    ) : overview.linkAttachments.length === 0 && overview.attachments.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
+                        no attachments detected in this dropbox folder.
+                      </div>
+                    ) : (
+                      <>
+                        {overview.linkAttachments.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
+                              links
+                            </p>
+                            {overview.linkAttachments.map((link) => (
+                              <a
+                                key={link.linkId}
+                                href={link.href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block rounded-md border border-border/80 bg-secondary/30 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50 hover:border-primary/20"
+                              >
+                                {link.name}
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
 
-          <Card className="card-glow">
-            <CardHeader>
-              <CardTitle className="text-base">attachments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isLoading || !overview ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : overview.linkAttachments.length === 0 && overview.attachments.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
-                  no attachments detected in this dropbox folder.
-                </div>
-              ) : (
-                <>
-                  {overview.linkAttachments.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
-                        links
-                      </p>
-                      {overview.linkAttachments.map((link) => (
-                        <a
-                          key={link.linkId}
-                          href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block rounded-md border border-border/80 bg-secondary/30 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50 hover:border-primary/20"
-                        >
-                          {link.name}
-                        </a>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {overview.attachments.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
-                        files
-                      </p>
-                      {overview.attachments.map((file) => (
-                        <div
-                          key={file.fileId}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/80 bg-secondary/30 px-3 py-2"
-                        >
-                          <span className="text-sm text-foreground">{file.name}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{sizeLabel(file.sizeBytes)}</span>
-                        </div>
-                      ))}
-                      <p className="text-xs text-muted-foreground">
-                        open in brightspace to download files.
-                      </p>
-                    </div>
-	                  ) : null}
-	                </>
-	              )}
-	            </CardContent>
-	          </Card>
-	          </>
-	        }
-
-	        right={
-	          <AiWorkspacePanel>
-	            <AiBriefingCard
-              brief={aiBrief}
-              isGenerating={isGenerating}
-              aiNotConfigured={aiNotConfigured}
-              aiError={aiError}
-              onGenerate={() => void handleGenerateAi()}
-            />
-
-            {aiBrief ? (
-              <>
-                <AiChecklistCard
+                        {overview.attachments.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
+                              files
+                            </p>
+                            {overview.attachments.map((file) => (
+                              <div
+                                key={file.fileId}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/80 bg-secondary/30 px-3 py-2"
+                              >
+                                <span className="text-sm text-foreground">{file.name}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{sizeLabel(file.sizeBytes)}</span>
+                              </div>
+                            ))}
+                            <p className="text-xs text-muted-foreground">open in brightspace to download files.</p>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )
+          },
+          {
+            id: "ai",
+            label: "ai workspace",
+            icon: Sparkles,
+            badge: aiBadge,
+            content: (
+              <div className="space-y-4">
+                <AiBriefingCard
                   brief={aiBrief}
-                  checkedById={itemState.checkedById}
-                  onToggleChecked={(id, checked) => {
-                    itemState.setCheckedById((prev) => ({ ...prev, [id]: checked }));
-                  }}
+                  isGenerating={isGenerating}
+                  aiNotConfigured={aiNotConfigured}
+                  aiError={aiError}
+                  onGenerate={() => void handleGenerateAi()}
                 />
-                <AiScheduleCard brief={aiBrief} />
-              </>
-            ) : (
-              <Card className="card-glow">
-                <CardHeader>
-                  <CardTitle className="text-base">ai checklist</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  generate the briefing to get a checklist.
-                </CardContent>
-              </Card>
-            )}
-          </AiWorkspacePanel>
-        }
+
+                {aiBrief ? (
+                  <>
+                    <AiChecklistCard
+                      brief={aiBrief}
+                      checkedById={itemState.checkedById}
+                      onToggleChecked={(id, checked) => {
+                        itemState.setCheckedById((prev) => ({ ...prev, [id]: checked }));
+                      }}
+                    />
+                    <AiScheduleCard brief={aiBrief} />
+                  </>
+                ) : (
+                  <Card className="card-glow">
+                    <CardHeader>
+                      <CardTitle className="text-base">ai checklist</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      generate the briefing to get a checklist.
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )
+          },
+          {
+            id: "notes",
+            label: "notes",
+            icon: NotebookPen,
+            content: (
+              <NotesCard
+                locationText={itemState.locationText}
+                onLocationChange={itemState.setLocationText}
+                notesText={itemState.notesText}
+                onNotesChange={itemState.setNotesText}
+                isSaving={itemState.isSaving}
+                saveError={itemState.saveError}
+              />
+            )
+          }
+        ]}
       />
     </div>
   );

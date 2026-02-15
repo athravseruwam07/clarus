@@ -9,7 +9,7 @@ export default function LoginPage() {
       <section className="relative grid w-full gap-8 md:grid-cols-2">
         <div className="space-y-5">
           <p className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs uppercase tracking-wider text-primary">
-            clarus hackathon mvp
+            clarus platform
           </p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight">
             ai-powered control system for <span className="text-primary">d2l brightspace</span>

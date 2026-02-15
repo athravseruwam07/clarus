@@ -13,9 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const DEFAULT_INSTANCE_URL =
-  process.env.NEXT_PUBLIC_DEFAULT_INSTANCE_URL ?? "https://yourschool.brightspace.com";
-
 type UniversityOption = {
   id: string;
   name: string;
@@ -62,10 +59,6 @@ const CANADIAN_UNIVERSITIES: UniversityOption[] = [
     logoSrc: "/universities/tmu.svg"
   }
 ];
-
-function normalizeUrl(value: string): string {
-  return value.trim().replace(/\/$/, "");
-}
 
 function faviconUrl(instanceUrl: string): string {
   // Prefer the instance's own favicon (avoids the Google S2 fallback globe icons).
@@ -128,19 +121,8 @@ function UniversityLogo(props: {
 
 export function ConnectForm() {
   const router = useRouter();
-  const normalizedDefaultUrl = useMemo(() => normalizeUrl(DEFAULT_INSTANCE_URL), []);
-  const defaultMatch = useMemo(() => {
-    return CANADIAN_UNIVERSITIES.find(
-      (option) => normalizeUrl(option.instanceUrl) === normalizedDefaultUrl
-    );
-  }, [normalizedDefaultUrl]);
-
-  const [selectedUniversityId, setSelectedUniversityId] = useState<string>(
-    defaultMatch?.id ?? "other"
-  );
-  const [customInstanceUrl, setCustomInstanceUrl] = useState<string>(
-    defaultMatch ? defaultMatch.instanceUrl : normalizedDefaultUrl
-  );
+  const [selectedUniversityId, setSelectedUniversityId] = useState<string>("");
+  const [customInstanceUrl, setCustomInstanceUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -230,7 +212,7 @@ export function ConnectForm() {
       <CardHeader>
         <CardTitle>Connect your Brightspace</CardTitle>
         <CardDescription>
-          hackathon demo: clarus never sees your password. sign in inside the opened d2l tab and we
+          clarus never sees your password. sign in inside the opened d2l tab and we
           store only an encrypted session.
         </CardDescription>
       </CardHeader>
@@ -244,21 +226,31 @@ export function ConnectForm() {
               onClick={() => setIsDropdownOpen((open) => !open)}
             >
               <span className="flex items-center gap-2">
-                <UniversityLogo
-                  name={selectedUniversity?.name ?? "Other"}
-                  logoSrc={selectedUniversity?.logoSrc}
-                  instanceUrl={selectedUniversity?.instanceUrl}
-                />
+                {selectedUniversityId ? (
+                  <UniversityLogo
+                    name={selectedUniversity?.name ?? "Other"}
+                    logoSrc={selectedUniversity?.logoSrc}
+                    instanceUrl={selectedUniversity?.instanceUrl}
+                  />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                    <Globe className="h-4 w-4" />
+                  </div>
+                )}
                 <span className="flex flex-col leading-tight">
                   <span className="font-medium">
-                    {selectedUniversity?.name ?? "Other (enter instance url)"}
+                    {selectedUniversityId
+                      ? selectedUniversity?.name ?? "Other (enter instance url)"
+                      : "Select your school"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {selectedUniversity?.requiresManualUrl
-                      ? "paste your school brightspace url"
-                      : selectedUniversity?.instanceUrl
-                        ? new URL(selectedUniversity.instanceUrl).hostname
-                        : "paste your school brightspace url"}
+                    {!selectedUniversityId
+                      ? "choose from the list"
+                      : selectedUniversity?.requiresManualUrl
+                        ? "paste your school brightspace url"
+                        : selectedUniversity?.instanceUrl
+                          ? new URL(selectedUniversity.instanceUrl).hostname
+                          : "paste your school brightspace url"}
                   </span>
                 </span>
               </span>
@@ -314,6 +306,7 @@ export function ConnectForm() {
                         )}
                         onClick={() => {
                           setSelectedUniversityId("other");
+                          setCustomInstanceUrl("");
                           setIsDropdownOpen(false);
                         }}
                       >

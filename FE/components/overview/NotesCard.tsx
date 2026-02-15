@@ -16,7 +16,7 @@ export function NotesCard(props: {
   className?: string;
 }) {
   return (
-    <Card className={cn("card-glow", props.className)}>
+    <Card className={cn("card-glow mx-auto w-full max-w-2xl", props.className)}>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="text-base">your notes</CardTitle>
         <div className="text-xs text-muted-foreground">
@@ -42,7 +42,7 @@ export function NotesCard(props: {
             value={props.notesText}
             onChange={(e) => props.onNotesChange(e.target.value)}
             placeholder="add quick notes, what to bring, what to ask, reminders..."
-            rows={5}
+            rows={10}
             className={cn(
               "w-full resize-none rounded-md border border-input bg-secondary/50 px-9 py-2 text-sm text-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

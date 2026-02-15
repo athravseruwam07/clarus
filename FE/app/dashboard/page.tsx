@@ -79,7 +79,7 @@ export default function DashboardPage() {
       setDemoData(payload);
     } catch (error) {
       const message = error instanceof Error ? error.message : "failed to load dashboard intelligence";
-      toast.error("demo intelligence unavailable", { description: message });
+      toast.error("intelligence unavailable", { description: message });
     } finally {
       setIsLoadingDemo(false);
     }
@@ -292,7 +292,7 @@ export default function DashboardPage() {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">feature workspaces</h2>
           <p className="text-sm text-muted-foreground">
-            combined roadmap scaffolded for 3 parallel lanes (foundation, intelligence, optimization).
+            browse planning, coursework, and optimization workspaces.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -321,7 +321,7 @@ export default function DashboardPage() {
       {topTimelineItem ? (
         <section className="rounded-lg border border-border/80 bg-secondary/30 p-4">
           <p className="text-sm text-muted-foreground">
-            end-to-end demo path: Dashboard, Open Assignment, Start Session, Insights, Copilot Q&A
+            quick start: overview, assignment intelligence, insights, and ai copilot.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
@@ -334,7 +334,7 @@ export default function DashboardPage() {
               open insights
             </Link>
             <Link href={"/dashboard/copilot-mode" as any} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-              open copilot q&a
+              open ai copilot
             </Link>
           </div>
         </section>

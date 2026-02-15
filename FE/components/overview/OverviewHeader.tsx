@@ -14,6 +14,7 @@ export function OverviewHeader(props: {
   badgeText: string | null;
   openUrl: string | null;
   onBack: () => void;
+  metadataItems?: Array<{ label: string; value: React.ReactNode }>;
   isLoading?: boolean;
   reconnectHref?: string;
 }) {
@@ -23,11 +24,26 @@ export function OverviewHeader(props: {
         {props.isLoading ? (
           <Skeleton className="h-6 w-72" />
         ) : (
-          <h1 className="text-lg font-semibold">{props.title ?? "overview"}</h1>
+          <h1 className="text-xl font-bold tracking-tight">{props.title ?? "overview"}</h1>
         )}
         <div className="text-sm text-muted-foreground">
           {props.isLoading ? <Skeleton className="h-4 w-48" /> : props.subtitle ?? "brightspace"}
         </div>
+        {props.metadataItems && props.metadataItems.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/90">
+            {props.metadataItems.map((item, idx) => (
+              <div key={item.label} className="flex items-center gap-1">
+                <span className="font-semibold uppercase tracking-wider text-muted-foreground/80">
+                  {item.label}
+                </span>
+                <span className="text-foreground/80">{item.value}</span>
+                {idx < props.metadataItems!.length - 1 ? (
+                  <span className="mx-1 text-muted-foreground/40">·</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

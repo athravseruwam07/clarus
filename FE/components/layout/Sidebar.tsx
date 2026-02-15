@@ -43,7 +43,7 @@ type NavigationSection = {
 
 const navSections: NavigationSection[] = [
   {
-    label: "demo flow",
+    label: "workspace",
     items: [
       { kind: "link", label: "overview", href: "/dashboard", icon: LayoutDashboard },
       {
@@ -53,18 +53,18 @@ const navSections: NavigationSection[] = [
         icon: Compass
       },
       { kind: "link", label: "insights", href: "/dashboard/insights", icon: TrendingUp },
-      { kind: "link", label: "copilot q&a", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "ai copilot", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   },
   {
-    label: "member 1: foundation + modeling",
+    label: "planning",
     items: [
       { kind: "link", label: "calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
       { kind: "link", label: "workload forecast", href: "/dashboard/workload-forecast", icon: Gauge }
     ]
   },
   {
-    label: "member 2: semantic intelligence",
+    label: "coursework",
     items: [
       {
         kind: "group",
@@ -81,11 +81,11 @@ const navSections: NavigationSection[] = [
     ]
   },
   {
-    label: "member 3: optimization + copilot",
+    label: "optimization",
     items: [
       { kind: "link", label: "study plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
       { kind: "link", label: "prioritization engine", href: "/dashboard/prioritization-engine", icon: TrendingUp },
-      { kind: "link", label: "copilot mode", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "ai copilot", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   }
 ];
