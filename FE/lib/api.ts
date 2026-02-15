@@ -327,6 +327,66 @@ export interface AssignmentAiBriefDTO {
   riskFlags: string[];
 }
 
+export interface ForecastAssessment {
+  id: string;
+  title: string;
+  courseName: string;
+  courseCode: string;
+  assessmentType: "assignment" | "quiz" | "midterm" | "lab" | "project" | "discussion";
+  dueDate: string;
+  estimatedHours: number;
+  complexity: "low" | "medium" | "high";
+  weight: number;
+  sourceType: string;
+  sourceId: string;
+  orgUnitId: string;
+  associatedEntityType: string | null;
+  associatedEntityId: string | null;
+  viewUrl: string | null;
+}
+
+export interface WeekFeatureVector {
+  assessmentCount: number;
+  totalEstimatedHours: number;
+  complexityMix: { low: number; medium: number; high: number };
+  deadlineClusterScore: "low" | "medium" | "high";
+  overlapScore: "low" | "medium" | "high";
+  typeDistribution: Record<string, number>;
+}
+
+export type WorkloadSeverity = "light" | "moderate" | "heavy" | "critical";
+
+export interface RedistributionSuggestion {
+  type: "start_earlier" | "split_prep";
+  assessmentId: string;
+  assessmentTitle: string;
+  suggestion: string;
+  hoursSaved: number;
+  fromWeek: string;
+  toWeek: string;
+}
+
+export interface WeekForecast {
+  weekLabel: string;
+  dateRange: string;
+  workloadScore: number;
+  severity: WorkloadSeverity;
+  confidence: number;
+  featureVector: WeekFeatureVector;
+  assessments: ForecastAssessment[];
+  topLoadDrivers: string[];
+  suggestions: RedistributionSuggestion[];
+}
+
+export interface WorkloadForecastData {
+  generatedAt: string;
+  forecastWindowWeeks: number;
+  courses: string[];
+  weeks: WeekForecast[];
+  overallSummary: string;
+  heavyWeekCount: number;
+}
+
 function parseErrorPayload(payload: unknown): ErrorPayload {
   if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
     return {};
@@ -731,5 +791,11 @@ export async function askDemoCopilot(message: string): Promise<DemoCopilotRespon
   return request<DemoCopilotResponse>("/v1/demo/copilot", {
     method: "POST",
     body: JSON.stringify({ message })
+  });
+}
+
+export async function getWorkloadForecast(): Promise<WorkloadForecastData> {
+  return request<WorkloadForecastData>("/v1/workload/forecast", {
+    method: "GET"
   });
 }
