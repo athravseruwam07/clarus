@@ -53,12 +53,39 @@ export type ConnectionStatusResponse =
       reason: "expired" | "disconnected";
     };
 
+export type D2LProfileResponse =
+  | {
+      connected: true;
+      lastVerifiedAt: string;
+      profile: {
+        name: string;
+        email: string;
+        brightspaceUsername: string | null;
+        institutionUrl: string | null;
+        d2lHomeUrl: string | null;
+      };
+    }
+  | {
+      connected: false;
+      reason: "expired" | "disconnected";
+      lastVerifiedAt: string | null;
+      profile: {
+        name: string;
+        email: string;
+        brightspaceUsername: string | null;
+        institutionUrl: string | null;
+        d2lHomeUrl: string | null;
+      };
+    };
+
 export interface Course {
   id: string;
   userId: string;
   brightspaceCourseId: string;
   courseName: string;
   courseCode: string | null;
+  courseImageUrl?: string | null;
+  courseHomeUrl?: string | null;
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
@@ -684,6 +711,12 @@ export async function connectD2L(payload: ConnectPayload): Promise<ConnectRespon
 
 export async function getD2LStatus(): Promise<ConnectionStatusResponse> {
   return request<ConnectionStatusResponse>("/v1/d2l/status", {
+    method: "GET"
+  });
+}
+
+export async function getD2LProfile(): Promise<D2LProfileResponse> {
+  return request<D2LProfileResponse>("/v1/d2l/profile", {
     method: "GET"
   });
 }

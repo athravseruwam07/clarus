@@ -10,6 +10,7 @@ import corsPlugin from "./plugins/cors.js";
 import coursesRoute from "./routes/courses.js";
 import d2lConnectRoute from "./routes/d2l.connect.js";
 import d2lDisconnectRoute from "./routes/d2l.disconnect.js";
+import d2lProfileRoute from "./routes/d2l.profile.js";
 import d2lStatusRoute from "./routes/d2l.status.js";
 import dropboxAssignmentsRoute from "./routes/assignments.dropbox.js";
 import calendarEventsRoute from "./routes/calendar.events.js";
@@ -35,6 +36,7 @@ async function buildServer() {
   await app.register(authPlugin);
 
   await app.register(d2lConnectRoute, { prefix: "/v1" });
+  await app.register(d2lProfileRoute, { prefix: "/v1" });
   await app.register(d2lStatusRoute, { prefix: "/v1" });
   await app.register(d2lDisconnectRoute, { prefix: "/v1" });
   await app.register(demoFlowRoutes, { prefix: "/v1" });
