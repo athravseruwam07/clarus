@@ -20,15 +20,47 @@ type UniversityOption = {
   id: string;
   name: string;
   instanceUrl: string;
+  logoSrc?: string;
+  requiresManualUrl?: boolean;
 };
 
 const CANADIAN_UNIVERSITIES: UniversityOption[] = [
-  { id: "waterloo", name: "University of Waterloo", instanceUrl: "https://learn.uwaterloo.ca" },
-  { id: "york", name: "York University", instanceUrl: "https://york.brightspace.com" },
-  { id: "mcmaster", name: "McMaster University", instanceUrl: "https://avenue.mcmaster.ca" },
-  { id: "queens", name: "Queen's University", instanceUrl: "https://onq.queensu.ca" },
-  { id: "guelph", name: "University of Guelph", instanceUrl: "https://courselink.uoguelph.ca" },
-  { id: "tmu", name: "Toronto Metropolitan University", instanceUrl: "https://d2l.torontomu.ca" }
+  {
+    id: "waterloo",
+    name: "University of Waterloo",
+    instanceUrl: "https://learn.uwaterloo.ca",
+    logoSrc: "/universities/waterloo.svg"
+  },
+  {
+    id: "york",
+    name: "York University",
+    instanceUrl: "https://york.brightspace.com",
+    logoSrc: "/universities/york.svg"
+  },
+  {
+    id: "mcmaster",
+    name: "McMaster University",
+    instanceUrl: "https://avenue.mcmaster.ca",
+    logoSrc: "/universities/mcmaster.svg"
+  },
+  {
+    id: "queens",
+    name: "Queen's University",
+    instanceUrl: "https://onq.queensu.ca",
+    logoSrc: "/universities/queens.png"
+  },
+  {
+    id: "guelph",
+    name: "University of Guelph",
+    instanceUrl: "https://courselink.uoguelph.ca",
+    logoSrc: "/universities/guelph.jpg"
+  },
+  {
+    id: "tmu",
+    name: "Toronto Metropolitan University",
+    instanceUrl: "https://d2l.torontomu.ca",
+    logoSrc: "/universities/tmu.svg"
+  }
 ];
 
 function normalizeUrl(value: string): string {
@@ -36,8 +68,9 @@ function normalizeUrl(value: string): string {
 }
 
 function faviconUrl(instanceUrl: string): string {
-  const hostname = new URL(instanceUrl).hostname;
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`;
+  // Prefer the instance's own favicon (avoids the Google S2 fallback globe icons).
+  // This is only used as a fallback when we don't have a bundled logo.
+  return `${new URL(instanceUrl).origin}/favicon.ico`;
 }
 
 function initials(name: string): string {
@@ -50,9 +83,25 @@ function initials(name: string): string {
   return letters.join("").toUpperCase();
 }
 
-function UniversityLogo(props: { name: string; instanceUrl?: string; className?: string }) {
-  const { name, instanceUrl, className } = props;
+function UniversityLogo(props: {
+  name: string;
+  logoSrc?: string;
+  instanceUrl?: string;
+  className?: string;
+}) {
+  const { name, logoSrc, instanceUrl, className } = props;
   const [failed, setFailed] = useState(false);
+
+  if (logoSrc && !failed) {
+    return (
+      <img
+        alt={`${name} logo`}
+        className={cn("h-7 w-7 rounded-md bg-secondary/20 object-contain", className)}
+        src={logoSrc}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
 
   if (!instanceUrl || failed) {
     return (
@@ -70,7 +119,7 @@ function UniversityLogo(props: { name: string; instanceUrl?: string; className?:
   return (
     <img
       alt={`${name} logo`}
-      className={cn("h-7 w-7 rounded-md", className)}
+      className={cn("h-7 w-7 rounded-md bg-secondary/20 object-contain", className)}
       src={faviconUrl(instanceUrl)}
       onError={() => setFailed(true)}
     />
@@ -107,6 +156,10 @@ export function ConnectForm() {
 
   const resolvedInstanceUrl = useMemo(() => {
     if (selectedUniversityId === "other") {
+      return customInstanceUrl;
+    }
+
+    if (selectedUniversity?.requiresManualUrl) {
       return customInstanceUrl;
     }
 
@@ -193,6 +246,7 @@ export function ConnectForm() {
               <span className="flex items-center gap-2">
                 <UniversityLogo
                   name={selectedUniversity?.name ?? "Other"}
+                  logoSrc={selectedUniversity?.logoSrc}
                   instanceUrl={selectedUniversity?.instanceUrl}
                 />
                 <span className="flex flex-col leading-tight">
@@ -200,9 +254,11 @@ export function ConnectForm() {
                     {selectedUniversity?.name ?? "Other (enter instance url)"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {selectedUniversity
-                      ? new URL(selectedUniversity.instanceUrl).hostname
-                      : "paste your school brightspace url"}
+                    {selectedUniversity?.requiresManualUrl
+                      ? "paste your school brightspace url"
+                      : selectedUniversity?.instanceUrl
+                        ? new URL(selectedUniversity.instanceUrl).hostname
+                        : "paste your school brightspace url"}
                   </span>
                 </span>
               </span>
@@ -225,14 +281,23 @@ export function ConnectForm() {
                           )}
                           onClick={() => {
                             setSelectedUniversityId(option.id);
+                            if (option.requiresManualUrl) {
+                              setCustomInstanceUrl("");
+                            }
                             setIsDropdownOpen(false);
                           }}
                         >
-                          <UniversityLogo name={option.name} instanceUrl={option.instanceUrl} />
+                          <UniversityLogo
+                            name={option.name}
+                            logoSrc={option.logoSrc}
+                            instanceUrl={option.instanceUrl || undefined}
+                          />
                           <span className="flex flex-1 flex-col leading-tight">
                             <span className="font-medium">{option.name}</span>
                             <span className="text-xs text-muted-foreground">
-                              {new URL(option.instanceUrl).hostname}
+                              {option.requiresManualUrl || !option.instanceUrl
+                                ? "enter your brightspace url manually"
+                                : new URL(option.instanceUrl).hostname}
                             </span>
                           </span>
                           {isSelected ? <Check className="h-4 w-4 text-primary" /> : null}
@@ -272,7 +337,7 @@ export function ConnectForm() {
             ) : null}
           </div>
 
-          {selectedUniversityId === "other" ? (
+          {selectedUniversityId === "other" || selectedUniversity?.requiresManualUrl ? (
             <div className="space-y-2">
               <Label htmlFor="instanceUrl">d2l instance url</Label>
               <Input
