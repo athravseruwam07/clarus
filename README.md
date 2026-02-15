@@ -110,6 +110,8 @@ npm run setup
 npm run dev
 ```
 
+these commands are now cross-platform and work in PowerShell, cmd, zsh, and bash.
+
 this starts:
 - postgres (docker)
 - connector (`:4002`)
@@ -202,16 +204,18 @@ The repo now includes merged-plan scaffolds (MVP + deep AI features) so a 3-pers
 - login opens a separate browser window and you want a new tab in your current chrome:
   - this is only possible in local dev by attaching to chrome over the devtools protocol
   - start a dedicated chrome instance with remote debugging:
-    - mac:
+    - any OS:
       ```bash
       npm run chrome:debug
       ```
-    - or manually:
+    - optional override if auto-detection fails:
       ```bash
-      /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\
-        --remote-debugging-port=9222 \\
-        --user-data-dir=/tmp/clarus-chrome \\
-        http://localhost:3000/login
+      CLARUS_CHROME_BIN=/path/to/chrome npm run chrome:debug
+      ```
+      PowerShell:
+      ```powershell
+      $env:CLARUS_CHROME_BIN='C:\Program Files\Google\Chrome\Application\chrome.exe'
+      npm run chrome:debug
       ```
   - set `PLAYWRIGHT_CONNECT_OVER_CDP=true` in `BE/connector/.env` and restart the connector
 - connector unavailable:

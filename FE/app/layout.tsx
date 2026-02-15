@@ -26,10 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} noise-bg font-sans`}
         style={{ letterSpacing: "-0.011em" }}
+        suppressHydrationWarning
       >
         {children}
         <Toaster />

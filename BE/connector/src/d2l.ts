@@ -79,13 +79,13 @@ function getAuthWaitMs(headless: boolean): number {
   return headless ? 25000 : 120000;
 }
 
-function buildLoginLaunchOptions(): {
+function buildLoginLaunchOptions(options?: { forceHeadful?: boolean }): {
   headless: boolean;
   slowMo: number;
   channel?: string;
   args?: string[];
 } {
-  const headful = parseBoolean(process.env.PLAYWRIGHT_HEADFUL, false);
+  const headful = (options?.forceHeadful ?? false) || parseBoolean(process.env.PLAYWRIGHT_HEADFUL, false);
   const channel = selectorFromEnv("PLAYWRIGHT_BROWSER_CHANNEL") ?? (headful ? "chrome" : undefined);
   const loginUi = selectorFromEnv("PLAYWRIGHT_LOGIN_UI")?.toLowerCase() ?? null;
 
@@ -566,15 +566,8 @@ export async function manualLoginAndCaptureState(input: {
 }> {
   return loginMutex.runExclusive(async () => {
     const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
-    const launchOptions = buildLoginLaunchOptions();
-
-    if (launchOptions.headless) {
-      throw new ConnectorError(
-        400,
-        "manual_login_requires_headful",
-        "manual login requires PLAYWRIGHT_HEADFUL=true"
-      );
-    }
+    // Manual login needs an interactive browser; force headful for this flow.
+    const launchOptions = buildLoginLaunchOptions({ forceHeadful: true });
 
     const authWaitMs = getAuthWaitMs(launchOptions.headless);
     const useCdp = shouldConnectOverCdp();
