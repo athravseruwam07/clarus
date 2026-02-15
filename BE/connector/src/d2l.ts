@@ -337,7 +337,10 @@ async function waitForWhoAmI(
 
   while (Date.now() - startedAt < maxWaitMs) {
     try {
-      const response = await context.request.get(`${instanceUrl}${WHOAMI_API_PATH}`);
+      const response = await context.request.get(`${instanceUrl}${WHOAMI_API_PATH}`, {
+        maxRedirects: 0,
+        timeout: 3000
+      });
 
       if (response.ok()) {
         const payload = (await response.json()) as unknown;
@@ -349,7 +352,7 @@ async function waitForWhoAmI(
       // this is intentionally ignored while waiting for redirects/mfa
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   throw new ConnectorError(400, "login_failed", LOGIN_FAILURE_MESSAGE);

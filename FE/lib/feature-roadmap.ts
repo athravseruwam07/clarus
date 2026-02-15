@@ -99,7 +99,7 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "study-plan-optimizer",
-    title: "Work Plan Optimizer",
+    title: "Study Plan Optimizer",
     route: "/dashboard/study-plan-optimizer",
     summary:
       "Generate and continuously adapt work blocks across assignments, quizzes, tests, labs, discussions, projects, and study sessions based on real behavior.",
