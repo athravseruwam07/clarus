@@ -83,9 +83,8 @@ const navSections: NavigationSection[] = [
   {
     label: "optimization",
     items: [
-      { kind: "link", label: "study plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
-      { kind: "link", label: "prioritization engine", href: "/dashboard/prioritization-engine", icon: TrendingUp },
-      { kind: "link", label: "ai copilot", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "work plan optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
+      { kind: "link", label: "copilot mode", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   }
 ];
@@ -177,7 +176,8 @@ export function Sidebar() {
                 );
               }
 
-              const isActive = pathname === item.href;
+              const routePath = item.href.split(/[?#]/)[0];
+              const isActive = pathname === routePath;
 
               return (
                 <Link

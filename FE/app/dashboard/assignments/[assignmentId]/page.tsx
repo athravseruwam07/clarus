@@ -1,11 +1,13 @@
 "use client";
 
 import { Clock3, Loader2, PlayCircle, ShieldAlert, Target } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
+  ApiError,
   getDemoAssignmentIntelligence,
   startDemoSession,
   type DemoAssignmentIntelligence
@@ -21,25 +23,30 @@ export default function AssignmentIntelligencePage() {
   const [payload, setPayload] = useState<DemoAssignmentIntelligence | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const sessionDuration = useMemo(() => payload?.sessionPlan[0]?.durationMinutes ?? 60, [payload]);
 
-  useEffect(() => {
-    async function loadAssignment() {
-      setIsLoading(true);
-      try {
-        const data = await getDemoAssignmentIntelligence(assignmentId);
-        setPayload(data);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "failed to load assignment intelligence";
-        toast.error("unable to load assignment", { description: message });
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const loadAssignment = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
 
-    void loadAssignment();
+    try {
+      const data = await getDemoAssignmentIntelligence(assignmentId);
+      setPayload(data);
+    } catch (error) {
+      setPayload(null);
+      const message = error instanceof Error ? error.message : "failed to load assignment intelligence";
+      setErrorMessage(message);
+      toast.error("unable to load assignment", { description: message });
+    } finally {
+      setIsLoading(false);
+    }
   }, [assignmentId]);
+
+  useEffect(() => {
+    void loadAssignment();
+  }, [loadAssignment]);
 
   async function handleStartSession() {
     if (!payload || isStarting) {
@@ -64,12 +71,53 @@ export default function AssignmentIntelligencePage() {
     }
   }
 
-  if (isLoading || !payload) {
+  if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         loading assignment intelligence...
       </div>
+    );
+  }
+
+  if (!payload) {
+    const reconnectNeeded =
+      errorMessage?.toLowerCase().includes("session expired") ||
+      errorMessage?.toLowerCase().includes("authentication required");
+    const notFound = errorMessage?.toLowerCase().includes("not found");
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">assignment intelligence unavailable</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>{errorMessage ?? "we couldn't load this assignment right now."}</p>
+          {notFound ? (
+            <p>
+              This assignment may have been removed or is not in your active synced course set yet.
+              Sync courses and retry.
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => void loadAssignment()}>
+              retry
+            </Button>
+            {reconnectNeeded ? (
+              <Link href={"/login" as any}>
+                <Button size="sm" variant="secondary">
+                  reconnect d2l
+                </Button>
+              </Link>
+            ) : null}
+            <Link href={"/dashboard/study-plan-optimizer" as any}>
+              <Button size="sm" variant="secondary">
+                back to optimizer
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
