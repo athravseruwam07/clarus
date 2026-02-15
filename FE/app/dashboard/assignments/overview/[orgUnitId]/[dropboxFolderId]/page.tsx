@@ -270,7 +270,7 @@ export default function DropboxAssignmentOverviewPage() {
       />
 
       <OverviewLayout
-        defaultTab={!instructionsText ? "notes" : "overview"}
+        defaultTab="overview"
         tabs={[
           {
             id: "overview",

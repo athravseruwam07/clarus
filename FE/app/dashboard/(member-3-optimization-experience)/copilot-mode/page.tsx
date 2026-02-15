@@ -399,7 +399,7 @@ export default function CopilotModePage() {
       <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
         <Card className={cn("hidden xl:flex xl:flex-col", mobileThreadPickerOpen && "flex")}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">AI Copilot</CardTitle>
+            <CardTitle className="text-base">Clarus AI Chat</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 overflow-y-auto">
             {isLoadingThreads ? <p className="text-sm text-muted-foreground">loading chats...</p> : null}
@@ -453,8 +453,8 @@ export default function CopilotModePage() {
           <CardHeader className="border-b border-border/60 pb-4">
             <CardTitle className="text-base">
               {activeThreadId
-                ? threads.find((thread) => thread.id === activeThreadId)?.title ?? "AI Copilot"
-                : "AI Copilot"}
+                ? threads.find((thread) => thread.id === activeThreadId)?.title ?? "Clarus AI Chat"
+                : "Clarus AI Chat"}
             </CardTitle>
           </CardHeader>
 
@@ -522,7 +522,7 @@ export default function CopilotModePage() {
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {isAssistant ? <Bot className="h-3.5 w-3.5" /> : null}
-                        <span>{isAssistant ? "AI Copilot" : "You"}</span>
+                        <span>{isAssistant ? "Clarus AI Chat" : "You"}</span>
                         {message.pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                         {message.failed ? <span className="text-destructive">failed</span> : null}
                       </div>
@@ -637,8 +637,8 @@ export default function CopilotModePage() {
 
       {!hasAnyThread && !isLoadingThreads ? (
         <p className="text-xs text-muted-foreground">
-          No chats yet. Create one and ask Copilot to prioritize your week using synced courses, events, notes, and
-          AI briefs.
+          No chats yet. Create one and ask Clarus AI Chat to prioritize your week using synced courses, events,
+          notes, and AI briefs.
         </p>
       ) : null}
     </div>

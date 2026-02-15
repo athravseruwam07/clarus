@@ -137,10 +137,10 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "copilot-mode",
-    title: "Copilot Mode",
+    title: "Clarus AI Chat",
     route: "/dashboard/copilot-mode",
     summary:
-      "Answer planning questions using prioritization, risk, effort, and content locator outputs with actionable plans.",
+      "Clarus AI Chat answers planning questions using prioritization, risk, effort, and content locator outputs with actionable plans.",
     lane: "member-3-optimization-experience",
     status: "scaffolded",
     backendContracts: ["POST /v1/copilot/respond"],

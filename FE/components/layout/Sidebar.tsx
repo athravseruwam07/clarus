@@ -83,7 +83,7 @@ const navSections: NavigationSection[] = [
     label: "optimization",
     items: [
       { kind: "link", label: "Work Plan Optimizer", href: "/dashboard/study-plan-optimizer", icon: CalendarClock },
-      { kind: "link", label: "AI Copilot", href: "/dashboard/copilot-mode", icon: Bot }
+      { kind: "link", label: "Clarus AI Chat", href: "/dashboard/copilot-mode", icon: Bot }
     ]
   }
 ];
