@@ -9,5 +9,12 @@
     "chrome:debug": "node scripts/chrome-debug.cjs",
     "db:up": "docker compose -f BE/docker-compose.yml up -d",
     "db:down": "docker compose -f BE/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prisma": "^6.19.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.4.0"
   }
 }

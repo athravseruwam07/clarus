@@ -45,7 +45,7 @@ export const featureRoadmap: FeatureRoadmapItem[] = [
   },
   {
     slug: "workload-forecast",
-    title: "Workload Forecast",
+    title: "Weekly Workload",
     route: "/dashboard/workload-forecast",
     summary:
       "Forecast heavy weeks using task mix, rubric density, deliverables, and estimated hours.",

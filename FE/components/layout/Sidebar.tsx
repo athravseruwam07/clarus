@@ -60,7 +60,7 @@ const navSections: NavigationSection[] = [
     label: "planning",
     items: [
       { kind: "link", label: "calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
-      { kind: "link", label: "workload forecast", href: "/dashboard/workload-forecast", icon: Gauge }
+      { kind: "link", label: "weekly workload", href: "/dashboard/workload-forecast", icon: Gauge }
     ]
   },
   {
