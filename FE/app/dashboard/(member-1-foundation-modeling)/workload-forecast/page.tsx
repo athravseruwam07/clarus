@@ -4,17 +4,6 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Lightbulb, Loader2, Clock, La
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine,
-} from "recharts";
 
 import {
   getWorkloadForecast,
@@ -53,28 +42,66 @@ const COMPLEXITY_BADGE_VARIANT: Record<string, "success" | "secondary" | "destru
   high: "destructive",
 };
 
-/* ------------------------------------------------------------------ */
-/*  Chart tooltip                                                      */
-/* ------------------------------------------------------------------ */
-
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-
-  const entry = payload[0]?.payload as { severity?: string; confidence?: number } | undefined;
+function WorkloadBars(props: {
+  data: Array<{
+    week: string;
+    hours: number;
+    severity: WorkloadSeverity;
+    confidence: number;
+  }>;
+}) {
+  const maxHours = Math.max(16, ...props.data.map((entry) => entry.hours));
+  const heavyPct = Math.min(100, (10 / maxHours) * 100);
+  const criticalPct = Math.min(100, (15 / maxHours) * 100);
 
   return (
-    <div className="rounded-md border border-border bg-card px-3 py-2 shadow-lg">
-      <p className="text-xs font-medium text-foreground">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-xs text-muted-foreground">
-          {p.name}: <span className="font-mono text-foreground">{p.value}h</span>
-        </p>
-      ))}
-      {entry?.severity && (
-        <p className="text-xs text-muted-foreground">
-          severity: <span className="font-mono text-foreground">{entry.severity}</span>
-        </p>
-      )}
+    <div className="rounded-lg border border-border/60 bg-secondary/10 p-4">
+      <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>hours</span>
+        <span>max {maxHours.toFixed(1)}h</span>
+      </div>
+
+      <div className="relative h-56 border border-border/50 bg-secondary/20">
+        <div
+          className="absolute left-0 right-0 border-t border-dashed border-amber-500/80"
+          style={{ bottom: `${heavyPct}%` }}
+        />
+        <div className="absolute right-2 text-[10px] text-amber-400" style={{ bottom: `calc(${heavyPct}% + 2px)` }}>
+          heavy (10h)
+        </div>
+
+        <div
+          className="absolute left-0 right-0 border-t border-dashed border-red-500/80"
+          style={{ bottom: `${criticalPct}%` }}
+        />
+        <div className="absolute right-2 text-[10px] text-red-400" style={{ bottom: `calc(${criticalPct}% + 2px)` }}>
+          critical (15h)
+        </div>
+
+        <div className="absolute inset-0 flex items-end gap-3 px-3 pb-8 pt-3">
+          {props.data.map((entry) => {
+            const heightPct = Math.max(2, (entry.hours / maxHours) * 100);
+            const barColor = SEVERITY_COLORS[entry.severity];
+
+            return (
+              <div key={entry.week} className="flex h-full min-w-0 flex-1 items-end">
+                <div className="w-full">
+                  <div className="relative h-[calc(100%_-_20px)] w-full rounded-sm bg-secondary/30">
+                    <div
+                      className="absolute bottom-0 left-0 right-0 rounded-sm"
+                      style={{ height: `${heightPct}%`, backgroundColor: barColor }}
+                      title={`${entry.week}: ${entry.hours}h (${entry.severity}), confidence ${Math.round(
+                        entry.confidence * 100
+                      )}%`}
+                    />
+                  </div>
+                  <div className="mt-1 truncate text-center text-[11px] text-muted-foreground">{entry.week}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -247,6 +274,8 @@ export default function WorkloadForecastPage() {
       try {
         const result = await getWorkloadForecast();
         setData(result);
+        const firstWeekWithData = result.weeks.findIndex((week) => week.featureVector.assessmentCount > 0);
+        setActiveWeek(firstWeekWithData >= 0 ? firstWeekWithData : 0);
       } catch (error) {
         const message = error instanceof Error ? error.message : "failed to load weekly workload";
         toast.error("weekly workload unavailable", { description: message });
@@ -295,31 +324,7 @@ export default function WorkloadForecastPage() {
           <CardTitle className="text-base">4-Week Weekly Workload</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 15% 18%)" />
-              <XAxis
-                dataKey="week"
-                tick={{ fill: "hsl(215 15% 50%)", fontSize: 11 }}
-                axisLine={{ stroke: "hsl(222 15% 18%)" }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "hsl(215 15% 50%)", fontSize: 11 }}
-                axisLine={{ stroke: "hsl(222 15% 18%)" }}
-                tickLine={false}
-                unit="h"
-              />
-              <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine y={10} stroke="hsl(38 92% 50%)" strokeDasharray="4 4" label={{ value: "heavy", fill: "hsl(38 92% 50%)", fontSize: 10, position: "right" }} />
-              <ReferenceLine y={15} stroke="hsl(0 72% 51%)" strokeDasharray="4 4" label={{ value: "critical", fill: "hsl(0 72% 51%)", fontSize: 10, position: "right" }} />
-              <Bar dataKey="hours" name="hours" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={index} fill={SEVERITY_COLORS[entry.severity as WorkloadSeverity]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <WorkloadBars data={chartData} />
         </CardContent>
       </Card>
 
