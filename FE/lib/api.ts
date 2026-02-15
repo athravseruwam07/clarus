@@ -6,6 +6,17 @@ interface ErrorPayload {
   message?: string;
 }
 
+export type OverviewTargetType = "dropbox" | "content_topic" | "quiz" | "calendar_event";
+
+export interface ItemStateDTO {
+  targetType: OverviewTargetType;
+  targetKey: string;
+  checkedIds: string[];
+  locationText: string | null;
+  notesText: string | null;
+  updatedAt: string;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -168,6 +179,154 @@ export interface DemoCopilotResponse {
   linkedAssignments: Array<{ assignmentId: string; title: string; reason: string }>;
 }
 
+export type TimelineSourceType =
+  | "calendar"
+  | "content_module"
+  | "content_topic"
+  | "dropbox_folder"
+  | "quiz"
+  | "discussion_forum"
+  | "discussion_topic"
+  | "checklist"
+  | "generic";
+
+export type TimelineDateKind = "event" | "start" | "due" | "end";
+
+export interface TimelineEventDTO {
+  // Stable synthetic id: `${sourceType}:${sourceId}:${dateKind}` (do not parse; use `sourceId/sourceType/dateKind`).
+  id: string;
+  sourceId: string;
+  orgUnitId: string;
+  courseName: string | null;
+  courseCode: string | null;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string | null;
+  isAllDay: boolean;
+  sourceType: TimelineSourceType;
+  dateKind: TimelineDateKind;
+  associatedEntityType: string | null;
+  associatedEntityId: string | null;
+  viewUrl: string | null;
+}
+
+export interface CalendarTimelineResponse {
+  lastSyncedAt: string | null;
+  needsSync: boolean;
+  events: TimelineEventDTO[];
+}
+
+export interface SyncCalendarResponse {
+  success: true;
+  eventsFetched: number;
+  eventsUpserted: number;
+  eventsDeleted: number;
+  orgUnitsForbidden?: string[];
+  duplicatesSkipped?: number;
+  countsBySource?: Record<string, number>;
+  windowStart: string;
+  windowEnd: string;
+  syncedAt: string;
+}
+
+export interface DropboxRubricCriterionDTO {
+  id: string;
+  name: string;
+  exemplaryText: string | null;
+}
+
+export interface DropboxRubricDTO {
+  rubricId: string;
+  name: string;
+  criteria: DropboxRubricCriterionDTO[];
+}
+
+export type DropboxAttachmentDTO =
+  | { kind: "file"; fileId: string; name: string; sizeBytes: number }
+  | { kind: "link"; linkId: string; name: string; href: string };
+
+export interface DropboxAssignmentOverviewDTO {
+  orgUnitId: string;
+  folderId: string;
+  courseName: string | null;
+  courseCode: string | null;
+  title: string;
+  dueAt: string | null;
+  availableFrom: string | null;
+  availableUntil: string | null;
+  pointsPossible: number | null;
+  submissionType: "file" | "text" | "on_paper" | "observed" | "file_or_text" | "unknown";
+  completionType: "on_submission" | "due_date" | "manually_by_learner" | "on_evaluation" | "unknown";
+  dropboxType: "individual" | "group" | "unknown";
+  instructionsText: string | null;
+  instructionsHtml: string | null;
+  rubrics: DropboxRubricDTO[];
+  attachments: Array<Extract<DropboxAttachmentDTO, { kind: "file" }>>;
+  linkAttachments: Array<Extract<DropboxAttachmentDTO, { kind: "link" }>>;
+}
+
+export interface ContentTopicOverviewDTO {
+  orgUnitId: string;
+  topicId: string;
+  courseName: string | null;
+  courseCode: string | null;
+  title: string;
+  dueAt: string | null;
+  startAt: string | null;
+  endAt: string | null;
+  isHidden: boolean;
+  isLocked: boolean;
+  isBroken: boolean;
+  openAsExternalResource: boolean;
+  topicType: number | null;
+  activityType: number | null;
+  toolId: number | null;
+  toolItemId: number | null;
+  gradeItemId: number | null;
+  descriptionText: string | null;
+  descriptionHtml: string | null;
+  openUrl: string | null;
+}
+
+export interface QuizOverviewDTO {
+  orgUnitId: string;
+  quizId: string;
+  courseName: string | null;
+  courseCode: string | null;
+  title: string;
+  dueAt: string | null;
+  startAt: string | null;
+  endAt: string | null;
+  isActive: boolean;
+  descriptionText: string | null;
+  instructionsText: string | null;
+  openUrl: string;
+}
+
+export interface AssignmentAiChecklistItemDTO {
+  id: string;
+  title: string;
+  details: string | null;
+  category: "planning" | "research" | "writing" | "practice" | "rubric" | "submission" | "review" | "admin";
+  estimatedMinutes: number | null;
+}
+
+export interface AssignmentAiScheduleItemDTO {
+  label: string;
+  durationMinutes: number;
+  objective: string;
+}
+
+export interface AssignmentAiBriefDTO {
+  tldr: string;
+  deliverables: string[];
+  checklist: AssignmentAiChecklistItemDTO[];
+  schedule: AssignmentAiScheduleItemDTO[];
+  questionsToClarify: string[];
+  riskFlags: string[];
+}
+
 function parseErrorPayload(payload: unknown): ErrorPayload {
   if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
     return {};
@@ -188,6 +347,16 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
     const hasBody = init?.body !== undefined && init?.body !== null;
     if (hasBody && !headers.has("content-type")) {
       headers.set("content-type", "application/json");
+    }
+
+    // Client hints for timezone-safe rendering and AI context.
+    if (typeof window !== "undefined") {
+      try {
+        headers.set("x-client-timezone", Intl.DateTimeFormat().resolvedOptions().timeZone);
+        headers.set("x-client-locale", navigator.language);
+      } catch {
+        // ignore
+      }
     }
 
     response = await fetch(`${API_URL}${path}`, {
@@ -251,12 +420,173 @@ export async function syncCourses(): Promise<SyncCoursesResponse> {
   });
 }
 
+export async function syncCalendar(): Promise<SyncCalendarResponse> {
+  return request<SyncCalendarResponse>("/v1/sync/calendar", {
+    method: "POST"
+  });
+}
+
+export async function getDropboxAssignmentOverview(params: {
+  orgUnitId: string;
+  folderId: string;
+}): Promise<DropboxAssignmentOverviewDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const folderId = encodeURIComponent(params.folderId);
+  return request<DropboxAssignmentOverviewDTO>(`/v1/assignments/dropbox/${orgUnitId}/${folderId}`, {
+    method: "GET"
+  });
+}
+
+export async function generateDropboxAssignmentBrief(params: {
+  orgUnitId: string;
+  folderId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const folderId = encodeURIComponent(params.folderId);
+  return request<AssignmentAiBriefDTO>(`/v1/assignments/dropbox/${orgUnitId}/${folderId}/ai/brief`, {
+    method: "POST"
+  });
+}
+
+export async function getDropboxAssignmentBrief(params: {
+  orgUnitId: string;
+  folderId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const folderId = encodeURIComponent(params.folderId);
+  return request<AssignmentAiBriefDTO>(`/v1/assignments/dropbox/${orgUnitId}/${folderId}/ai/brief`, {
+    method: "GET"
+  });
+}
+
+export async function getContentTopicOverview(params: {
+  orgUnitId: string;
+  topicId: string;
+}): Promise<ContentTopicOverviewDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const topicId = encodeURIComponent(params.topicId);
+  return request<ContentTopicOverviewDTO>(`/v1/content/topics/${orgUnitId}/${topicId}`, { method: "GET" });
+}
+
+export async function generateContentTopicBrief(params: {
+  orgUnitId: string;
+  topicId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const topicId = encodeURIComponent(params.topicId);
+  return request<AssignmentAiBriefDTO>(`/v1/content/topics/${orgUnitId}/${topicId}/ai/brief`, { method: "POST" });
+}
+
+export async function getContentTopicBrief(params: {
+  orgUnitId: string;
+  topicId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const topicId = encodeURIComponent(params.topicId);
+  return request<AssignmentAiBriefDTO>(`/v1/content/topics/${orgUnitId}/${topicId}/ai/brief`, { method: "GET" });
+}
+
+export async function getQuizOverview(params: {
+  orgUnitId: string;
+  quizId: string;
+}): Promise<QuizOverviewDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const quizId = encodeURIComponent(params.quizId);
+  return request<QuizOverviewDTO>(`/v1/quizzes/${orgUnitId}/${quizId}`, { method: "GET" });
+}
+
+export async function generateQuizBrief(params: {
+  orgUnitId: string;
+  quizId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const quizId = encodeURIComponent(params.quizId);
+  return request<AssignmentAiBriefDTO>(`/v1/quizzes/${orgUnitId}/${quizId}/ai/brief`, { method: "POST" });
+}
+
+export async function getQuizBrief(params: {
+  orgUnitId: string;
+  quizId: string;
+}): Promise<AssignmentAiBriefDTO> {
+  const orgUnitId = encodeURIComponent(params.orgUnitId);
+  const quizId = encodeURIComponent(params.quizId);
+  return request<AssignmentAiBriefDTO>(`/v1/quizzes/${orgUnitId}/${quizId}/ai/brief`, { method: "GET" });
+}
+
 export async function getCourses(): Promise<Course[]> {
   const response = await request<{ courses: Course[] }>("/v1/courses", {
     method: "GET"
   });
 
   return response.courses;
+}
+
+export async function getCalendarEvents(params: {
+  from: string;
+  to: string;
+  orgUnitId?: string | null;
+  include?: TimelineDateKind[];
+  sources?: TimelineSourceType[];
+}): Promise<CalendarTimelineResponse> {
+  const searchParams = new URLSearchParams({
+    from: params.from,
+    to: params.to
+  });
+
+  if (params.orgUnitId) {
+    searchParams.set("orgUnitId", params.orgUnitId);
+  }
+
+  if (params.include && params.include.length > 0) {
+    searchParams.set("include", params.include.join(","));
+  }
+
+  if (params.sources && params.sources.length > 0) {
+    searchParams.set("sources", params.sources.join(","));
+  }
+
+  return request<CalendarTimelineResponse>(`/v1/timeline/intelligence?${searchParams.toString()}`, {
+    method: "GET"
+  });
+}
+
+export async function getCalendarEvent(eventId: string): Promise<TimelineEventDTO> {
+  const id = encodeURIComponent(eventId);
+  return request<TimelineEventDTO>(`/v1/calendar/events/${id}`, { method: "GET" });
+}
+
+export async function generateCalendarEventBrief(eventId: string): Promise<AssignmentAiBriefDTO> {
+  const id = encodeURIComponent(eventId);
+  return request<AssignmentAiBriefDTO>(`/v1/calendar/events/${id}/ai/brief`, { method: "POST" });
+}
+
+export async function getCalendarEventBrief(eventId: string): Promise<AssignmentAiBriefDTO> {
+  const id = encodeURIComponent(eventId);
+  return request<AssignmentAiBriefDTO>(`/v1/calendar/events/${id}/ai/brief`, { method: "GET" });
+}
+
+export async function getItemState(params: {
+  targetType: OverviewTargetType;
+  targetKey: string;
+}): Promise<ItemStateDTO> {
+  const searchParams = new URLSearchParams({
+    targetType: params.targetType,
+    targetKey: params.targetKey
+  });
+  return request<ItemStateDTO>(`/v1/items/state?${searchParams.toString()}`, { method: "GET" });
+}
+
+export async function putItemState(payload: {
+  targetType: OverviewTargetType;
+  targetKey: string;
+  checkedIds?: string[];
+  locationText?: string | null;
+  notesText?: string | null;
+}): Promise<ItemStateDTO> {
+  return request<ItemStateDTO>("/v1/items/state", {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function getFeatureRoadmap(): Promise<RoadmapFeatureContract[]> {

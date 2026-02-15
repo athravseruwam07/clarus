@@ -145,6 +145,40 @@ function buildRequestLaunchOptions(): { headless: true; slowMo: 0 } {
   return { headless: true, slowMo: 0 };
 }
 
+let sharedRequestBrowser: Browser | null = null;
+let sharedRequestBrowserPromise: Promise<Browser> | null = null;
+
+async function getRequestBrowser(): Promise<Browser> {
+  if (sharedRequestBrowser && sharedRequestBrowser.isConnected()) {
+    return sharedRequestBrowser;
+  }
+
+  if (sharedRequestBrowserPromise) {
+    return sharedRequestBrowserPromise;
+  }
+
+  sharedRequestBrowserPromise = chromium
+    .launch(buildRequestLaunchOptions())
+    .then((browser) => {
+      sharedRequestBrowser = browser;
+      sharedRequestBrowserPromise = null;
+
+      browser.on("disconnected", () => {
+        if (sharedRequestBrowser === browser) {
+          sharedRequestBrowser = null;
+        }
+      });
+
+      return browser;
+    })
+    .catch((error) => {
+      sharedRequestBrowserPromise = null;
+      throw error;
+    });
+
+  return sharedRequestBrowserPromise;
+}
+
 function selectorFromEnv(key: string): string | undefined {
   const value = process.env[key];
   if (!value) {
@@ -647,14 +681,18 @@ export async function requestWithStoredState(input: {
     throw new ConnectorError(400, "invalid_api_path", "apiPath must start with /d2l/api/");
   }
 
-  const browser = await chromium.launch(buildRequestLaunchOptions());
+  const browser = await getRequestBrowser();
+  const context = await browser.newContext(getContextOptions(input.storageState));
 
   try {
-    const context = await browser.newContext(getContextOptions(input.storageState));
     const response = await context.request.get(`${instanceUrl}${input.apiPath}`, { maxRedirects: 0 });
 
-    if (response.status() === 401 || response.status() === 403) {
+    if (response.status() === 401) {
       throw new ConnectorError(401, "session_expired", "session expired");
+    }
+
+    if (response.status() === 403) {
+      throw new ConnectorError(403, "forbidden", "forbidden");
     }
 
     if (response.status() >= 300 && response.status() < 400) {
@@ -668,6 +706,6 @@ export async function requestWithStoredState(input: {
 
     return (await response.json()) as unknown;
   } finally {
-    await browser.close();
+    await context.close().catch(() => undefined);
   }
 }

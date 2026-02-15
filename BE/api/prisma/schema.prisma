@@ -23,6 +23,10 @@ model User {
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   courses                   Course[]
+  calendarEvents            CalendarEvent[]
+  timelineEvents            TimelineEvent[]
+  aiBriefs                  AiBrief[]
+  itemStates                ItemState[]
   syncLogs                  SyncLog[]
   sessions                  Session[]
 
@@ -58,10 +62,82 @@ model Course {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendarEvents      CalendarEvent[]
+  timelineEvents      TimelineEvent[]
 
   @@unique([userId, brightspaceCourseId])
   @@index([userId])
   @@map("courses")
+}
+
+model CalendarEvent {
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  courseId             String?  @map("course_id")
+
+  brightspaceOrgUnitId String   @map("brightspace_org_unit_id")
+  brightspaceEventId   String   @map("brightspace_event_id")
+
+  title                String
+  description          String?  @db.Text
+
+  startAt              DateTime @map("start_at")
+  endAt                DateTime? @map("end_at")
+  isAllDay             Boolean  @default(false) @map("is_all_day")
+  eventType            Int      @map("event_type")
+
+  associatedEntityType String?  @map("associated_entity_type")
+  associatedEntityId   String?  @map("associated_entity_id")
+  viewUrl              String?  @db.Text @map("view_url")
+
+  rawData              Json?    @map("raw_data")
+  lastSyncedAt         DateTime @map("last_synced_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course               Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, brightspaceEventId])
+  @@index([userId, startAt])
+  @@index([userId, brightspaceOrgUnitId])
+  @@map("calendar_events")
+}
+
+model TimelineEvent {
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  courseId             String?  @map("course_id")
+
+  brightspaceOrgUnitId String   @map("brightspace_org_unit_id")
+
+  sourceType           String   @map("source_type") // calendar, content_topic, quiz, etc
+  sourceId             String   @map("source_id")
+  dateKind             String   @map("date_kind") // event, start, due, end
+
+  title                String
+  description          String?  @db.Text
+
+  startAt              DateTime @map("start_at")
+  endAt                DateTime? @map("end_at")
+  isAllDay             Boolean  @default(false) @map("is_all_day")
+
+  associatedEntityType String?  @map("associated_entity_type")
+  associatedEntityId   String?  @map("associated_entity_id")
+  viewUrl              String?  @db.Text @map("view_url")
+
+  rawData              Json?    @map("raw_data")
+  lastSyncedAt         DateTime @map("last_synced_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course               Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, sourceType, sourceId, dateKind])
+  @@index([userId, startAt])
+  @@index([userId, brightspaceOrgUnitId])
+  @@map("timeline_events")
 }
 
 model SyncLog {
@@ -78,4 +154,50 @@ model SyncLog {
   @@index([userId])
   @@index([syncedAt])
   @@map("sync_logs")
+}
+
+model AiBrief {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  // Target for this brief: "dropbox", "content_topic", "quiz", "calendar_event", etc.
+  targetType  String   @map("target_type")
+  targetKey   String   @map("target_key") // stable unique string per target type
+
+  provider    String   @map("provider") // gemini
+  model       String   @map("model")
+  schemaVer   Int      @default(1) @map("schema_ver")
+
+  briefJson   Json     @map("brief_json")
+  generatedAt DateTime @default(now()) @map("generated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetKey])
+  @@index([userId, targetType])
+  @@map("ai_briefs")
+}
+
+model ItemState {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+
+  // "dropbox" | "content_topic" | "quiz" | "calendar_event"
+  targetType   String   @map("target_type")
+  targetKey    String   @map("target_key")
+
+  checkedIds   Json     @map("checked_ids") // string[]
+  locationText String?  @map("location_text")
+  notesText    String?  @db.Text @map("notes_text")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetKey])
+  @@index([userId, targetType])
+  @@map("item_states")
 }
