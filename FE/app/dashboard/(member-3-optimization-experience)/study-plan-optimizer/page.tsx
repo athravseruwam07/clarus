@@ -1,8 +1,13 @@
 "use client";
 
 import {
+  BookOpen,
+  CalendarDays,
   CheckCircle2,
   Clock3,
+  FileText,
+  FolderOpen,
+  Info,
   Loader2,
   Pencil,
   PlayCircle,
@@ -22,7 +27,7 @@ import {
   type WorkPlanContextResponse
 } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -55,12 +60,17 @@ type PlannerProfileResolved = {
 type ProfileKey = keyof PlannerProfile;
 type RecomputeMode = "initial" | "session_skipped" | "workload_changed";
 type SessionStatus = "pending" | "in_progress" | "completed" | "skipped";
+type ScheduleViewMode = "weekly" | "daily";
 type FrictionReason =
   | "too_tired"
   | "too_busy"
   | "did_not_know_where_to_start"
   | "task_too_big"
   | "none";
+
+const DAYS_PER_WEEK = 7;
+const PLANNING_WEEKS = 4;
+const PLANNING_DAYS = DAYS_PER_WEEK * PLANNING_WEEKS;
 
 type WizardQuestion = {
   key: ProfileKey;
@@ -276,6 +286,8 @@ export default function WorkPlanOptimizerPage() {
   const [wizardOpen, setWizardOpen] = useState(true);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("weekly");
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedDayIso, setSelectedDayIso] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -300,26 +312,63 @@ export default function WorkPlanOptimizerPage() {
       .sort((a, b) => a.startMinutes - b.startMinutes);
   }, [plan, selectedDayIso]);
 
+  const weekGroups = useMemo(() => {
+    if (!plan) {
+      return [];
+    }
+    return chunkIntoWeeks(plan.days, DAYS_PER_WEEK);
+  }, [plan]);
+
+  const activeWeekDays = useMemo(
+    () => weekGroups[selectedWeekIndex] ?? weekGroups[0] ?? [],
+    [selectedWeekIndex, weekGroups]
+  );
+
+  const weeklySessionsByDay = useMemo(() => {
+    if (!plan || activeWeekDays.length === 0) {
+      return new Map<string, PlannedSession[]>();
+    }
+
+    const daySet = new Set(activeWeekDays.map((day) => day.dateIso));
+    const map = new Map<string, PlannedSession[]>();
+    plan.sessions.forEach((session) => {
+      if (!daySet.has(session.dateIso)) {
+        return;
+      }
+      const list = map.get(session.dateIso) ?? [];
+      list.push(session);
+      map.set(session.dateIso, list);
+    });
+    map.forEach((list) => list.sort((a, b) => a.startMinutes - b.startMinutes));
+    return map;
+  }, [activeWeekDays, plan]);
+
+  const activeWeekLabel = useMemo(() => {
+    if (activeWeekDays.length === 0) {
+      return "";
+    }
+    const first = activeWeekDays[0]?.dateIso;
+    const last = activeWeekDays[activeWeekDays.length - 1]?.dateIso;
+    if (!first || !last) {
+      return "";
+    }
+    return `${formatDateShort(first)} - ${formatDateShort(last)}`;
+  }, [activeWeekDays]);
+
   const selectedDayTimeline = useMemo(() => {
     if (selectedDaySessions.length === 0) {
       return null;
     }
 
-    const dayStart = Math.min(...selectedDaySessions.map((session) => session.startMinutes));
-    const dayEnd = Math.max(
-      ...selectedDaySessions.map((session) => session.startMinutes + session.durationMinutes)
-    );
-    const span = Math.max(60, dayEnd - dayStart);
-
     return {
-      dayStart,
-      dayEnd,
-      span,
+      dayStart: 0,
+      dayEnd: 24 * 60,
+      span: 24 * 60,
       segments: selectedDaySessions.map((session) => ({
         id: session.id,
         label: session.title.split(" - ").slice(-1)[0] ?? session.title,
-        leftPct: ((session.startMinutes - dayStart) / span) * 100,
-        widthPct: Math.max(10, (session.durationMinutes / span) * 100),
+        leftPct: (session.startMinutes / (24 * 60)) * 100,
+        widthPct: Math.max(4, (session.durationMinutes / (24 * 60)) * 100),
         timeLabel: `${session.startLabel} - ${formatTime(session.startMinutes + session.durationMinutes)}`
       }))
     };
@@ -341,6 +390,20 @@ export default function WorkPlanOptimizerPage() {
     return contentFirst ?? session.contentLocator[0] ?? null;
   }, []);
   const topTaskGuidance = useMemo(() => buildTopTaskGuidance(plan?.topTask ?? null), [plan?.topTask]);
+  const topTaskSession = useMemo(() => {
+    if (!plan?.topTask) {
+      return null;
+    }
+    return plan.sessions.find((session) => session.itemId === plan.topTask?.itemId) ?? null;
+  }, [plan]);
+  const topTaskStudyLink = useMemo(
+    () => (topTaskSession ? getPrimaryStudyLink(topTaskSession) : null),
+    [getPrimaryStudyLink, topTaskSession]
+  );
+  const selectedSessionStudyLink = useMemo(
+    () => (selectedSession ? getPrimaryStudyLink(selectedSession) : null),
+    [getPrimaryStudyLink, selectedSession]
+  );
 
   const loadContext = useCallback(async () => {
     setIsLoadingContext(true);
@@ -428,6 +491,34 @@ export default function WorkPlanOptimizerPage() {
   }, [behaviorEvents]);
 
   useEffect(() => {
+    if (!plan) {
+      return;
+    }
+
+    const maxWeekIndex = Math.max(0, Math.ceil(plan.days.length / DAYS_PER_WEEK) - 1);
+    setSelectedWeekIndex((prev) => Math.min(prev, maxWeekIndex));
+  }, [plan]);
+
+  useEffect(() => {
+    if (!plan || activeWeekDays.length === 0) {
+      return;
+    }
+
+    const dayWithinSelectedWeek =
+      selectedDayIso !== null && activeWeekDays.some((day) => day.dateIso === selectedDayIso);
+
+    if (dayWithinSelectedWeek) {
+      return;
+    }
+
+    const firstWithSession = activeWeekDays.find((day) =>
+      plan.sessions.some((session) => session.dateIso === day.dateIso)
+    );
+
+    setSelectedDayIso(firstWithSession?.dateIso ?? activeWeekDays[0]?.dateIso ?? null);
+  }, [activeWeekDays, plan, selectedDayIso]);
+
+  useEffect(() => {
     if (!hasHydratedLocalState || isLoadingContext || contextError || !context || plan) {
       return;
     }
@@ -450,7 +541,9 @@ export default function WorkPlanOptimizerPage() {
     const initialDay = nextPlan.days.find((day) =>
       nextPlan.sessions.some((session) => session.dateIso === day.dateIso)
     );
-    setSelectedDayIso(initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null);
+    const nextSelectedDay = initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null;
+    setSelectedDayIso(nextSelectedDay);
+    setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
     setSelectedSessionId(nextPlan.sessions[0]?.id ?? null);
   }, [
     behaviorEvents,
@@ -525,7 +618,9 @@ export default function WorkPlanOptimizerPage() {
       const initialDay = nextPlan.days.find((day) =>
         nextPlan.sessions.some((session) => session.dateIso === day.dateIso)
       );
-      setSelectedDayIso(initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null);
+      const nextSelectedDay = initialDay?.dateIso ?? nextPlan.days[0]?.dateIso ?? null;
+      setSelectedDayIso(nextSelectedDay);
+      setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
       setSelectedSessionId(nextPlan.sessions[0]?.id ?? null);
       toast.success(
         mode === "initial"
@@ -598,6 +693,29 @@ export default function WorkPlanOptimizerPage() {
 
     const detailsPanel = document.getElementById("session-details-panel");
     detailsPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function focusSessionInSchedule(sessionId: string) {
+    if (!plan) {
+      return;
+    }
+
+    const session = plan.sessions.find((entry) => entry.id === sessionId);
+    if (!session) {
+      return;
+    }
+
+    setSelectedSessionId(session.id);
+    setSelectedDayIso(session.dateIso);
+    setSelectedWeekIndex(getWeekIndexForDate(plan.days, session.dateIso));
+    setScheduleView("daily");
+
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const schedulePanel = document.getElementById("schedule-panel");
+    schedulePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function startSessionNow() {
@@ -872,20 +990,14 @@ export default function WorkPlanOptimizerPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="rounded-md border border-border/70 bg-secondary/20 p-3 text-muted-foreground">
-                <p>
-                  planned {plan.quality.plannedHours}h across {plan.sessions.length} focused sessions
-                  (required {plan.quality.requiredHours}h).
-                </p>
-                <p>
-                  buffer confidence:{" "}
-                  {plan.quality.bufferAchievedPct >= 85
-                    ? "strong"
-                    : plan.quality.bufferAchievedPct >= 65
-                      ? "acceptable"
-                      : "tight"}{" "}
-                  ({plan.quality.bufferAchievedPct}%).
-                </p>
+              <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="secondary">
+                    planned {plan.quality.plannedHours}h / required {plan.quality.requiredHours}h
+                  </Badge>
+                  <Badge variant="secondary">buffer {plan.quality.bufferAchievedPct}%</Badge>
+                  <Badge variant="secondary">heavy-week coverage {plan.quality.heavyWeekCoveragePct}%</Badge>
+                </div>
               </div>
 
               {plan.diffLines.length > 0 ? (
@@ -898,229 +1010,542 @@ export default function WorkPlanOptimizerPage() {
             </CardContent>
           </Card>
 
-          <section className="grid gap-4 xl:grid-cols-[1.8fr_1fr]">
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">weekly schedule</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {plan.days.map((day) => {
-                      const selected = selectedDayIso === day.dateIso;
+          <section className="space-y-4">
+            <Card id="schedule-panel">
+              <CardHeader className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-xl">schedule</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {PLANNING_WEEKS}-week horizon · {activeWeekLabel || "select a week"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={scheduleView === "weekly" ? "default" : "secondary"}
+                      onClick={() => setScheduleView("weekly")}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      weekly
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={scheduleView === "daily" ? "default" : "secondary"}
+                      onClick={() => setScheduleView("daily")}
+                    >
+                      <Clock3 className="h-4 w-4" />
+                      daily
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {weekGroups.map((week, index) => {
+                    const first = week[0]?.dateIso;
+                    const last = week[week.length - 1]?.dateIso;
+                    const selected = selectedWeekIndex === index;
+                    return (
+                      <button
+                        key={`week-${index}`}
+                        type="button"
+                        onClick={() => setSelectedWeekIndex(index)}
+                        className={cn(
+                          "rounded-md border px-3 py-2 text-left transition-colors",
+                          selected
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
+                        )}
+                      >
+                        <p className="text-xs font-medium text-foreground">week {index + 1}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {first ? formatDateShort(first) : ""} - {last ? formatDateShort(last) : ""}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {scheduleView === "weekly" ? (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {activeWeekDays.map((day) => {
+                      const daySessions = weeklySessionsByDay.get(day.dateIso) ?? [];
                       return (
                         <button
-                          key={day.dateIso}
+                          key={`week-day-${day.dateIso}`}
                           type="button"
-                          onClick={() => setSelectedDayIso(day.dateIso)}
-                          className={cn(
-                            "rounded-md border px-3 py-2 text-left transition-colors",
-                            selected
-                              ? "border-primary/60 bg-primary/10"
-                              : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
-                          )}
+                          onClick={() => {
+                            setSelectedDayIso(day.dateIso);
+                            setSelectedSessionId(daySessions[0]?.id ?? null);
+                            setScheduleView("daily");
+                          }}
+                          className="rounded-md border border-border/70 bg-secondary/20 p-3 text-left transition-colors hover:bg-secondary/35"
                         >
-                          <p className="text-xs font-medium text-foreground">{day.dayLabel}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {day.usedMinutes}/{day.capacityMinutes}m
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-foreground">
+                              {day.dayLabel} · {formatDateShort(day.dateIso)}
+                            </p>
+                            <Badge variant="secondary">{daySessions.length} block(s)</Badge>
+                          </div>
+                          <div className="relative mt-2 h-9 rounded-md border border-border/60 bg-background/70">
+                            {[0, 6, 12, 18, 24].map((hour) => (
+                              <span
+                                key={`week-hour-${day.dateIso}-${hour}`}
+                                className="absolute bottom-0 top-0 w-px bg-border/35"
+                                style={{ left: `${(hour / 24) * 100}%` }}
+                              />
+                            ))}
+                            {daySessions.map((session) => (
+                              <span
+                                key={`week-segment-${session.id}`}
+                                className={cn(
+                                  "absolute top-1 h-7 rounded border border-primary/55 bg-primary/20",
+                                  selectedSessionId === session.id ? "bg-primary/35" : ""
+                                )}
+                                style={{
+                                  left: `${(session.startMinutes / (24 * 60)) * 100}%`,
+                                  width: `${Math.max(4, (session.durationMinutes / (24 * 60)) * 100)}%`
+                                }}
+                                title={`${session.title} · ${session.startLabel} - ${formatTime(
+                                  session.startMinutes + session.durationMinutes
+                                )}`}
+                              />
+                            ))}
+                          </div>
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            {day.usedMinutes}/{day.capacityMinutes}m planned
                           </p>
                         </button>
                       );
                     })}
                   </div>
-
-                  {selectedDayTimeline ? (
-                    <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{formatTime(selectedDayTimeline.dayStart)}</span>
-                        <span>day timeline</span>
-                        <span>{formatTime(selectedDayTimeline.dayEnd)}</span>
-                      </div>
-                      <div className="relative mt-2 h-14 rounded-md border border-border/60 bg-background/60">
-                        {selectedDayTimeline.segments.map((segment) => (
-                          <button
-                            key={`timeline-${segment.id}`}
-                            type="button"
-                            onClick={() => focusSessionDetails(segment.id)}
-                            className={cn(
-                              "absolute top-2 h-10 overflow-hidden rounded-md border px-2 text-left text-[11px] leading-tight",
-                              selectedSessionId === segment.id
-                                ? "border-primary/70 bg-primary/20 text-foreground"
-                                : "border-primary/40 bg-primary/10 text-foreground/90 hover:bg-primary/15"
-                            )}
-                            style={{
-                              left: `${segment.leftPct}%`,
-                              width: `${segment.widthPct}%`
-                            }}
-                            title={`${segment.label} · ${segment.timeLabel}`}
-                          >
-                            {segment.label}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Select a block to inspect details and start.
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <div className="space-y-2">
-                    {selectedDaySessions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
-                    ) : (
-                      selectedDaySessions.map((session) => {
-                        const studyLink = getPrimaryStudyLink(session);
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      {activeWeekDays.map((day) => {
+                        const selected = selectedDayIso === day.dateIso;
                         return (
-                          <div
-                            key={session.id}
+                          <button
+                            key={`day-picker-${day.dateIso}`}
+                            type="button"
+                            onClick={() => setSelectedDayIso(day.dateIso)}
                             className={cn(
-                              "rounded-md border px-3 py-3",
-                              selectedSessionId === session.id
+                              "rounded-md border px-3 py-2 text-left transition-colors",
+                              selected
                                 ? "border-primary/60 bg-primary/10"
-                                : "border-border/70 bg-secondary/20"
+                                : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
                             )}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{session.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {session.startLabel} - {formatTime(session.startMinutes + session.durationMinutes)} ·{" "}
-                                  {session.durationMinutes}m
-                                </p>
+                            <p className="text-xs font-medium text-foreground">
+                              {day.dayLabel} · {formatDateShort(day.dateIso)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {day.usedMinutes}/{day.capacityMinutes}m
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedDayTimeline ? (
+                      <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>12 AM</span>
+                          <span>6 AM</span>
+                          <span>12 PM</span>
+                          <span>6 PM</span>
+                          <span>12 AM</span>
+                        </div>
+                        <div className="relative mt-2 h-16 rounded-md border border-border/60 bg-background/70">
+                          {Array.from({ length: 9 }).map((_, idx) => (
+                            <span
+                              key={`hour-grid-${idx}`}
+                              className={cn(
+                                "absolute bottom-0 top-0 w-px",
+                                idx % 2 === 0 ? "bg-border/35" : "bg-border/20"
+                              )}
+                              style={{ left: `${(idx / 8) * 100}%` }}
+                            />
+                          ))}
+                          {selectedDayTimeline.segments.map((segment) => (
+                            <button
+                              key={`timeline-${segment.id}`}
+                              type="button"
+                              onClick={() => focusSessionDetails(segment.id)}
+                              className={cn(
+                                "absolute top-2 h-12 overflow-hidden rounded-md border px-2 text-left text-[11px] leading-tight",
+                                selectedSessionId === segment.id
+                                  ? "border-primary/70 bg-primary/30 text-foreground"
+                                  : "border-primary/45 bg-primary/15 text-foreground/90 hover:bg-primary/20"
+                              )}
+                              style={{
+                                left: `${segment.leftPct}%`,
+                                width: `${segment.widthPct}%`
+                              }}
+                              title={`${segment.label} · ${segment.timeLabel}`}
+                            >
+                              {segment.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Full-day timeline (24h). Click a block for details.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
+                    )}
+
+                    <div className="space-y-2">
+                      {selectedDaySessions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No blocks scheduled for this day.</p>
+                      ) : (
+                        selectedDaySessions.map((session) => {
+                          const studyLink = getPrimaryStudyLink(session);
+                          return (
+                            <div
+                              key={session.id}
+                              className={cn(
+                                "rounded-md border px-3 py-3",
+                                selectedSessionId === session.id
+                                  ? "border-primary/60 bg-primary/10"
+                                  : "border-border/70 bg-secondary/20"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{session.title}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {session.startLabel} - {formatTime(session.startMinutes + session.durationMinutes)} ·{" "}
+                                    {session.durationMinutes}m
+                                  </p>
+                                </div>
+                                <Badge variant="secondary">{session.status}</Badge>
                               </div>
-                              <Badge variant="secondary">{session.status}</Badge>
-                            </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => focusSessionDetails(session.id)}
-                              >
-                                details
-                              </Button>
-                              <a
-                                href={session.taskUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-primary hover:underline"
-                              >
-                                open task
-                              </a>
-                              <a
-                                href={session.submissionUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-primary hover:underline"
-                              >
-                                open dropbox/rubric
-                              </a>
-                              {studyLink ? (
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-8 text-xs"
+                                  onClick={() => focusSessionDetails(session.id)}
+                                >
+                                  <Info className="h-3.5 w-3.5" />
+                                  details
+                                </Button>
                                 <a
-                                  href={studyLink.url}
+                                  href={session.taskUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-xs text-primary hover:underline"
+                                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
                                 >
-                                  where to study
+                                  <FileText className="h-3.5 w-3.5" />
+                                  open task
                                 </a>
-                              ) : null}
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="ml-auto h-7 text-xs"
-                                onClick={() => openStartSession(session.id)}
-                              >
-                                <PlayCircle className="h-3 w-3" />
-                                start
-                              </Button>
+                                <a
+                                  href={session.submissionUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
+                                >
+                                  <FolderOpen className="h-3.5 w-3.5" />
+                                  dropbox/rubric
+                                </a>
+                                {studyLink ? (
+                                  <a
+                                    href={studyLink.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
+                                  >
+                                    <BookOpen className="h-3.5 w-3.5" />
+                                    open resources
+                                  </a>
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="ml-auto h-8 text-xs"
+                                  onClick={() => openStartSession(session.id)}
+                                >
+                                  <PlayCircle className="h-3.5 w-3.5" />
+                                  start
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-            <div className="space-y-4">
-              <Card id="prioritization-engine">
-                <CardHeader>
-                  <CardTitle className="text-base">what to prioritize now</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {plan.topTask ? (
-                    <>
-                      <p className="font-medium text-foreground">{plan.topTask.title}</p>
-                      <p className="text-muted-foreground">{topTaskGuidance.summary}</p>
-                      <div className="space-y-1 rounded-md border border-border/70 bg-secondary/20 p-2 text-xs text-muted-foreground">
-                        {topTaskGuidance.reasons.map((reason) => (
-                          <p key={reason}>- {reason}</p>
+            <Card id="prioritization-engine">
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-xl md:text-2xl">what to prioritize now</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Clear next action from deadline pressure, risk, complexity, effort, and grade impact.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {plan.topTask ? (
+                  <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-primary/35 bg-primary/10 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          highest leverage task
+                        </p>
+                        <p className="mt-2 text-xl font-semibold text-foreground">{plan.topTask.title}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{topTaskGuidance.summary}</p>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {topTaskGuidance.reasons.slice(0, 4).map((reason) => (
+                          <div
+                            key={reason}
+                            className="rounded-lg border border-border/70 bg-secondary/20 p-3 text-sm text-foreground"
+                          >
+                            {reason}
+                          </div>
                         ))}
                       </div>
-                      <p className="text-muted-foreground">
-                        if delayed 24h: focus quality and deadline margin will drop.
-                      </p>
-                      <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs text-foreground">
-                        next step: {topTaskGuidance.nextStep}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground">No top task available.</p>
-                  )}
-                </CardContent>
-              </Card>
 
-              <Card id="session-details-panel">
-                <CardHeader>
-                  <CardTitle className="text-base">session details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {selectedSession ? (
-                    <>
-                      <p className="font-medium text-foreground">{selectedSession.title}</p>
-                      <p className="text-muted-foreground">why scheduled here: {selectedSession.rationale}</p>
-                      <p className="text-muted-foreground">
-                        dependencies: {selectedSession.dependencies.join(" -> ")}
-                      </p>
-                      <p className="text-muted-foreground">
-                        if you only do one thing:{" "}
-                        <span className="text-foreground">{selectedSession.ifOnlyOneThing}</span>
-                      </p>
-                      <div className="rounded-md border border-border/70 bg-secondary/20 p-2">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          content locator (top 3)
-                        </p>
-                        {selectedSession.contentLocator.slice(0, 3).map((resource, index) => (
+                      <div className="rounded-xl border border-primary/45 bg-primary/15 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">next step</p>
+                        <p className="mt-1 text-base font-medium text-foreground">{topTaskGuidance.nextStep}</p>
+                      </div>
+
+                      {topTaskSession ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => focusSessionInSchedule(topTaskSession.id)}>
+                            <CalendarDays className="h-4 w-4" />
+                            focus in schedule
+                          </Button>
                           <a
-                            key={`${selectedSession.id}-${index}`}
-                            href={resource.url}
+                            href={topTaskSession.taskUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="block text-xs text-primary hover:underline"
+                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                           >
-                            #{index + 1} {resource.module} to {resource.lecture} ({resource.section})
+                            <FileText className="h-4 w-4" />
+                            open task
                           </a>
+                          <a
+                            href={topTaskSession.submissionUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                          >
+                            <FolderOpen className="h-4 w-4" />
+                            dropbox/rubric
+                          </a>
+                          {topTaskStudyLink ? (
+                            <a
+                              href={topTaskStudyLink.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                            >
+                              <BookOpen className="h-4 w-4" />
+                              open resources
+                            </a>
+                          ) : null}
+                          <Button size="sm" onClick={() => openStartSession(topTaskSession.id)}>
+                            <PlayCircle className="h-4 w-4" />
+                            start now
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="rounded-xl border border-border/70 bg-secondary/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">score breakdown</p>
+                      <div className="mt-3 space-y-3">
+                        {([
+                          ["deadline pressure", plan.topTask.scoreBreakdown.deadlineProximity],
+                          ["risk", plan.topTask.scoreBreakdown.risk],
+                          ["grade weight", plan.topTask.scoreBreakdown.gradeWeight],
+                          ["complexity", plan.topTask.scoreBreakdown.complexity],
+                          ["effort", plan.topTask.scoreBreakdown.effort],
+                          ["knowledge gap", plan.topTask.scoreBreakdown.knowledgeGapImpact]
+                        ] as Array<[string, number]>).map(([label, value]) => (
+                          <div key={label} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{label}</span>
+                              <span>{toInfluenceLabel(value)} influence</span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-background/80">
+                              <div
+                                className="h-full rounded-full bg-primary"
+                                style={{ width: `${Math.max(8, Math.min(100, value * 5))}%` }}
+                              />
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      <div className="rounded-md border border-border/70 bg-secondary/20 p-2">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          checklist tasks
+
+                      <div className="mt-4 rounded-lg border border-primary/30 bg-primary/10 p-3">
+                        <p className="text-xs text-muted-foreground">if delayed 24h</p>
+                        <p className="text-lg font-semibold text-foreground">
+                          {describeDelayImpact(plan.topTask.delayImpactIfDeferred24h).label} slip-risk increase
                         </p>
-                        {selectedSession.checklistTasks.slice(0, 5).map((task) => (
-                          <p key={`${selectedSession.id}-${task.id}`} className="text-xs text-muted-foreground">
-                            - {task.text}
-                          </p>
-                        ))}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {describeDelayImpact(plan.topTask.delayImpactIfDeferred24h).message}
+                        </p>
                       </div>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground">Select a session to see rationale and evidence.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No top task available.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card id="session-details-panel">
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-xl md:text-2xl">session details</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Click any schedule block to inspect rationale, resources, and one-click actions.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {selectedSession ? (
+                  <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-border/70 bg-secondary/20 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="space-y-2">
+                            <p className="text-2xl font-semibold text-foreground">{selectedSession.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedSession.dayLabel} · {formatDateShort(selectedSession.dateIso)} ·{" "}
+                              {selectedSession.startLabel} -{" "}
+                              {formatTime(selectedSession.startMinutes + selectedSession.durationMinutes)} ·{" "}
+                              {selectedSession.durationMinutes}m
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {selectedSession.status}
+                          </Badge>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-3">
+                          <div className="rounded-lg border border-border/70 bg-background/80 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">why now</p>
+                            <p className="mt-1 text-sm text-foreground">{selectedSession.rationale}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/70 bg-background/80 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">dependency</p>
+                            <p className="mt-1 text-sm text-foreground">{selectedSession.dependencies.join(" -> ")}</p>
+                          </div>
+                          <div className="rounded-lg border border-border/70 bg-background/80 p-3">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">if you do one thing</p>
+                            <p className="mt-1 text-sm text-foreground">{selectedSession.ifOnlyOneThing}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border/70 bg-secondary/20 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">checklist targets</p>
+                        <div className="mt-3 space-y-2">
+                          {selectedSession.checklistTasks.slice(0, 5).map((task) => (
+                            <div
+                              key={`${selectedSession.id}-${task.id}`}
+                              className="flex items-start gap-2 rounded-md border border-border/70 bg-background/80 p-2 text-sm"
+                            >
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                              <span>{task.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => focusSessionInSchedule(selectedSession.id)}>
+                          <CalendarDays className="h-4 w-4" />
+                          focus in schedule
+                        </Button>
+                        <a
+                          href={selectedSession.taskUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                        >
+                          <FileText className="h-4 w-4" />
+                          open task
+                        </a>
+                        <a
+                          href={selectedSession.submissionUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                        >
+                          <FolderOpen className="h-4 w-4" />
+                          dropbox/rubric
+                        </a>
+                        {selectedSessionStudyLink ? (
+                          <a
+                            href={selectedSessionStudyLink.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                          >
+                            <BookOpen className="h-4 w-4" />
+                            open resources
+                          </a>
+                        ) : null}
+                        <Button size="sm" onClick={() => openStartSession(selectedSession.id)}>
+                          <PlayCircle className="h-4 w-4" />
+                          start session
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 rounded-xl border border-border/70 bg-secondary/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        content locator (top sources)
+                      </p>
+                      {selectedSession.contentLocator.slice(0, 4).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No mapped study sources for this session yet.</p>
+                      ) : (
+                        selectedSession.contentLocator.slice(0, 4).map((resource, index) => {
+                          const confidencePct =
+                            resource.confidence <= 1
+                              ? Math.round(resource.confidence * 100)
+                              : Math.round(resource.confidence);
+                          return (
+                            <a
+                              key={`${selectedSession.id}-${index}`}
+                              href={resource.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-background"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-foreground">
+                                  #{index + 1} {resource.module} {" -> "} {resource.lecture}
+                                </p>
+                                <Badge variant="secondary" className="text-[11px]">
+                                  {confidencePct}% match
+                                </Badge>
+                              </div>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {resource.section} · {resource.resource}
+                              </p>
+                              <p className="mt-2 text-sm text-foreground">{resource.whyRelevant}</p>
+                            </a>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Select a schedule block to see guidance, content links, and actions.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </section>
         </div>
       ) : null}
@@ -1393,9 +1818,12 @@ function buildPlan(input: {
   const now = new Date();
   const blockMinutes = getBlockMinutes(profile.workStyle);
   const breakMinutes = getBreakMinutes(profile.workStyle);
-  const weekDays = createWeekDays(profile, now);
-  const rankedItems = rankItemsForPlanning(input.context.workItems, now)
-    .slice(0, 12)
+  const weekDays = createWeekDays(profile, now, PLANNING_DAYS);
+  const planningWindowEnd = addDays(now, PLANNING_DAYS - 1).getTime();
+  const rankedEntries = rankItemsForPlanning(input.context.workItems, now);
+  const horizonEntries = rankedEntries.filter((entry) => new Date(entry.item.dueAt).getTime() <= planningWindowEnd);
+  const rankedItems = (horizonEntries.length > 0 ? horizonEntries : rankedEntries)
+    .slice(0, 24)
     .map((entry) => entry.item);
 
   const requiredMinutesTotal = rankedItems.reduce((sum, item) => {
@@ -1495,47 +1923,60 @@ function resolveProfile(
     reminderAggressiveness: profile.reminderAggressiveness ?? "normal"
   };
 
-  if (mode !== "session_skipped") {
-    return resolved;
+  const recentSkips = events.filter((event) => event.status === "skipped").slice(0, 8).length;
+  const tiredSkips = events.filter((event) => event.status === "skipped" && event.frictionReason === "too_tired").length;
+
+  let optimized = { ...resolved };
+
+  // Preferences are treated as inputs, but optimizer guardrails correct patterns that usually lead to cramming.
+  if (optimized.startBehavior === "last_minute" && optimized.bufferPreference === "low") {
+    optimized.bufferPreference = "medium";
+  }
+  if (optimized.startBehavior === "last_minute" && optimized.preferredTime === "late_night") {
+    optimized.preferredTime = "evening";
   }
 
-  const recentSkips = events.filter((event) => event.status === "skipped").slice(0, 6).length;
-  if (recentSkips < 2) {
-    return resolved;
+  if (mode === "session_skipped" && recentSkips >= 2) {
+    optimized = {
+      ...optimized,
+      workStyle:
+        optimized.workStyle === "deep"
+          ? "medium"
+          : optimized.workStyle === "medium"
+            ? "short"
+            : "short",
+      preferredTime:
+        optimized.preferredTime === "late_night"
+          ? "evening"
+          : optimized.preferredTime === "evening"
+            ? "afternoon"
+            : optimized.preferredTime
+    };
   }
 
-  return {
-    ...resolved,
-    workStyle:
-      resolved.workStyle === "deep"
-        ? "medium"
-        : resolved.workStyle === "medium"
-          ? "short"
-          : "short",
-    preferredTime:
-      resolved.preferredTime === "late_night"
-        ? "evening"
-        : resolved.preferredTime === "evening"
-          ? "afternoon"
-          : resolved.preferredTime
-  };
+  if (tiredSkips >= 2 && optimized.preferredTime === "late_night") {
+    optimized.preferredTime = "evening";
+  }
+
+  return optimized;
 }
 
-function createWeekDays(profile: PlannerProfileResolved, now: Date) {
+function createWeekDays(profile: PlannerProfileResolved, now: Date, dayCount: number) {
   const monday = startOfMonday(now);
   const loadFactor = profile.outsideLoad === "heavy" ? 0.75 : profile.outsideLoad === "light" ? 1.1 : 1;
   const weekdayBase = profile.weekdayBudget === "light" ? 90 : profile.weekdayBudget === "high" ? 255 : 170;
   const weekendBase = profile.weekendBudget === "light" ? 120 : profile.weekendBudget === "high" ? 320 : 220;
 
-  return Array.from({ length: 7 }).map((_, index) => {
+  return Array.from({ length: dayCount }).map((_, index) => {
     const date = addDays(monday, index);
-    const isWeekend = index >= 5;
+    const weekDayIndex = index % DAYS_PER_WEEK;
+    const isWeekend = weekDayIndex >= 5;
     const base = isWeekend ? weekendBase : weekdayBase;
     const capacity = Math.max(40, Math.round(base * loadFactor));
 
     return {
       dateIso: toIsoDate(date),
-      dayLabel: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index] ?? "Day",
+      dayLabel: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][weekDayIndex] ?? "Day",
       capacityMinutes: capacity,
       usedMinutes: 0,
       remainingMinutes: capacity,
@@ -1658,6 +2099,10 @@ function placeSessionsIntoWeek(input: {
   const week = input.weekDays.map((day) => ({ ...day }));
   const drafts = sortDrafts(input.drafts, input.profile.splitPreference);
   const sessions: PlannedSession[] = [];
+  const sessionsPerDay = new Map<string, number>();
+  const sessionsPerItemDay = new Map<string, number>();
+  const lastSessionDatePerItem = new Map<string, string>();
+  const dayMs = 1000 * 60 * 60 * 24;
 
   drafts.forEach((draft) => {
     const earliest = new Date(draft.earliestIso);
@@ -1679,20 +2124,73 @@ function placeSessionsIntoWeek(input: {
       }
     }
 
-    filtered.sort((a, b) => {
-      const d = new Date(a.dateIso).getTime() - new Date(b.dateIso).getTime();
-      if (d !== 0) {
-        return d;
+    const priorDateIso = lastSessionDatePerItem.get(draft.itemId);
+    if (priorDateIso) {
+      const spreadCandidates = filtered.filter((day) => day.dateIso > priorDateIso);
+      if (spreadCandidates.length > 0) {
+        filtered = spreadCandidates;
       }
-      return b.remainingMinutes - a.remainingMinutes;
+    }
+
+    const hasWeekdayCandidate = filtered.some((day) => {
+      const weekDay = new Date(`${day.dateIso}T00:00:00`).getDay();
+      return weekDay >= 1 && weekDay <= 5;
+    });
+
+    filtered.sort((a, b) => {
+      const earliestMs = earliest.getTime();
+      const latestMs = latest.getTime();
+      const spanMs = Math.max(dayMs, latestMs - earliestMs);
+      const score = (day: (typeof week)[number]) => {
+        const dayMsValue = new Date(`${day.dateIso}T00:00:00`).getTime();
+        const timelineProgress = clamp((dayMsValue - earliestMs) / spanMs, 0, 1);
+        const usedRatio = day.capacityMinutes <= 0 ? 1 : day.usedMinutes / day.capacityMinutes;
+        const daySessionCount = sessionsPerDay.get(day.dateIso) ?? 0;
+        const sameItemCount = sessionsPerItemDay.get(`${draft.itemId}:${day.dateIso}`) ?? 0;
+        const overflowPenalty =
+          day.remainingMinutes < draft.durationMinutes
+            ? 14 + (draft.durationMinutes - day.remainingMinutes) / 20
+            : 0;
+        const weekend = new Date(`${day.dateIso}T00:00:00`).getDay();
+        const weekendPenalty = hasWeekdayCandidate && (weekend === 0 || weekend === 6) ? 5 : 0;
+
+        // Lower score is better: prefer earlier, less crowded days with spread across the week.
+        return (
+          timelineProgress * 14 +
+          usedRatio * 10 +
+          daySessionCount * 3 +
+          sameItemCount * 9 +
+          overflowPenalty +
+          weekendPenalty
+        );
+      };
+
+      const aScore = score(a);
+      const bScore = score(b);
+      if (aScore !== bScore) {
+        return aScore - bScore;
+      }
+
+      return new Date(`${a.dateIso}T00:00:00`).getTime() - new Date(`${b.dateIso}T00:00:00`).getTime();
     });
 
     const chosen = filtered[0] ?? week[0];
     const overflowPlacement = chosen.remainingMinutes < draft.durationMinutes;
+
+    // Guardrail: keep planned work inside the same day when capacity is large (avoid post-midnight stacking).
+    const latestSafeStart = Math.max(6 * 60, 24 * 60 - chosen.capacityMinutes - input.breakMinutes);
+    chosen.startMinute = Math.min(chosen.startMinute, latestSafeStart);
+
     const startMinutes = chosen.startMinute + chosen.usedMinutes;
     chosen.usedMinutes += draft.durationMinutes + input.breakMinutes;
     chosen.remainingMinutes = Math.max(0, chosen.capacityMinutes - chosen.usedMinutes);
     chosen.deepCount += draft.isDeep ? 1 : 0;
+    sessionsPerDay.set(chosen.dateIso, (sessionsPerDay.get(chosen.dateIso) ?? 0) + 1);
+    sessionsPerItemDay.set(
+      `${draft.itemId}:${chosen.dateIso}`,
+      (sessionsPerItemDay.get(`${draft.itemId}:${chosen.dateIso}`) ?? 0) + 1
+    );
+    lastSessionDatePerItem.set(draft.itemId, chosen.dateIso);
 
     sessions.push({
       id: draft.id,
@@ -1873,7 +2371,7 @@ function buildStrategySummary(input: {
       ? "Skipped-session adaptation applied by shrinking blocks and pulling key work earlier."
       : input.mode === "workload_changed"
         ? "Workload-change adaptation inserted review-change sessions and re-ranked priorities."
-        : "Plan is sequenced to match your preferred block style and buffer preference.";
+        : "Plan balances your preferences with anti-cram guardrails to spread work earlier and protect deadline margin.";
 
   return `${lead} ${tail}`;
 }
@@ -2173,4 +2671,72 @@ function round2(value: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function toInfluenceLabel(value: number): string {
+  if (value >= 14) {
+    return "very high";
+  }
+  if (value >= 10) {
+    return "high";
+  }
+  if (value >= 6) {
+    return "medium";
+  }
+  if (value >= 3) {
+    return "low";
+  }
+  return "very low";
+}
+
+function describeDelayImpact(scoreDelta: number): { label: string; message: string } {
+  if (scoreDelta >= 12) {
+    return {
+      label: "High",
+      message: "Waiting a day creates a meaningful chance of deadline slip and quality drop."
+    };
+  }
+  if (scoreDelta >= 6) {
+    return {
+      label: "Moderate",
+      message: "A 24h delay reduces buffer and likely increases stress close to deadline."
+    };
+  }
+  return {
+    label: "Low",
+    message: "A short delay is manageable, but starting now still protects schedule flexibility."
+  };
+}
+
+function chunkIntoWeeks(days: PlannedDay[], daysPerWeek: number): PlannedDay[][] {
+  if (daysPerWeek <= 0) {
+    return [];
+  }
+
+  const chunks: PlannedDay[][] = [];
+  for (let index = 0; index < days.length; index += daysPerWeek) {
+    chunks.push(days.slice(index, index + daysPerWeek));
+  }
+  return chunks;
+}
+
+function formatDateShort(dateIso: string): string {
+  const date = new Date(`${dateIso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return dateIso;
+  }
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function getWeekIndexForDate(days: PlannedDay[], dateIso: string | null): number {
+  if (!dateIso) {
+    return 0;
+  }
+
+  const index = days.findIndex((day) => day.dateIso === dateIso);
+  if (index < 0) {
+    return 0;
+  }
+
+  return Math.floor(index / DAYS_PER_WEEK);
 }

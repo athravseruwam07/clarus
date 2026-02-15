@@ -686,7 +686,10 @@ function parseContentLinks(input: {
         module: nextModule,
         lecture: nextLecture,
         resource: topicTitle,
-        section: readString(topic["Description"])?.slice(0, 40) ?? "Key section",
+        section:
+          readString(topic["Description"])?.replace(/\s+/g, " ").slice(0, 120) ??
+          readString(topic["Type"]) ??
+          "Key section",
         url: resolvedUrl,
         whyRelevant: "Mapped from active course content structure.",
         confidence: 0.8
@@ -749,8 +752,23 @@ function pickStudyLinksForItem(
   item: ParsedRawItem,
   taskUrl: string | undefined
 ): ContentLink[] {
+  const ordinal = extractTaskOrdinal(item.title, item.type);
+
   if (contentLinks.length <= 3) {
-    return contentLinks.filter((link) => !isTaskDetailLikeLink(link, item.type, taskUrl));
+    return contentLinks
+      .filter((link) => !isTaskDetailLikeLink(link, item.type, taskUrl))
+      .map((link) => ({
+        link,
+        score: scoreStudyLink(link, [], item.type, ordinal)
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return b.link.confidence - a.link.confidence;
+      })
+      .map((entry) => entry.link);
   }
 
   const tokens = tokenizeForMatching(`${item.title} ${item.detailsText}`);
@@ -758,8 +776,9 @@ function pickStudyLinksForItem(
     .filter((link) => !isTaskDetailLikeLink(link, item.type, taskUrl))
     .map((link) => ({
       link,
-      score: scoreStudyLink(link, tokens, item.type)
+      score: scoreStudyLink(link, tokens, item.type, ordinal)
     }))
+    .filter((entry) => entry.score > 0)
     .sort((a, b) => {
       if (b.score !== a.score) {
         return b.score - a.score;
@@ -1243,9 +1262,15 @@ function scoreTaskLink(
   return score;
 }
 
-function scoreStudyLink(link: ContentLink, tokens: string[], itemType: WorkItemType): number {
+function scoreStudyLink(
+  link: ContentLink,
+  tokens: string[],
+  itemType: WorkItemType,
+  taskOrdinal: number | null
+): number {
   let score = scoreContentLink(link, tokens, itemType);
   const url = link.url.toLowerCase();
+  const haystack = `${link.module} ${link.lecture} ${link.resource} ${link.section} ${link.url}`.toLowerCase();
 
   if (url.includes("/d2l/le/content/")) {
     score += 8;
@@ -1257,6 +1282,38 @@ function scoreStudyLink(link: ContentLink, tokens: string[], itemType: WorkItemT
 
   if (url.includes("/modules/") || url.includes("/lecture") || url.includes("/read")) {
     score += 3;
+  }
+
+  if (taskOrdinal !== null) {
+    const moduleOrdinal = extractModuleOrdinalFromLink(link);
+    if (moduleOrdinal !== null) {
+      const delta = Math.abs(moduleOrdinal - taskOrdinal);
+      if (delta <= 1) {
+        score += 12;
+      } else if (delta <= 2) {
+        score += 7;
+      } else if (moduleOrdinal + 2 < taskOrdinal) {
+        score -= 14;
+      } else {
+        score -= Math.min(8, delta);
+      }
+    }
+  }
+
+  if (isIntroductoryContentLabel(haystack) && taskOrdinal !== null && taskOrdinal >= 3) {
+    score -= 14;
+  }
+
+  if (itemType === "assignment" || itemType === "project") {
+    if (haystack.includes("quiz") || haystack.includes("discussion prompt")) {
+      score -= 8;
+    }
+  }
+
+  if (itemType === "quiz") {
+    if (haystack.includes("assignment details") || haystack.includes("dropbox")) {
+      score -= 8;
+    }
   }
 
   return score;
@@ -1323,6 +1380,27 @@ function normalizeUrl(url: string): string {
   return url.trim().replace(/\/+$/, "").toLowerCase();
 }
 
+function extractModuleOrdinalFromLink(link: ContentLink): number | null {
+  const haystack = `${link.module} ${link.lecture} ${link.resource}`.toLowerCase();
+  const moduleMatch = haystack.match(/module\s*(\d{1,2})/);
+  if (moduleMatch?.[1]) {
+    const parsed = Number.parseInt(moduleMatch[1], 10);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  const weekMatch = haystack.match(/week\s*(\d{1,2})/);
+  if (weekMatch?.[1]) {
+    const parsed = Number.parseInt(weekMatch[1], 10);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 function extractTaskOrdinal(title: string, type: WorkItemType): number | null {
   const normalized = title.toLowerCase();
   const typeWord =
@@ -1345,6 +1423,19 @@ function extractTaskOrdinal(title: string, type: WorkItemType): number | null {
 
   const parsed = Number.parseInt(match[1], 10);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function isIntroductoryContentLabel(value: string): boolean {
+  const normalized = value.toLowerCase();
+  return (
+    normalized.includes("welcome") ||
+    normalized.includes("orientation") ||
+    normalized.includes("course information") ||
+    normalized.includes("about this course") ||
+    normalized.includes("module 1") ||
+    normalized.includes("week 1") ||
+    normalized.includes("introduction")
+  );
 }
 
 function isUsableStudyLink(
