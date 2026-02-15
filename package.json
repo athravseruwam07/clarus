@@ -2,12 +2,12 @@
   "name": "clarus",
   "private": true,
   "scripts": {
-    "setup": "bash scripts/setup.sh",
-    "dev": "bash scripts/dev-all.sh",
-    "dev:be": "bash scripts/dev-be.sh",
+    "setup": "node scripts/setup.cjs",
+    "dev": "node scripts/dev.cjs",
+    "dev:be": "node scripts/dev.cjs --backend-only",
     "dev:fe": "cd FE && npm run dev",
-    "chrome:debug": "bash scripts/chrome-debug.sh",
-    "db:up": "cd BE && docker compose up -d",
-    "db:down": "cd BE && docker compose down"
+    "chrome:debug": "node scripts/chrome-debug.cjs",
+    "db:up": "docker compose -f BE/docker-compose.yml up -d",
+    "db:down": "docker compose -f BE/docker-compose.yml down"
   }
 }
