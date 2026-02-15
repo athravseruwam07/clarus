@@ -35,7 +35,7 @@ export default function CopilotModePage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>conversational copilot mode</CardTitle>
+          <CardTitle>ai copilot</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">

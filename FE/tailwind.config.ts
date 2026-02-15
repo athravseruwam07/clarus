@@ -61,7 +61,8 @@ const config: Config = {
       animation: {
         "fade-up": "fade-up 0.4s ease-out both",
         shimmer: "shimmer 2s linear infinite",
-        "slide-in": "slide-in 0.2s ease-out both"
+        "slide-in": "slide-in 0.2s ease-out both",
+        "tab-enter": "tab-enter 0.2s ease-out both"
       },
       keyframes: {
         "fade-up": {

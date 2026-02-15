@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { FileText, NotebookPen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,13 +17,12 @@ import {
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AiBriefingCard } from "@/components/overview/AiBriefingCard";
 import { AiChecklistCard } from "@/components/overview/AiChecklistCard";
-import { AiWorkspacePanel } from "@/components/overview/AiWorkspacePanel";
-import { KeyValueCard } from "@/components/overview/KeyValueCard";
+import { AiScheduleCard } from "@/components/overview/AiScheduleCard";
 import { NotesCard } from "@/components/overview/NotesCard";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { OverviewLayout } from "@/components/overview/OverviewLayout";
@@ -155,6 +154,13 @@ export default function CalendarEventOverviewPage() {
   const friendlyType = event ? associatedEntityLabel(event.associatedEntityType) : null;
   const descriptionText = normalizeRichText(event?.description);
 
+  const aiBadge = useMemo(() => {
+    if (!aiBrief) return undefined;
+    const total = aiBrief.checklist.length;
+    const done = aiBrief.checklist.reduce((sum, item) => sum + (itemState.checkedById[item.id] ? 1 : 0), 0);
+    return `${done}/${total}`;
+  }, [aiBrief, itemState.checkedById]);
+
   return (
     <div className="space-y-6">
       {errorMessage ? (
@@ -175,87 +181,99 @@ export default function CalendarEventOverviewPage() {
         badgeText={whenBadge}
         openUrl={event?.viewUrl ?? null}
         onBack={() => router.back()}
+        metadataItems={[
+          { label: "type", value: <Badge variant="secondary" className="text-[10px]">{friendlyType ?? ""}</Badge> },
+          { label: "source", value: <span className="text-foreground/80">{friendlySource ?? ""}</span> }
+        ]}
         isLoading={isLoading}
       />
 
       <OverviewLayout
-        left={
-          <>
-            <NotesCard
-              locationText={itemState.locationText}
-              onLocationChange={itemState.setLocationText}
-              notesText={itemState.notesText}
-              onNotesChange={itemState.setNotesText}
-              isSaving={itemState.isSaving}
-              saveError={itemState.saveError}
-            />
-
-            <KeyValueCard
-              title="details"
-              items={[
-                { label: "when", value: <span className="font-mono text-xs">{formatLocal(event?.startAt)}</span> },
-                { label: "type", value: <Badge variant="secondary" className="text-[10px]">{friendlyType ?? ""}</Badge> },
-                { label: "source", value: <span className="text-xs text-muted-foreground">{friendlySource ?? ""}</span> }
-              ]}
-            />
-
-            <Card className="card-glow">
-              <CardHeader>
-                <CardTitle className="text-base">description</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <Skeleton key={index} className="h-4 w-full" />
-                    ))}
-                  </div>
-                ) : descriptionText ? (
-                  <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{descriptionText}</p>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                    <p className="text-sm text-muted-foreground">no description provided by brightspace.</p>
-                    {event?.viewUrl ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        open in brightspace for more details, then add notes above.
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        }
-        right={
-          <AiWorkspacePanel>
-            <AiBriefingCard
-              brief={aiBrief}
-              isGenerating={isGenerating}
-              aiNotConfigured={aiNotConfigured}
-              aiError={aiError}
-              onGenerate={() => void handleGenerate()}
-            />
-
-            {aiBrief ? (
-              <AiChecklistCard
-                brief={aiBrief}
-                checkedById={itemState.checkedById}
-                onToggleChecked={(id, checked) => {
-                  itemState.setCheckedById((prev) => ({ ...prev, [id]: checked }));
-                }}
-              />
-            ) : (
+        defaultTab={!descriptionText ? "notes" : "overview"}
+        tabs={[
+          {
+            id: "overview",
+            label: "overview",
+            icon: FileText,
+            content: (
               <Card className="card-glow">
                 <CardHeader>
-                  <CardTitle className="text-base">ai checklist</CardTitle>
+                  <CardTitle className="text-base">description</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  generate the briefing to get a checklist.
+                <CardContent className="space-y-3 text-sm">
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <Skeleton key={index} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  ) : descriptionText ? (
+                    <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{descriptionText}</p>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
+                      <p className="text-sm text-muted-foreground">no description provided by brightspace.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
-          </AiWorkspacePanel>
-        }
+            )
+          },
+          {
+            id: "ai",
+            label: "ai workspace",
+            icon: Sparkles,
+            badge: aiBadge,
+            content: (
+              <div className="space-y-4">
+                <AiBriefingCard
+                  brief={aiBrief}
+                  isGenerating={isGenerating}
+                  aiNotConfigured={aiNotConfigured}
+                  aiError={aiError}
+                  onGenerate={() => void handleGenerate()}
+                />
+
+                {aiBrief ? (
+                  <>
+                    <AiChecklistCard
+                      brief={aiBrief}
+                      checkedById={itemState.checkedById}
+                      onToggleChecked={(id, checked) => {
+                        itemState.setCheckedById((prev) => ({ ...prev, [id]: checked }));
+                      }}
+                    />
+                    <AiScheduleCard brief={aiBrief} />
+                  </>
+                ) : (
+                  <Card className="card-glow">
+                    <CardHeader>
+                      <CardTitle className="text-base">ai checklist</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      generate the briefing to get a checklist.
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )
+          },
+          {
+            id: "notes",
+            label: "notes",
+            icon: NotebookPen,
+            content: (
+              <NotesCard
+                locationText={itemState.locationText}
+                onLocationChange={itemState.setLocationText}
+                notesText={itemState.notesText}
+                onNotesChange={itemState.setNotesText}
+                isSaving={itemState.isSaving}
+                saveError={itemState.saveError}
+              />
+            )
+          }
+        ]}
       />
     </div>
   );
