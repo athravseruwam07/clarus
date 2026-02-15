@@ -216,9 +216,7 @@ const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
         where: {
           userId: request.auth.user.id,
           startAt: { gte: monday, lt: fourWeeksOut },
-          // Some D2L tools expose deadline-like dates as EndDate rather than DueDate.
-          // Include `end` so workload forecasting reflects real upcoming submissions.
-          dateKind: { in: ["due", "event", "end"] }
+          dateKind: { in: ["due", "event"] }
         },
         include: {
           course: { select: { courseName: true, courseCode: true } }

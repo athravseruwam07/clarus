@@ -85,8 +85,8 @@ function WorkloadBars(props: {
 
             return (
               <div key={entry.week} className="flex h-full min-w-0 flex-1 items-end">
-                <div className="w-full">
-                  <div className="relative h-[calc(100%_-_20px)] w-full rounded-sm bg-secondary/30">
+                <div className="flex h-full w-full flex-col">
+                  <div className="relative flex-1 rounded-sm bg-secondary/30">
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-sm"
                       style={{ height: `${heightPct}%`, backgroundColor: barColor }}
