@@ -26,26 +26,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} noise-bg font-sans`}
         style={{ letterSpacing: "-0.011em" }}
+        suppressHydrationWarning
       >
-=======
-    <html lang="en" suppressHydrationWarning>
-      <body className={spaceGrotesk.className} suppressHydrationWarning>
->>>>>>> Stashed changes
-=======
-    <html lang="en" suppressHydrationWarning>
-      <body className={spaceGrotesk.className} suppressHydrationWarning>
->>>>>>> Stashed changes
-=======
-    <html lang="en" suppressHydrationWarning>
-      <body className={spaceGrotesk.className} suppressHydrationWarning>
->>>>>>> Stashed changes
         {children}
         <Toaster />
       </body>
