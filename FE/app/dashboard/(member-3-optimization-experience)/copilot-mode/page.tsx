@@ -321,6 +321,7 @@ export default function CopilotModePage() {
           activePage: "/dashboard/copilot-mode"
         }
       });
+      shouldStickToBottomRef.current = true;
 
       setMessagesByThread((current) => {
         const currentMessages = current[threadId] ?? [];
