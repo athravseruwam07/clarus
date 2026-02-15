@@ -321,7 +321,7 @@ export default function DashboardPage() {
       {topTimelineItem ? (
         <section className="rounded-lg border border-border/80 bg-secondary/30 p-4">
           <p className="text-sm text-muted-foreground">
-            quick start: overview, assignment intelligence, insights, and ai copilot.
+            quick start: overview, assignment intelligence, insights, and clarus ai chat.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
@@ -334,7 +334,7 @@ export default function DashboardPage() {
               open insights
             </Link>
             <Link href={"/dashboard/copilot-mode" as any} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-              open ai copilot
+              open clarus ai chat
             </Link>
           </div>
         </section>

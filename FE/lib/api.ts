@@ -361,6 +361,44 @@ export interface DemoCopilotResponse {
   linkedAssignments: Array<{ assignmentId: string; title: string; reason: string }>;
 }
 
+export interface CopilotCitationDTO {
+  id: string;
+  type: "course" | "timeline_event" | "ai_brief" | "item_state";
+  label: string;
+  href: string | null;
+  internalPath: string | null;
+}
+
+export interface CopilotMessageDTO {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  citations: CopilotCitationDTO[];
+  actions: string[];
+  followUps: string[];
+  confidence: "high" | "medium" | "low" | null;
+  model: string | null;
+  createdAt: string;
+}
+
+export interface CopilotThreadDTO {
+  id: string;
+  title: string;
+  lastMessageAt: string;
+  messageCount: number;
+  preview: string | null;
+}
+
+export interface CopilotAskResponseDTO {
+  threadId: string;
+  userMessageId: string;
+  assistantMessage: CopilotMessageDTO;
+  actions: string[];
+  citations: CopilotCitationDTO[];
+  followUps: string[];
+  confidence: "high" | "medium" | "low" | null;
+}
+
 export type TimelineSourceType =
   | "calendar"
   | "content_module"
@@ -828,6 +866,65 @@ export async function putItemState(payload: {
   return request<ItemStateDTO>("/v1/items/state", {
     method: "PUT",
     body: JSON.stringify(payload)
+  });
+}
+
+export async function listCopilotThreads(): Promise<CopilotThreadDTO[]> {
+  const response = await request<{ threads: CopilotThreadDTO[] }>("/v1/copilot/threads", {
+    method: "GET"
+  });
+  return response.threads;
+}
+
+export async function createCopilotThread(payload?: {
+  title?: string;
+  initialMessage?: string;
+  context?: { activeOrgUnitId?: string; activePage?: string };
+}): Promise<{ thread: CopilotThreadDTO; assistantMessage: CopilotMessageDTO | null }> {
+  return request<{ thread: CopilotThreadDTO; assistantMessage: CopilotMessageDTO | null }>(
+    "/v1/copilot/threads",
+    {
+      method: "POST",
+      body: JSON.stringify(payload ?? {})
+    }
+  );
+}
+
+export async function getCopilotMessages(
+  threadId: string,
+  params?: { cursor?: string; limit?: number }
+): Promise<{ messages: CopilotMessageDTO[]; nextCursor: string | null }> {
+  const query = new URLSearchParams();
+  if (params?.cursor) {
+    query.set("cursor", params.cursor);
+  }
+  if (params?.limit) {
+    query.set("limit", String(params.limit));
+  }
+  const suffix = query.toString();
+  return request<{ messages: CopilotMessageDTO[]; nextCursor: string | null }>(
+    `/v1/copilot/threads/${encodeURIComponent(threadId)}/messages${suffix ? `?${suffix}` : ""}`,
+    { method: "GET" }
+  );
+}
+
+export async function sendCopilotMessage(payload: {
+  threadId: string;
+  message: string;
+  context?: { activeOrgUnitId?: string; activePage?: string };
+}): Promise<CopilotAskResponseDTO> {
+  return request<CopilotAskResponseDTO>(`/v1/copilot/threads/${encodeURIComponent(payload.threadId)}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      message: payload.message,
+      context: payload.context
+    })
+  });
+}
+
+export async function deleteCopilotThread(threadId: string): Promise<{ success: true }> {
+  return request<{ success: true }>(`/v1/copilot/threads/${encodeURIComponent(threadId)}`, {
+    method: "DELETE"
   });
 }
 
