@@ -788,7 +788,7 @@ export default function WorkPlanOptimizerPage() {
     <div className="space-y-5">
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle>work plan optimizer</CardTitle>
+          <CardTitle>study plan optimizer</CardTitle>
           <p className="text-sm text-muted-foreground">
             Real-time active-course planning from Brightspace assignments, deadlines, and content.
           </p>

@@ -90,9 +90,9 @@ export default function CopilotModePage() {
         }
 
         setThreads(rows);
-        if (rows.length > 0) {
-          setActiveThreadId((current) => current ?? rows[0].id);
-        }
+        setActiveThreadId((current) =>
+          current && rows.some((thread) => thread.id === current) ? current : null
+        );
       } catch (error) {
         if (!cancelled) {
           setThreadError(getApiErrorDetail(error));

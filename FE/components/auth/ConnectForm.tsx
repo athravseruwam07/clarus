@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Globe, Loader2, ShieldCheck } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Circle, Globe, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -59,6 +59,25 @@ const CANADIAN_UNIVERSITIES: UniversityOption[] = [
     logoSrc: "/universities/tmu.svg"
   }
 ];
+
+const CONNECT_PROGRESS_STEPS = [
+  {
+    title: "opening Brightspace sign-in",
+    description: "launching your institution login window."
+  },
+  {
+    title: "waiting for secure authentication",
+    description: "complete SSO/MFA in the Brightspace popup."
+  },
+  {
+    title: "verifying account connection",
+    description: "confirming your Brightspace connection."
+  },
+  {
+    title: "starting Clarus workspace",
+    description: "loading your dashboard and connected features."
+  }
+] as const;
 
 function faviconUrl(instanceUrl: string): string {
   // Prefer the instance's own favicon (avoids the Google S2 fallback globe icons).
@@ -126,7 +145,10 @@ export function ConnectForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [progressStepIndex, setProgressStepIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const didLeavePageRef = useRef(false);
 
   const selectedUniversity = useMemo(() => {
     if (selectedUniversityId === "other") {
@@ -172,6 +194,77 @@ export function ConnectForm() {
     return () => window.removeEventListener("mousedown", handlePointerDown);
   }, [isDropdownOpen]);
 
+  useEffect(() => {
+    if (!isSubmitting) {
+      return;
+    }
+
+    didLeavePageRef.current = false;
+
+    const onBlur = () => {
+      didLeavePageRef.current = true;
+    };
+
+    const onVisibleAgain = () => {
+      if (didLeavePageRef.current) {
+        // User likely returned from popup login, now backend validates session.
+        setProgressStepIndex((current) => (current < 2 ? 2 : current));
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        onVisibleAgain();
+      }
+    };
+
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onVisibleAgain);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onVisibleAgain);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setProgressStepIndex((current) => (current < 1 ? 1 : current));
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      return;
+    }
+
+    if (elapsedSeconds >= 10 && didLeavePageRef.current) {
+      setProgressStepIndex((current) => (current < 2 ? 2 : current));
+    }
+  }, [elapsedSeconds, isSubmitting]);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -180,7 +273,9 @@ export function ConnectForm() {
     }
 
     setIsSubmitting(true);
+    setProgressStepIndex(0);
     setErrorMessage(null);
+    let didSucceed = false;
 
     try {
       await connectD2L({
@@ -188,10 +283,17 @@ export function ConnectForm() {
         mode: "manual"
       });
 
+      // Backend confirmed session is stored and valid.
+      setProgressStepIndex((current) => (current < 2 ? 2 : current));
+      await new Promise((resolve) => window.setTimeout(resolve, 320));
+      setProgressStepIndex(3);
+      await new Promise((resolve) => window.setTimeout(resolve, 420));
+
       toast.success("Connected to D2L", {
         description: "Your command center is ready."
       });
-      router.push("/dashboard");
+      didSucceed = true;
+      router.push("/dashboard?boot=1");
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -203,25 +305,29 @@ export function ConnectForm() {
         description: message
       });
     } finally {
-      setIsSubmitting(false);
+      if (!didSucceed) {
+        setProgressStepIndex(0);
+        setIsSubmitting(false);
+      }
     }
   }
 
   return (
-    <Card className="border-primary/20 bg-card">
+    <Card className="border-primary/20 bg-card/95 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
       <CardHeader>
-        <CardTitle>Connect your Brightspace</CardTitle>
+        <CardTitle>Connect Brightspace</CardTitle>
         <CardDescription>
-          clarus never sees your password. sign in inside the opened d2l tab and we
-          store only an encrypted session.
+          A Brightspace login window opens for sign-in. Once completed, Clarus finishes setup
+          automatically.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2" ref={dropdownRef}>
-            <Label>university</Label>
+            <Label>school</Label>
             <button
               type="button"
+              disabled={isSubmitting}
               className="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => setIsDropdownOpen((open) => !open)}
             >
@@ -339,6 +445,7 @@ export function ConnectForm() {
                 placeholder="https://yourschool.brightspace.com"
                 value={customInstanceUrl}
                 onChange={(event) => setCustomInstanceUrl(event.target.value)}
+                disabled={isSubmitting}
                 autoComplete="url"
               />
             </div>
@@ -357,14 +464,52 @@ export function ConnectForm() {
             ) : (
               <ShieldCheck className="h-4 w-4" />
             )}
-            {isSubmitting ? "connecting..." : "connect your d2l account"}
+            {isSubmitting ? "connecting and preparing workspace..." : "connect brightspace"}
           </Button>
 
           {isSubmitting ? (
-            <p className="text-xs text-muted-foreground">
-              a d2l login window will open. complete sso/duo and it will close automatically once
-              clarus captures a session.
-            </p>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-xs font-medium text-foreground">setting up your workspace</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                this can take a few seconds after the Brightspace window closes.
+              </p>
+              {progressStepIndex >= 2 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  login complete. finishing account verification and workspace startup.
+                </p>
+              ) : null}
+              {elapsedSeconds >= 12 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  still working... clarus is finishing your connection.
+                </p>
+              ) : null}
+              <div className="mt-3 space-y-2">
+                {CONNECT_PROGRESS_STEPS.map((step, index) => {
+                  const isComplete = index < progressStepIndex;
+                  const isActive = index === progressStepIndex;
+
+                  return (
+                    <div key={step.title} className="flex items-start gap-2 text-xs">
+                      <span className="mt-0.5">
+                        {isComplete ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                        ) : isActive ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        )}
+                      </span>
+                      <div>
+                        <p className={cn("font-medium", isComplete || isActive ? "text-foreground" : "text-muted-foreground")}>
+                          {step.title}
+                        </p>
+                        <p className="text-muted-foreground">{step.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ) : null}
         </form>
       </CardContent>
