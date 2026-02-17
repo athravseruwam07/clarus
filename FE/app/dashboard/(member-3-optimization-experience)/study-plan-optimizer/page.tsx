@@ -21,7 +21,9 @@ import { toast } from "sonner";
 
 import {
   ApiError,
+  getItemState,
   getWorkPlanContext,
+  putItemState,
   type WorkPlanContextItem,
   type WorkPlanContextResponse
 } from "@/lib/api";
@@ -159,6 +161,12 @@ type BehaviorEvent = {
 
 const PROFILE_STORAGE_KEY = "clarus.optimizer.profile.v3";
 const BEHAVIOR_STORAGE_KEY = "clarus.optimizer.behavior.v3";
+const OPTIMIZER_STATE_TARGET_TYPE = "work_plan_optimizer" as const;
+const OPTIMIZER_STATE_TARGET_KEY = "quick_setup_v1";
+
+type PersistedOptimizerState = {
+  profile: PlannerProfile;
+};
 
 const defaultProfile: PlannerProfile = {
   weekdayBudget: null,
@@ -275,6 +283,7 @@ export default function WorkPlanOptimizerPage() {
   const [context, setContext] = useState<WorkPlanContextResponse | null>(null);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
   const [hasHydratedLocalState, setHasHydratedLocalState] = useState(false);
+  const [hasHydratedRemoteState, setHasHydratedRemoteState] = useState(false);
   const [contextError, setContextError] = useState<{
     code: string;
     message: string;
@@ -389,12 +398,12 @@ export default function WorkPlanOptimizerPage() {
     [getPrimaryStudyLink, selectedSession]
   );
 
-  const loadContext = useCallback(async () => {
+  const loadContext = useCallback(async (forceRefresh = false) => {
     setIsLoadingContext(true);
     setContextError(null);
 
     try {
-      const payload = await getWorkPlanContext();
+      const payload = await getWorkPlanContext({ refresh: forceRefresh });
       setContext(payload);
     } catch (error) {
       setContext(null);
@@ -459,20 +468,90 @@ export default function WorkPlanOptimizerPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!hasHydratedLocalState) {
       return;
     }
 
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  }, [profile]);
+    let cancelled = false;
+
+    async function hydrateRemoteState() {
+      try {
+        const savedState = await getItemState({
+          targetType: OPTIMIZER_STATE_TARGET_TYPE,
+          targetKey: OPTIMIZER_STATE_TARGET_KEY
+        });
+
+        const parsed = parsePersistedOptimizerState(savedState.notesText);
+        if (!cancelled && parsed) {
+          setProfile((prev) => ({ ...prev, ...parsed.profile }));
+        }
+      } catch (error) {
+        if (
+          error instanceof ApiError &&
+          (error.code === "state_not_found" || error.code === "unauthorized" || error.status === 404)
+        ) {
+          // No saved state yet (or auth redirect in progress).
+        } else if (!cancelled) {
+          const detail = error instanceof Error ? error.message : "failed to restore setup";
+          toast.error("could not restore quick setup", { description: detail });
+        }
+      } finally {
+        if (!cancelled) {
+          setHasHydratedRemoteState(true);
+        }
+      }
+    }
+
+    void hydrateRemoteState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasHydratedLocalState]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
+    if (!hasHydratedLocalState) {
+      return;
+    }
+
+    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  }, [hasHydratedLocalState, profile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!hasHydratedLocalState) {
+      return;
+    }
+
     window.localStorage.setItem(BEHAVIOR_STORAGE_KEY, JSON.stringify(behaviorEvents));
-  }, [behaviorEvents]);
+  }, [behaviorEvents, hasHydratedLocalState]);
+
+  useEffect(() => {
+    if (!hasHydratedLocalState || !hasHydratedRemoteState) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const payload: PersistedOptimizerState = {
+        profile
+      };
+
+      void putItemState({
+        targetType: OPTIMIZER_STATE_TARGET_TYPE,
+        targetKey: OPTIMIZER_STATE_TARGET_KEY,
+        notesText: JSON.stringify(payload)
+      }).catch(() => undefined);
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [hasHydratedLocalState, hasHydratedRemoteState, profile]);
 
   useEffect(() => {
     if (!plan) {
@@ -521,7 +600,7 @@ export default function WorkPlanOptimizerPage() {
   }, [plan, selectedDayIso]);
 
   useEffect(() => {
-    if (!hasHydratedLocalState || isLoadingContext || contextError || !context || plan) {
+    if (!hasHydratedLocalState || !hasHydratedRemoteState || isLoadingContext || contextError || !context || plan) {
       return;
     }
 
@@ -558,6 +637,7 @@ export default function WorkPlanOptimizerPage() {
     context,
     contextError,
     hasHydratedLocalState,
+    hasHydratedRemoteState,
     isLoadingContext,
     plan,
     profile,
@@ -777,7 +857,7 @@ export default function WorkPlanOptimizerPage() {
                   sign in
                 </Button>
               ) : null}
-              <Button size="sm" variant="secondary" onClick={() => void loadContext()}>
+              <Button size="sm" variant="secondary" onClick={() => void loadContext(true)}>
                 retry
               </Button>
             </div>
@@ -785,7 +865,7 @@ export default function WorkPlanOptimizerPage() {
         </Card>
       ) : null}
 
-      {!plan && !isLoadingContext && !contextError && !requiredAnswered ? (
+      {!plan && !contextError && !requiredAnswered ? (
         <div className="space-y-4">
           <Card className="border-primary/30">
             <CardHeader className="space-y-2">
@@ -849,25 +929,33 @@ export default function WorkPlanOptimizerPage() {
                     skip
                   </Button>
                   <div className="ml-auto">
-                    <Button onClick={() => void generatePlan("initial")} disabled={!requiredAnswered || isGenerating}>
+                    <Button
+                      onClick={() => void generatePlan("initial")}
+                      disabled={!requiredAnswered || isGenerating || isLoadingContext || !context}
+                    >
                       {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                       generate plan
                     </Button>
                   </div>
                 </div>
+                {isLoadingContext ? (
+                  <p className="mt-2 text-xs text-muted-foreground">loading live course context...</p>
+                ) : null}
               </div>
             </CardContent>
           </Card>
         </div>
       ) : null}
 
-      {!plan && !isLoadingContext && !contextError && requiredAnswered ? (
+      {!plan && !contextError && requiredAnswered ? (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">preferences saved</p>
               <p className="text-sm text-muted-foreground">
-                generating your plan with saved setup. You can edit preferences any time.
+                {isLoadingContext
+                  ? "preferences restored. loading live Brightspace context..."
+                  : "generating your plan with saved setup. You can edit preferences any time."}
               </p>
             </div>
             <div className="flex gap-2">
@@ -1465,6 +1553,53 @@ export default function WorkPlanOptimizerPage() {
       ) : null}
     </div>
   );
+}
+
+function readEnumValue<TValue extends string>(
+  value: unknown,
+  allowed: readonly TValue[]
+): TValue | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return (allowed as readonly string[]).includes(value) ? (value as TValue) : null;
+}
+
+function parsePersistedOptimizerState(notesText: string | null): PersistedOptimizerState | null {
+  if (!notesText) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(notesText) as { profile?: Partial<Record<ProfileKey, unknown>> } | null;
+    if (!parsed || typeof parsed !== "object" || !parsed.profile || typeof parsed.profile !== "object") {
+      return null;
+    }
+
+    const profile = parsed.profile;
+    return {
+      profile: {
+        weekdayBudget: readEnumValue(profile.weekdayBudget, ["light", "balanced", "high"] as const),
+        weekendBudget: readEnumValue(profile.weekendBudget, ["light", "balanced", "high"] as const),
+        preferredTime: readEnumValue(
+          profile.preferredTime,
+          ["morning", "afternoon", "evening", "late_night", "no_preference"] as const
+        ),
+        workStyle: readEnumValue(profile.workStyle, ["deep", "medium", "short"] as const),
+        startBehavior: readEnumValue(profile.startBehavior, ["early", "normal", "last_minute"] as const),
+        splitPreference: readEnumValue(profile.splitPreference, ["single", "mix", "balanced"] as const),
+        bufferPreference: readEnumValue(profile.bufferPreference, ["high", "medium", "low"] as const),
+        outsideLoad: readEnumValue(profile.outsideLoad, ["light", "normal", "heavy"] as const),
+        reminderAggressiveness: readEnumValue(
+          profile.reminderAggressiveness,
+          ["chill", "normal", "aggressive"] as const
+        )
+      }
+    };
+  } catch {
+    return null;
+  }
 }
 
 function buildTopTaskGuidance(topTask: GeneratedPlan["topTask"]): {

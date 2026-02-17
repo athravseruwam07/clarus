@@ -7,6 +7,7 @@ import { decodeStorageState } from "./storageState.js";
 import { WHOAMI_API_PATH } from "./valence.js";
 
 const LE_VERSIONS = ["1.75", "1.74", "1.73", "1.71", "1.69", "1.66", "1.64", "1.60", "1.58"];
+const WORK_PLAN_CONTEXT_CACHE_TTL_MS = 2 * 60 * 1000;
 
 type WorkItemType = "assignment" | "quiz" | "discussion" | "project" | "lab" | "other";
 
@@ -100,7 +101,56 @@ interface ParsedRawItem {
   recentlyChanged: boolean;
 }
 
-export async function getWorkPlanContext(user: User): Promise<WorkPlanContextResponse> {
+interface WorkPlanContextOptions {
+  forceRefresh?: boolean;
+}
+
+interface CachedWorkPlanContext {
+  expiresAtMs: number;
+  payload: WorkPlanContextResponse;
+}
+
+const workPlanContextCache = new Map<string, CachedWorkPlanContext>();
+const workPlanContextInFlight = new Map<string, Promise<WorkPlanContextResponse>>();
+
+export async function getWorkPlanContext(
+  user: User,
+  options?: WorkPlanContextOptions
+): Promise<WorkPlanContextResponse> {
+  const cacheKey = user.id;
+
+  if (options?.forceRefresh) {
+    workPlanContextCache.delete(cacheKey);
+  }
+
+  const nowMs = Date.now();
+  const cached = workPlanContextCache.get(cacheKey);
+  if (cached && cached.expiresAtMs > nowMs) {
+    return cached.payload;
+  }
+
+  const inFlight = workPlanContextInFlight.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const task = generateWorkPlanContext(user)
+    .then((payload) => {
+      workPlanContextCache.set(cacheKey, {
+        payload,
+        expiresAtMs: Date.now() + WORK_PLAN_CONTEXT_CACHE_TTL_MS
+      });
+      return payload;
+    })
+    .finally(() => {
+      workPlanContextInFlight.delete(cacheKey);
+    });
+
+  workPlanContextInFlight.set(cacheKey, task);
+  return task;
+}
+
+async function generateWorkPlanContext(user: User): Promise<WorkPlanContextResponse> {
   if (!user.brightspaceStateEncrypted || !user.institutionUrl) {
     throw new AppError(400, "connect to d2l before generating work plan", "not_connected");
   }

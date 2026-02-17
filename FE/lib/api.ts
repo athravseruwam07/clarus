@@ -6,7 +6,12 @@ interface ErrorPayload {
   message?: string;
 }
 
-export type OverviewTargetType = "dropbox" | "content_topic" | "quiz" | "calendar_event";
+export type OverviewTargetType =
+  | "dropbox"
+  | "content_topic"
+  | "quiz"
+  | "calendar_event"
+  | "work_plan_optimizer";
 
 export interface ItemStateDTO {
   targetType: OverviewTargetType;
@@ -1047,8 +1052,17 @@ export async function optimizeStudentWorkPlan(
   });
 }
 
-export async function getWorkPlanContext(): Promise<WorkPlanContextResponse> {
-  return request<WorkPlanContextResponse>("/v1/work-plan/context", {
+export async function getWorkPlanContext(params?: {
+  refresh?: boolean;
+}): Promise<WorkPlanContextResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.refresh) {
+    searchParams.set("refresh", "1");
+  }
+
+  const suffix = searchParams.toString();
+  const path = `/v1/work-plan/context${suffix ? `?${suffix}` : ""}`;
+  return request<WorkPlanContextResponse>(path, {
     method: "GET"
   });
 }
