@@ -3,8 +3,14 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 
-import { ConnectorError, loginAndCaptureState, manualLoginAndCaptureState, requestWithStoredState } from "./d2l.js";
-import { loginSchema, manualLoginSchema, requestSchema } from "./schema.js";
+import {
+  ConnectorError,
+  loginAndCaptureState,
+  manualLoginAndCaptureState,
+  requestAssetWithStoredState,
+  requestWithStoredState
+} from "./d2l.js";
+import { assetRequestSchema, loginSchema, manualLoginSchema, requestSchema } from "./schema.js";
 
 function requiredEnv(name: "CONNECTOR_INTERNAL_SECRET" | "PORT"): string {
   const value = process.env[name];
@@ -74,6 +80,18 @@ app.post("/internal/request", async (request) => {
   return {
     data
   };
+});
+
+app.post("/internal/request/asset", async (request) => {
+  const parsedBody = assetRequestSchema.parse(request.body);
+
+  const asset = await requestAssetWithStoredState({
+    instanceUrl: parsedBody.instanceUrl,
+    storageState: parsedBody.storageState,
+    assetUrl: parsedBody.assetUrl
+  });
+
+  return asset;
 });
 
 app.setErrorHandler((error, request, reply) => {

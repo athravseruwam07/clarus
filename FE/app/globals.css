@@ -142,3 +142,13 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px hsl(222 14% 16%) inset;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Landing screen section snapping */
+.landing-snap {
+  scroll-snap-type: y mandatory;
+}
+
+.landing-panel {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}

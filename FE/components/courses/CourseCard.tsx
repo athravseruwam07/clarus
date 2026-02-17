@@ -49,7 +49,9 @@ export function CourseCard({ course }: CourseCardProps) {
     return FALLBACK_IMAGE_STYLES[index];
   }, [course.id]);
 
-  const imageUrl = !imageFailed && typeof course.courseImageUrl === "string" ? course.courseImageUrl.trim() : "";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4001";
+  const proxiedImageUrl = `${apiBaseUrl}/v1/courses/${encodeURIComponent(course.id)}/image?v=${encodeURIComponent(course.updatedAt)}`;
+  const imageUrl = !imageFailed ? proxiedImageUrl : "";
   const codeLabel = (course.courseCode ?? course.courseName).slice(0, 44);
 
   return (

@@ -17,7 +17,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Clarus",
-  description: "AI-powered control system for D2L Brightspace"
+  description: "AI-powered control system for D2L Brightspace",
+  icons: {
+    icon: "/Clarus-logo.svg",
+    shortcut: "/Clarus-logo.svg",
+    apple: "/Clarus-logo.svg"
+  }
 };
 
 export default function RootLayout({

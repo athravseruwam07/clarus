@@ -705,3 +705,57 @@ export async function requestWithStoredState(input: {
     await context.close().catch(() => undefined);
   }
 }
+
+export async function requestAssetWithStoredState(input: {
+  instanceUrl: string;
+  storageState: Record<string, unknown>;
+  assetUrl: string;
+}): Promise<{
+  contentType: string;
+  bodyBase64: string;
+}> {
+  const instanceUrl = normalizeInstanceUrl(input.instanceUrl);
+  const assetUrl = new URL(input.assetUrl);
+
+  if (assetUrl.protocol !== "https:") {
+    throw new ConnectorError(400, "invalid_asset_url", "assetUrl must start with https://");
+  }
+
+  const instanceHost = new URL(instanceUrl).hostname.toLowerCase();
+  const assetHost = assetUrl.hostname.toLowerCase();
+  if (!isHostSuffix(assetHost, instanceHost) && !isHostSuffix(instanceHost, assetHost)) {
+    throw new ConnectorError(400, "invalid_asset_url", "assetUrl host must match instanceUrl host");
+  }
+
+  const browser = await getRequestBrowser();
+  const context = await browser.newContext(getContextOptions(input.storageState));
+
+  try {
+    const response = await context.request.get(assetUrl.toString(), {
+      maxRedirects: 0,
+      timeout: 12000
+    });
+
+    if (response.status() === 401 || response.status() === 403) {
+      throw new ConnectorError(401, "session_expired", "session expired");
+    }
+
+    if (response.status() >= 300 && response.status() < 400) {
+      throw new ConnectorError(401, "session_expired", "session expired");
+    }
+
+    if (!response.ok()) {
+      throw new ConnectorError(response.status(), "d2l_asset_error", "d2l asset request failed");
+    }
+
+    const contentType = response.headers()["content-type"] ?? "application/octet-stream";
+    const body = await response.body();
+
+    return {
+      contentType,
+      bodyBase64: body.toString("base64")
+    };
+  } finally {
+    await context.close().catch(() => undefined);
+  }
+}

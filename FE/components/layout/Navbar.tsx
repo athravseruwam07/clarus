@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, ExternalLink, Loader2, LogOut, Sparkles } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, LogOut } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -115,13 +116,16 @@ export function Navbar() {
   return (
     <header className="relative z-40 flex h-14 items-center justify-between border-b border-border/80 bg-background/80 px-6 backdrop-blur">
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-primary/20">
-          <Sparkles className="h-4 w-4 text-primary" />
+        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg ring-1 ring-primary/20">
+          <Image
+            src="/Clarus-logo.svg"
+            alt="Clarus logo"
+            width={24}
+            height={24}
+            className="h-6 w-6 object-contain"
+          />
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground">clarus command center</p>
-          <h1 className="text-sm font-semibold">Clarus Dashboard</h1>
-        </div>
+        <h1 className="text-sm font-semibold tracking-tight">Clarus</h1>
       </div>
 
       <div ref={menuRef} className="relative">
