@@ -37,7 +37,7 @@ function toHours(minutes: number): number {
 function formatDateTime(iso: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) {
-    return "unknown time";
+    return "Unknown time";
   }
 
   return parsed.toLocaleString(undefined, {
@@ -80,6 +80,11 @@ function dueInDaysText(dueAt: string): string {
   if (days === 0) return "due today";
   if (days === 1) return "due tomorrow";
   return `due in ${days} days`;
+}
+
+function startCase(text: string): string {
+  if (!text) return text;
+  return `${text[0]?.toUpperCase() ?? ""}${text.slice(1)}`;
 }
 
 function buildRiskCopy(topTask: WorkPlanContextItem | null, allItems: WorkPlanContextItem[]): {
@@ -278,8 +283,8 @@ export default function DashboardPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to load courses";
-      toast.error("unable to load courses", { description: message });
+      const message = error instanceof Error ? error.message : "Failed to load courses";
+      toast.error("Unable to load courses", { description: message });
     } finally {
       setIsLoadingCourses(false);
     }
@@ -331,20 +336,20 @@ export default function DashboardPage() {
         if (error instanceof ApiError) {
           if (error.code === "session_expired") {
             setConnectionState("expired");
-            toast.error("overview unavailable", {
-              description: "d2l session expired. reconnect from login."
+            toast.error("Overview unavailable", {
+              description: "D2L session expired. Reconnect from login."
             });
           } else if (error.code === "not_connected") {
             setConnectionState("disconnected");
-            toast.error("overview unavailable", {
-              description: "connect to d2l first to fetch live overview data."
+            toast.error("Overview unavailable", {
+              description: "Connect to D2L first to fetch live overview data."
             });
           } else {
-            toast.error("overview unavailable", { description: error.message });
+            toast.error("Overview unavailable", { description: error.message });
           }
         } else {
-          toast.error("overview unavailable", {
-            description: error instanceof Error ? error.message : "failed to load work context"
+          toast.error("Overview unavailable", {
+            description: error instanceof Error ? error.message : "Failed to load work context"
           });
         }
 
@@ -380,13 +385,13 @@ export default function DashboardPage() {
     setIsSyncing(true);
     try {
       const result = await syncCourses();
-      toast.success("courses synced", {
-        description: `${result.coursesSynced} courses updated`
+      toast.success("Courses synced", {
+        description: `${result.coursesSynced} courses updated.`
       });
       await Promise.all([loadCourses(), loadOverviewData()]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "sync failed";
-      toast.error("sync failed", { description: message });
+      const message = error instanceof Error ? error.message : "Sync failed";
+      toast.error("Sync failed", { description: message });
     } finally {
       setIsSyncing(false);
     }
@@ -397,17 +402,17 @@ export default function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-4">
         <Card className="animate-fade-up" style={{ animationDelay: "0ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">highest leverage task right now</CardTitle>
+            <CardTitle className="text-base">Highest Leverage Task Right Now</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {isLoadingOverview ? (
-              <p>loading intelligence...</p>
+              <p>Loading intelligence...</p>
             ) : topTask && topTaskItem ? (
               <>
                 <p className="font-medium text-foreground">{topTask.title}</p>
                 <p>{topTask.reason}</p>
                 <p className="font-mono text-xs">
-                  {dueInDaysText(topTaskItem.dueAt)} · estimated {toHours(topTaskItem.estimatedMinutes)}h
+                  {startCase(dueInDaysText(topTaskItem.dueAt))} · Estimated {toHours(topTaskItem.estimatedMinutes)}h
                 </p>
                 <a
                   href={topTaskItem.taskUrl}
@@ -415,23 +420,23 @@ export default function DashboardPage() {
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-primary hover:underline"
                 >
-                  open in d2l
+                  Open in D2L
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </>
             ) : (
-              <p>no active tasks detected yet. sync calendar and keep d2l connected.</p>
+              <p>No active tasks detected yet. Sync calendar and keep D2L connected.</p>
             )}
           </CardContent>
         </Card>
 
         <Card className="animate-fade-up" style={{ animationDelay: "75ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">risk alert</CardTitle>
+            <CardTitle className="text-base">Risk Alert</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {isLoadingOverview ? (
-              <p>loading risk summary...</p>
+              <p>Loading risk summary...</p>
             ) : (
               <>
                 <p className="font-medium text-foreground">{riskCopy.title}</p>
@@ -448,17 +453,17 @@ export default function DashboardPage() {
 
         <Card className="animate-fade-up" style={{ animationDelay: "150ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">workload radar preview</CardTitle>
+            <CardTitle className="text-base">Workload Radar Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {isLoadingOverview ? (
-              <p>loading forecast...</p>
+              <p>Loading forecast...</p>
             ) : (
               <>
                 <p className="font-medium text-foreground">{workloadCopy.title}</p>
                 <p>{workloadCopy.details}</p>
                 <Link href={"/dashboard/workload-forecast" as any} className="text-primary hover:underline">
-                  open weekly workload
+                  Open Weekly Workload
                 </Link>
               </>
             )}
@@ -467,11 +472,11 @@ export default function DashboardPage() {
 
         <Card className="animate-fade-up" style={{ animationDelay: "225ms" }}>
           <CardHeader>
-            <CardTitle className="text-base">to do</CardTitle>
+            <CardTitle className="text-base">To Do</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {isLoadingOverview ? (
-              <p>loading tasks...</p>
+              <p>Loading tasks...</p>
             ) : todoItems.length > 0 ? (
               todoItems.map((item) => (
                 <label
@@ -494,12 +499,12 @@ export default function DashboardPage() {
                       {item.title}
                     </a>
                     <p className="text-xs text-muted-foreground">{item.action}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{item.dueText}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{startCase(item.dueText)}</p>
                   </div>
                 </label>
               ))
             ) : (
-              <p>no active todo items yet. run sync to load upcoming coursework tasks.</p>
+              <p>No active to-do items yet. Run sync to load upcoming coursework tasks.</p>
             )}
           </CardContent>
         </Card>
@@ -512,27 +517,27 @@ export default function DashboardPage() {
             disabled={isSyncing || connectionState === "expired" || connectionState === "disconnected"}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-            {isSyncing ? "syncing courses..." : "sync courses"}
+            {isSyncing ? "Syncing courses..." : "Sync courses"}
           </Button>
         </div>
 
         {(connectionState === "expired" || connectionState === "disconnected") && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>reconnect required</AlertTitle>
+            <AlertTitle>Reconnect required</AlertTitle>
             <AlertDescription>
-              your saved d2l session is unavailable. reconnect from the login screen.
+              Your saved D2L session is unavailable. Reconnect from the login screen.
             </AlertDescription>
           </Alert>
         )}
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">calendar</CardTitle>
+            <CardTitle className="text-base">Calendar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoadingOverview ? (
-              <p className="text-sm text-muted-foreground">loading timeline...</p>
+              <p className="text-sm text-muted-foreground">Loading timeline...</p>
             ) : timelinePreview.length > 0 ? (
               timelinePreview.map((event) => {
                 const overviewHref = buildOverviewHref(event);
@@ -545,10 +550,10 @@ export default function DashboardPage() {
                           {(event.courseCode ?? event.courseName ?? "course")} · {formatDateTime(event.startAt)}
                         </p>
                       </div>
-                      <Badge variant={event.dateKind === "due" ? "default" : "secondary"}>{event.dateKind}</Badge>
+                      <Badge variant={event.dateKind === "due" ? "default" : "secondary"}>{startCase(event.dateKind)}</Badge>
                     </div>
                     <p className="mt-2 font-mono text-xs text-muted-foreground">
-                      {event.sourceType.replace(/_/g, " ")} · org unit {event.orgUnitId}
+                      {startCase(event.sourceType.replace(/_/g, " "))} · Org unit {event.orgUnitId}
                     </p>
                   </>
                 );
@@ -591,10 +596,10 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-medium">{item.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.courseName} · {dueInDaysText(item.dueAt)}
+                        {item.courseName} · {startCase(dueInDaysText(item.dueAt))}
                       </p>
                     </div>
-                    <Badge variant="secondary">{item.type}</Badge>
+                    <Badge variant="secondary">{startCase(item.type)}</Badge>
                   </div>
                   <p className="mt-2 font-mono text-xs text-muted-foreground">
                     estimated {toHours(item.estimatedMinutes)}h
@@ -603,7 +608,7 @@ export default function DashboardPage() {
               ))
             ) : (
               <p className="text-sm text-muted-foreground">
-                no timeline items found yet. sync calendar to populate this section with assignment and quiz dates.
+                No timeline items found yet. Sync calendar to populate this section with assignment and quiz dates.
               </p>
             )}
           </CardContent>
@@ -611,7 +616,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">courses</CardTitle>
+            <CardTitle className="text-base">Courses</CardTitle>
           </CardHeader>
           <CardContent>{isLoadingCourses ? <CourseSkeleton /> : <CourseList courses={courses} />}</CardContent>
         </Card>

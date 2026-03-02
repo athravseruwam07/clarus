@@ -20,9 +20,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "assignments", href: "/dashboard/upcoming/assignments" },
-  { label: "quizzes", href: "/dashboard/upcoming/quizzes" },
-  { label: "exams", href: "/dashboard/upcoming/exams" }
+  { label: "Assignments", href: "/dashboard/upcoming/assignments" },
+  { label: "Quizzes", href: "/dashboard/upcoming/quizzes" },
+  { label: "Exams", href: "/dashboard/upcoming/exams" }
 ] as const;
 
 export interface UpcomingChildProps {
@@ -70,7 +70,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       setLastSyncedAt(calendarPayload.lastSyncedAt);
       setCourses(courseList);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "failed to load calendar";
+      const message = error instanceof Error ? error.message : "Failed to load calendar";
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -88,32 +88,32 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
     try {
       const result = await syncCalendar();
       if (result.orgUnitsForbidden && result.orgUnitsForbidden.length > 0) {
-        toast.success("calendar synced (partial)", {
+        toast.success("Calendar synced (partial)", {
           description: `${result.orgUnitsForbidden.length} course(s) blocked calendar access on Brightspace and were skipped.`
         });
       } else {
-        toast.success("calendar synced");
+        toast.success("Calendar synced");
       }
       await loadData();
     } catch (error) {
       if (error instanceof ApiError && error.code === "no_courses") {
-        toast.error("sync courses first", { description: "run course sync from the dashboard before syncing calendar." });
+        toast.error("Sync courses first", { description: "Run course sync from the dashboard before syncing calendar." });
         return;
       }
       if (error instanceof ApiError && error.code === "not_connected") {
-        toast.error("connect to d2l first", { description: "reconnect from the login screen and retry." });
+        toast.error("Connect to D2L first", { description: "Reconnect from the login screen and retry." });
         return;
       }
       if (error instanceof ApiError && error.code === "calendar_forbidden") {
-        toast.error("calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
+        toast.error("Calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
         return;
       }
       if (error instanceof ApiError && error.code === "session_expired") {
-        toast.error("session expired", { description: "reconnect from the login screen and retry." });
+        toast.error("Session expired", { description: "Reconnect from the login screen and retry." });
         return;
       }
-      const message = error instanceof Error ? error.message : "calendar sync failed";
-      toast.error("calendar sync failed", { description: message });
+      const message = error instanceof Error ? error.message : "Calendar sync failed";
+      toast.error("Calendar sync failed", { description: message });
     } finally {
       setIsSyncing(false);
     }
@@ -139,30 +139,30 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       {needsSync ? (
         <Alert className="border-primary/20 bg-secondary/20">
           <AlertTitle className="flex items-center justify-between gap-3">
-            <span>calendar needs sync</span>
+            <span>Calendar needs sync</span>
             <Button onClick={() => void handleSync()} disabled={isSyncing} size="sm">
               {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              {isSyncing ? "syncing..." : "sync calendar"}
+              {isSyncing ? "Syncing..." : "Sync calendar"}
             </Button>
           </AlertTitle>
           <AlertDescription>
-            {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleString()}` : "no calendar sync found yet."}
+            {lastSyncedAt ? `Last synced ${new Date(lastSyncedAt).toLocaleString()}` : "No calendar sync found yet."}
           </AlertDescription>
         </Alert>
       ) : null}
 
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>calendar unavailable</AlertTitle>
+          <AlertTitle>Calendar unavailable</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold tracking-tight">upcoming</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Upcoming</h1>
         {lastSyncedAt && !needsSync ? (
           <span className="text-xs text-muted-foreground/80">
-            last sync {new Date(lastSyncedAt).toLocaleString()}
+            Last sync {new Date(lastSyncedAt).toLocaleString()}
           </span>
         ) : null}
       </div>
@@ -199,7 +199,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
             className={cn("h-7 px-2 text-xs", selectedCourseId !== null ? "border border-border/60" : null)}
             onClick={() => setSelectedCourseId(null)}
           >
-            all
+            All
           </Button>
           {uniqueCourses.map((course) => {
             const isActive = selectedCourseId === course.brightspaceCourseId;

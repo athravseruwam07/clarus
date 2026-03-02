@@ -8,12 +8,12 @@ export function AiScheduleCard(props: { brief: AssignmentAiBriefDTO; className?:
   return (
     <Card className={cn("card-glow", props.className)}>
       <CardHeader>
-        <CardTitle className="text-base">ai schedule</CardTitle>
+        <CardTitle className="text-base">AI Schedule</CardTitle>
       </CardHeader>
       <CardContent>
         <details className="rounded-xl border border-border/70 bg-secondary/10 p-3">
           <summary className="cursor-pointer select-none text-sm text-muted-foreground">
-            view suggested sessions ({props.brief.schedule.length})
+            View suggested sessions ({props.brief.schedule.length})
           </summary>
           <div className="mt-3 space-y-2">
             {props.brief.schedule.map((session) => (
@@ -31,4 +31,3 @@ export function AiScheduleCard(props: { brief: AssignmentAiBriefDTO; className?:
     </Card>
   );
 }
-

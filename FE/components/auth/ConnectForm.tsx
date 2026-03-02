@@ -62,20 +62,20 @@ const CANADIAN_UNIVERSITIES: UniversityOption[] = [
 
 const CONNECT_PROGRESS_STEPS = [
   {
-    title: "opening Brightspace sign-in",
-    description: "launching your institution login window."
+    title: "Opening Brightspace sign-in",
+    description: "Launching your institution login window."
   },
   {
-    title: "waiting for secure authentication",
-    description: "complete SSO/MFA in the Brightspace popup."
+    title: "Waiting for secure authentication",
+    description: "Complete SSO/MFA in the Brightspace popup."
   },
   {
-    title: "verifying account connection",
-    description: "confirming your Brightspace connection."
+    title: "Verifying account connection",
+    description: "Confirming your Brightspace connection."
   },
   {
-    title: "starting Clarus workspace",
-    description: "loading your dashboard and connected features."
+    title: "Starting Clarus workspace",
+    description: "Loading your dashboard and connected features."
   }
 ] as const;
 
@@ -298,10 +298,10 @@ export function ConnectForm() {
       const message =
         error instanceof ApiError
           ? error.message
-          : "could not log into D2L. your school may use custom sso/duo. try headful debug or selector overrides.";
+          : "Could not log into D2L. Your school may use custom SSO/DUO. Try headful debug or selector overrides.";
 
       setErrorMessage(message);
-      toast.error("connection failed", {
+      toast.error("Connection failed", {
         description: message
       });
     } finally {
@@ -324,7 +324,7 @@ export function ConnectForm() {
       <CardContent>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2" ref={dropdownRef}>
-            <Label>school</Label>
+            <Label>School</Label>
             <button
               type="button"
               disabled={isSubmitting}
@@ -346,17 +346,17 @@ export function ConnectForm() {
                 <span className="flex flex-col leading-tight">
                   <span className="font-medium">
                     {selectedUniversityId
-                      ? selectedUniversity?.name ?? "Other (enter instance url)"
+                      ? selectedUniversity?.name ?? "Other (enter instance URL)"
                       : "Select your school"}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {!selectedUniversityId
-                      ? "choose from the list"
+                      ? "Choose from the list"
                       : selectedUniversity?.requiresManualUrl
-                        ? "paste your school brightspace url"
+                        ? "Paste your school's Brightspace URL"
                         : selectedUniversity?.instanceUrl
                           ? new URL(selectedUniversity.instanceUrl).hostname
-                          : "paste your school brightspace url"}
+                          : "Paste your school's Brightspace URL"}
                   </span>
                 </span>
               </span>
@@ -394,7 +394,7 @@ export function ConnectForm() {
                             <span className="font-medium">{option.name}</span>
                             <span className="text-xs text-muted-foreground">
                               {option.requiresManualUrl || !option.instanceUrl
-                                ? "enter your brightspace url manually"
+                                ? "Enter your Brightspace URL manually"
                                 : new URL(option.instanceUrl).hostname}
                             </span>
                           </span>
@@ -420,9 +420,9 @@ export function ConnectForm() {
                           <Globe className="h-4 w-4" />
                         </div>
                         <span className="flex flex-1 flex-col leading-tight">
-                          <span className="font-medium">other d2l instance</span>
+                          <span className="font-medium">Other D2L instance</span>
                           <span className="text-xs text-muted-foreground">
-                            enter your school url manually
+                            Enter your school URL manually
                           </span>
                         </span>
                         {selectedUniversityId === "other" ? (
@@ -438,7 +438,7 @@ export function ConnectForm() {
 
           {selectedUniversityId === "other" || selectedUniversity?.requiresManualUrl ? (
             <div className="space-y-2">
-              <Label htmlFor="instanceUrl">d2l instance url</Label>
+              <Label htmlFor="instanceUrl">D2L instance URL</Label>
               <Input
                 id="instanceUrl"
                 name="instanceUrl"
@@ -453,7 +453,7 @@ export function ConnectForm() {
 
           {errorMessage ? (
             <Alert variant="destructive">
-              <AlertTitle>unable to connect</AlertTitle>
+              <AlertTitle>Unable to connect</AlertTitle>
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           ) : null}
@@ -464,23 +464,23 @@ export function ConnectForm() {
             ) : (
               <ShieldCheck className="h-4 w-4" />
             )}
-            {isSubmitting ? "connecting and preparing workspace..." : "connect brightspace"}
+            {isSubmitting ? "Connecting and preparing workspace..." : "Connect Brightspace"}
           </Button>
 
           {isSubmitting ? (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <p className="text-xs font-medium text-foreground">setting up your workspace</p>
+              <p className="text-xs font-medium text-foreground">Setting up your workspace</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                this can take a few seconds after the Brightspace window closes.
+                This can take a few seconds after the Brightspace window closes.
               </p>
               {progressStepIndex >= 2 ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  login complete. finishing account verification and workspace startup.
+                  Login complete. Finishing account verification and workspace startup.
                 </p>
               ) : null}
               {elapsedSeconds >= 12 ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  still working... clarus is finishing your connection.
+                  Still working... Clarus is finishing your connection.
                 </p>
               ) : null}
               <div className="mt-3 space-y-2">

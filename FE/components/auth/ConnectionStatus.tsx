@@ -26,14 +26,14 @@ function resolveState(status: ConnectionStatusResponse): ConnectionBadgeState {
 function stateCopy(state: ConnectionBadgeState): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
   switch (state) {
     case "connected":
-      return { label: "connected", variant: "default" };
+      return { label: "Connected", variant: "default" };
     case "expired":
-      return { label: "expired", variant: "destructive" };
+      return { label: "Expired", variant: "destructive" };
     case "loading":
-      return { label: "checking", variant: "secondary" };
+      return { label: "Checking", variant: "secondary" };
     case "disconnected":
     default:
-      return { label: "disconnected", variant: "outline" };
+      return { label: "Disconnected", variant: "outline" };
   }
 }
 
@@ -72,20 +72,20 @@ export function ConnectionStatus({ onChange }: ConnectionStatusProps) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
-          <CardTitle className="text-base">Connection status</CardTitle>
-          <CardDescription>live check against /d2l/api/lp/1.28/users/whoami</CardDescription>
+          <CardTitle className="text-base">Connection Status</CardTitle>
+          <CardDescription>Live check against /d2l/api/lp/1.28/users/whoami</CardDescription>
         </div>
         <Badge variant={copy.variant}>{copy.label}</Badge>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {lastVerifiedAt
-            ? `verified ${formatDistanceToNowStrict(new Date(lastVerifiedAt), { addSuffix: true })}`
-            : "no verified session yet"}
+            ? `Verified ${formatDistanceToNowStrict(new Date(lastVerifiedAt), { addSuffix: true })}`
+            : "No verified session yet"}
         </p>
         <Button size="sm" variant="secondary" onClick={() => void refresh()}>
           <RefreshCcw className="mr-1 h-4 w-4" />
-          refresh
+          Refresh
         </Button>
       </CardContent>
     </Card>

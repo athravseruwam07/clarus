@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils";
 type Category = AssignmentAiBriefDTO["checklist"][number]["category"];
 
 const CATEGORY_LABEL: Record<Category, string> = {
-  planning: "planning",
-  research: "research",
-  writing: "writing",
-  practice: "practice",
-  rubric: "rubric",
-  submission: "submission",
-  review: "review",
-  admin: "admin"
+  planning: "Planning",
+  research: "Research",
+  writing: "Writing",
+  practice: "Practice",
+  rubric: "Rubric",
+  submission: "Submission",
+  review: "Review",
+  admin: "Admin"
 };
 
 export function AiChecklistCard(props: {
@@ -49,7 +49,7 @@ export function AiChecklistCard(props: {
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">ai checklist</CardTitle>
+            <CardTitle className="text-base">AI Checklist</CardTitle>
             <p className="text-xs text-muted-foreground">
               {progress.done} / {progress.total} done
             </p>
@@ -73,7 +73,7 @@ export function AiChecklistCard(props: {
               }}
             >
               <ListChecks className="h-4 w-4" />
-              {Object.values(expandedById).some(Boolean) ? "collapse" : "expand"}
+              {Object.values(expandedById).some(Boolean) ? "Collapse" : "Expand"}
             </Button>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function AiChecklistCard(props: {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">
             <Filter className="mr-1 h-3 w-3" />
-            category
+            Category
           </Badge>
           <Button
             type="button"
@@ -90,7 +90,7 @@ export function AiChecklistCard(props: {
             className={cn("h-7 px-2 text-xs", categoryFilter !== "all" ? "border border-border/60" : null)}
             onClick={() => setCategoryFilter("all")}
           >
-            all
+            All
           </Button>
           {(Object.keys(CATEGORY_LABEL) as Category[]).map((cat) => (
             <Button
@@ -151,7 +151,7 @@ export function AiChecklistCard(props: {
                         size="sm"
                         className="h-8 w-8"
                         onClick={() => setExpandedById((prev) => ({ ...prev, [item.id]: !expanded }))}
-                        aria-label={expanded ? "collapse details" : "expand details"}
+                        aria-label={expanded ? "Collapse details" : "Expand details"}
                       >
                         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>

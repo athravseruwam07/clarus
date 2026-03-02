@@ -57,7 +57,7 @@ function WorkloadBars(props: {
   return (
     <div className="rounded-lg border border-border/60 bg-secondary/10 p-4">
       <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>hours</span>
+        <span>Hours</span>
         <span>max {maxHours.toFixed(1)}h</span>
       </div>
 
@@ -67,7 +67,7 @@ function WorkloadBars(props: {
           style={{ bottom: `${heavyPct}%` }}
         />
         <div className="absolute right-2 text-[10px] text-amber-400" style={{ bottom: `calc(${heavyPct}% + 2px)` }}>
-          heavy (10h)
+          Heavy (10h)
         </div>
 
         <div
@@ -75,7 +75,7 @@ function WorkloadBars(props: {
           style={{ bottom: `${criticalPct}%` }}
         />
         <div className="absolute right-2 text-[10px] text-red-400" style={{ bottom: `calc(${criticalPct}% + 2px)` }}>
-          critical (15h)
+          Critical (15h)
         </div>
 
         <div className="absolute inset-0 flex items-end gap-3 px-3 pb-8 pt-3">
@@ -216,7 +216,7 @@ function WeekDetailContent({ week }: { week: WeekForecast }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-medium text-foreground">{a.title}</p>
-                  {isDriver && <Badge className="text-[10px] px-1.5 py-0 bg-blue-600 text-white border-blue-600">most time needed</Badge>}
+                  {isDriver && <Badge className="text-[10px] px-1.5 py-0 bg-blue-600 text-white border-blue-600">Most time needed</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {a.courseName} &middot; due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -228,7 +228,7 @@ function WeekDetailContent({ week }: { week: WeekForecast }) {
                     href={overviewHref as any}
                     className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "text-xs")}
                   >
-                    view overview
+                    View overview
                   </Link>
                 )}
                 <Badge
@@ -277,8 +277,8 @@ export default function WorkloadForecastPage() {
         const firstWeekWithData = result.weeks.findIndex((week) => week.featureVector.assessmentCount > 0);
         setActiveWeek(firstWeekWithData >= 0 ? firstWeekWithData : 0);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "failed to load weekly workload";
-        toast.error("weekly workload unavailable", { description: message });
+        const message = error instanceof Error ? error.message : "Failed to load weekly workload";
+        toast.error("Weekly workload unavailable", { description: message });
       } finally {
         setIsLoading(false);
       }
@@ -291,7 +291,7 @@ export default function WorkloadForecastPage() {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        loading weekly workload...
+        Loading weekly workload...
       </div>
     );
   }

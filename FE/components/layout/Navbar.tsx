@@ -99,11 +99,11 @@ export function Navbar() {
 
     try {
       await disconnectD2L();
-      toast.success("signed out");
+      toast.success("Signed out");
       router.push("/login");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "sign out failed";
-      toast.error("sign out failed", { description: message });
+      const message = error instanceof Error ? error.message : "Sign out failed";
+      toast.error("Sign out failed", { description: message });
     } finally {
       setIsSigningOut(false);
     }
@@ -164,7 +164,7 @@ export function Navbar() {
                         : "bg-destructive/15 text-destructive"
                     )}
                   >
-                    {isLoadingProfile ? "checking..." : isConnected ? "connected" : "session not connected"}
+                    {isLoadingProfile ? "Checking..." : isConnected ? "Connected" : "Session not connected"}
                   </p>
                 </div>
               </div>
@@ -189,7 +189,7 @@ export function Navbar() {
                   setIsMenuOpen(false);
                 }}
               >
-                <span>go to d2l homepage</span>
+                <span>Go to D2L homepage</span>
                 <ExternalLink className="h-4 w-4" />
               </a>
 
@@ -199,7 +199,7 @@ export function Navbar() {
                 disabled={isSigningOut}
                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span>{isSigningOut ? "signing out..." : "sign out"}</span>
+                <span>{isSigningOut ? "Signing out..." : "Sign out"}</span>
                 {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               </button>
             </div>

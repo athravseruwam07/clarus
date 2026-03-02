@@ -48,7 +48,7 @@ function getApiErrorDetail(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
   }
-  return "request failed";
+  return "Request failed";
 }
 
 export default function CopilotModePage() {
@@ -222,7 +222,7 @@ export default function CopilotModePage() {
     } catch (error) {
       const detail = getApiErrorDetail(error);
       setThreadError(detail);
-      toast.error("could not create chat", { description: detail });
+      toast.error("Could not create chat", { description: detail });
     } finally {
       setIsCreatingThread(false);
     }
@@ -242,7 +242,7 @@ export default function CopilotModePage() {
         return next;
       });
     } catch (error) {
-      toast.error("could not delete chat", { description: getApiErrorDetail(error) });
+      toast.error("Could not delete chat", { description: getApiErrorDetail(error) });
     }
   }
 
@@ -282,7 +282,7 @@ export default function CopilotModePage() {
         setMessagesByThread((current) => ({ ...current, [created.thread.id]: [] }));
         threadId = created.thread.id;
       } catch (error) {
-        toast.error("could not create chat", { description: getApiErrorDetail(error) });
+        toast.error("Could not create chat", { description: getApiErrorDetail(error) });
         return;
       }
     }
@@ -349,7 +349,7 @@ export default function CopilotModePage() {
     } catch (error) {
       const detail = getApiErrorDetail(error);
       setMessageError(detail);
-      toast.error("copilot request failed", { description: detail });
+      toast.error("Copilot request failed", { description: detail });
 
       setMessagesByThread((current) => {
         const currentMessages = current[threadId] ?? [];
@@ -389,11 +389,11 @@ export default function CopilotModePage() {
           className="xl:hidden"
           onClick={() => setMobileThreadPickerOpen((value) => !value)}
         >
-          {mobileThreadPickerOpen ? "hide chats" : "show chats"}
+          {mobileThreadPickerOpen ? "Hide chats" : "Show chats"}
         </Button>
         <Button variant="outline" size="sm" onClick={() => void handleCreateThread()} disabled={isCreatingThread}>
           {isCreatingThread ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquarePlus className="h-4 w-4" />}
-          new chat
+          New chat
         </Button>
       </div>
 
@@ -403,12 +403,12 @@ export default function CopilotModePage() {
             <CardTitle className="text-base">Clarus AI Chat</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 overflow-y-auto">
-            {isLoadingThreads ? <p className="text-sm text-muted-foreground">loading chats...</p> : null}
+            {isLoadingThreads ? <p className="text-sm text-muted-foreground">Loading chats...</p> : null}
 
             {threadError ? <p className="text-sm text-destructive">{threadError}</p> : null}
 
             {!isLoadingThreads && threads.length === 0 ? (
-              <p className="text-sm text-muted-foreground">start a chat to plan your week and prioritize work.</p>
+              <p className="text-sm text-muted-foreground">Start a chat to plan your week and prioritize work.</p>
             ) : null}
 
             {threads.map((thread) => {
@@ -430,7 +430,7 @@ export default function CopilotModePage() {
                     }}
                   >
                     <p className="truncate text-sm font-medium text-foreground">{thread.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{thread.preview ?? "no messages yet"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{thread.preview ?? "No messages yet"}</p>
                     <p className="mt-1 text-[11px] text-muted-foreground">{formatThreadTime(thread.lastMessageAt)}</p>
                   </button>
 
@@ -461,7 +461,7 @@ export default function CopilotModePage() {
 
           <CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-0">
             <div ref={messageScrollRef} className="h-[56vh] space-y-3 overflow-y-auto px-6 pt-5">
-              {isLoadingMessages ? <p className="text-sm text-muted-foreground">loading conversation...</p> : null}
+              {isLoadingMessages ? <p className="text-sm text-muted-foreground">Loading conversation...</p> : null}
 
               {!activeThreadId && !isLoadingThreads ? (
                 <div className="space-y-4 rounded-lg border border-border/60 bg-secondary/20 p-4">
@@ -487,7 +487,7 @@ export default function CopilotModePage() {
                     Best results come after syncing courses and calendar.
                     <span className="ml-2 inline-flex">
                       <Link href="/dashboard/timeline-intelligence" className="text-primary hover:underline">
-                        open calendar sync
+                        Open calendar sync
                       </Link>
                     </span>
                   </div>
@@ -525,7 +525,7 @@ export default function CopilotModePage() {
                         {isAssistant ? <Bot className="h-3.5 w-3.5" /> : null}
                         <span>{isAssistant ? "Clarus AI Chat" : "You"}</span>
                         {message.pending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                        {message.failed ? <span className="text-destructive">failed</span> : null}
+                        {message.failed ? <span className="text-destructive">Failed</span> : null}
                       </div>
                       <span className="text-xs text-muted-foreground">{formatThreadTime(message.createdAt)}</span>
                     </div>
@@ -535,7 +535,7 @@ export default function CopilotModePage() {
                     {isAssistant && message.actions.length > 0 ? (
                       <div className="mt-3 rounded-md border border-border/60 bg-card/40 p-3">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          What to do now
+                          What To Do Now
                         </p>
                         <ul className="space-y-1 text-sm text-foreground">
                           {message.actions.map((action) => (
@@ -627,7 +627,7 @@ export default function CopilotModePage() {
                     disabled={!composer.trim() || isSending || isLoadingThreads}
                   >
                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    send
+                    Send
                   </Button>
                 </div>
               </div>

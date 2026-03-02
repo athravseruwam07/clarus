@@ -423,14 +423,14 @@ export default function WorkPlanOptimizerPage() {
           code: "session_expired",
           message: "Your Brightspace session expired. Reconnect and sync to load live course work."
         });
-        toast.error("optimizer context unavailable", { description: "session expired" });
+        toast.error("Optimizer context unavailable", { description: "Session expired" });
       } else {
-        const detail = error instanceof Error ? error.message : "failed to load active D2L context";
+        const detail = error instanceof Error ? error.message : "Failed to load active D2L context";
         setContextError({
           code: "context_unavailable",
           message: detail
         });
-        toast.error("optimizer context unavailable", { description: detail });
+        toast.error("Optimizer context unavailable", { description: detail });
       }
     } finally {
       setIsLoadingContext(false);
@@ -492,8 +492,8 @@ export default function WorkPlanOptimizerPage() {
         ) {
           // No saved state yet (or auth redirect in progress).
         } else if (!cancelled) {
-          const detail = error instanceof Error ? error.message : "failed to restore setup";
-          toast.error("could not restore quick setup", { description: detail });
+          const detail = error instanceof Error ? error.message : "Failed to restore setup";
+          toast.error("Could not restore quick setup", { description: detail });
         }
       } finally {
         if (!cancelled) {
@@ -676,17 +676,17 @@ export default function WorkPlanOptimizerPage() {
 
   async function generatePlan(mode: RecomputeMode) {
     if (!context) {
-      toast.error("context not loaded");
+      toast.error("Context not loaded");
       return;
     }
 
     if (!requiredAnswered) {
-      toast.error("complete required setup questions first");
+      toast.error("Complete required setup questions first");
       return;
     }
 
     if (context.workItems.length === 0) {
-      toast.error("no active work found in current courses");
+      toast.error("No active work found in current courses");
       return;
     }
 
@@ -718,14 +718,14 @@ export default function WorkPlanOptimizerPage() {
       setSelectedSessionId(nextSelectedSession);
       toast.success(
         mode === "initial"
-          ? "plan generated"
+          ? "Plan generated"
           : mode === "session_skipped"
-            ? "plan recomputed for skipped sessions"
-            : "plan recomputed for workload changes"
+            ? "Plan recomputed for skipped sessions"
+            : "Plan recomputed for workload changes"
       );
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "failed to generate plan";
-      toast.error("could not generate plan", { description: detail });
+      const detail = error instanceof Error ? error.message : "Failed to Generate Plan";
+      toast.error("Could not Generate Plan", { description: detail });
     } finally {
       setIsGenerating(false);
     }
@@ -753,7 +753,7 @@ export default function WorkPlanOptimizerPage() {
 
     const pending = plan.sessions.find((session) => session.status === "pending");
     if (!pending) {
-      toast.message("no pending sessions to simulate");
+      toast.message("No pending sessions to simulate");
       return;
     }
 
@@ -816,7 +816,7 @@ export default function WorkPlanOptimizerPage() {
     <div className="space-y-5">
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle>study plan optimizer</CardTitle>
+          <CardTitle>Study Plan Optimizer</CardTitle>
           <p className="text-sm text-muted-foreground">
             Real-time active-course planning from Brightspace assignments, deadlines, and content.
           </p>
@@ -844,12 +844,12 @@ export default function WorkPlanOptimizerPage() {
             <div className="flex flex-wrap gap-2">
               {contextError.code === "session_expired" ? (
                 <Button size="sm" onClick={() => router.push("/login")}>
-                  reconnect d2l
+                  Reconnect D2L
                 </Button>
               ) : null}
               {contextError.code === "not_connected" ? (
                 <Button size="sm" onClick={() => router.push("/login")}>
-                  connect d2l
+                  Connect D2L
                 </Button>
               ) : null}
               {contextError.code === "unauthorized" ? (
@@ -870,8 +870,8 @@ export default function WorkPlanOptimizerPage() {
           <Card className="border-primary/30">
             <CardHeader className="space-y-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">quick setup wizard</CardTitle>
-                <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} answered</Badge>
+                <CardTitle className="text-base">Quick Setup Wizard</CardTitle>
+                <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} Answered</Badge>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-secondary/70">
                 <div
@@ -886,7 +886,7 @@ export default function WorkPlanOptimizerPage() {
                 className="rounded-md border border-border/70 bg-card/70 p-4 animate-slide-in"
               >
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  question {wizardStep + 1} / {wizardQuestions.length}
+                  Question {wizardStep + 1} / {wizardQuestions.length}
                 </p>
                 <p className="mt-1 text-sm font-medium">{question.prompt}</p>
                 <div className="mt-3 grid gap-2">
@@ -934,12 +934,12 @@ export default function WorkPlanOptimizerPage() {
                       disabled={!requiredAnswered || isGenerating || isLoadingContext || !context}
                     >
                       {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      generate plan
+                      Generate Plan
                     </Button>
                   </div>
                 </div>
                 {isLoadingContext ? (
-                  <p className="mt-2 text-xs text-muted-foreground">loading live course context...</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Loading live course context...</p>
                 ) : null}
               </div>
             </CardContent>
@@ -951,17 +951,17 @@ export default function WorkPlanOptimizerPage() {
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">preferences saved</p>
+              <p className="text-sm font-medium text-foreground">Preferences saved</p>
               <p className="text-sm text-muted-foreground">
                 {isLoadingContext
-                  ? "preferences restored. loading live Brightspace context..."
-                  : "generating your plan with saved setup. You can edit preferences any time."}
+                  ? "Preferences restored. Loading live Brightspace context..."
+                  : "Generating your plan with saved setup. You can edit preferences any time."}
               </p>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={() => setWizardOpen(true)}>
                 <Pencil className="h-4 w-4" />
-                edit inputs
+                Edit inputs
               </Button>
               <Button size="sm" onClick={() => void generatePlan("initial")} disabled={isGenerating || !context}>
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -977,21 +977,21 @@ export default function WorkPlanOptimizerPage() {
           <Card>
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base">this week&apos;s strategy</CardTitle>
+                <CardTitle className="text-base">This Week&apos;s Strategy</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => setWizardOpen(true)}>
                     <Pencil className="h-4 w-4" />
-                    edit inputs
+                    Edit inputs
                   </Button>
                   <Button variant="secondary" size="sm" onClick={() => void generatePlan("initial")} disabled={isGenerating}>
                     <RefreshCcw className="h-4 w-4" />
-                    re-optimize
+                    Re-optimize
                   </Button>
                   <Button variant="secondary" size="sm" onClick={() => void simulateMissedSession()} disabled={isGenerating}>
-                    simulate missed session
+                    Simulate missed session
                   </Button>
                   <Button variant="secondary" size="sm" onClick={() => void generatePlan("workload_changed")} disabled={isGenerating}>
-                    recompute workload change
+                    Recompute workload change
                   </Button>
                 </div>
               </div>
@@ -1030,7 +1030,7 @@ export default function WorkPlanOptimizerPage() {
               <CardHeader className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-xl">schedule</CardTitle>
+                    <CardTitle className="text-xl">Schedule</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {PLANNING_WEEKS}-week horizon
                     </p>
@@ -1048,7 +1048,7 @@ export default function WorkPlanOptimizerPage() {
                   </Button>
                   <div className="text-center">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      week {selectedWeekIndex + 1} of {Math.max(1, weekGroups.length)}
+                      Week {selectedWeekIndex + 1} of {Math.max(1, weekGroups.length)}
                     </p>
                     <p className="text-sm font-medium text-foreground">{activeWeekLabel || "No week selected"}</p>
                   </div>
@@ -1182,7 +1182,7 @@ export default function WorkPlanOptimizerPage() {
                               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
                             >
                               <FileText className="h-3.5 w-3.5" />
-                              open task
+                              Open task
                             </a>
                             <a
                               href={session.submissionUrl}
@@ -1191,7 +1191,7 @@ export default function WorkPlanOptimizerPage() {
                               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
                             >
                               <FolderOpen className="h-3.5 w-3.5" />
-                              dropbox/rubric
+                              Dropbox/rubric
                             </a>
                             {studyLink ? (
                               <a
@@ -1201,7 +1201,7 @@ export default function WorkPlanOptimizerPage() {
                                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 text-xs")}
                               >
                                 <BookOpen className="h-3.5 w-3.5" />
-                                open resources
+                                Open resources
                               </a>
                             ) : null}
                           </div>
@@ -1215,7 +1215,7 @@ export default function WorkPlanOptimizerPage() {
 
             <Card id="prioritization-engine">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-xl md:text-2xl">what to prioritize now</CardTitle>
+                <CardTitle className="text-xl md:text-2xl">What to Prioritize Now</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Clear next action from deadline pressure, risk, complexity, effort, and grade impact.
                 </p>
@@ -1226,7 +1226,7 @@ export default function WorkPlanOptimizerPage() {
                     <div className="space-y-4">
                       <div className="rounded-xl border border-primary/35 bg-primary/10 p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          highest leverage task
+                          Highest leverage task
                         </p>
                         <p className="mt-2 text-xl font-semibold text-foreground">{plan.topTask.title}</p>
                         <p className="mt-2 text-sm text-muted-foreground">{topTaskGuidance.summary}</p>
@@ -1244,7 +1244,7 @@ export default function WorkPlanOptimizerPage() {
                       </div>
 
                       <div className="rounded-xl border border-primary/45 bg-primary/15 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">next step</p>
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next step</p>
                         <p className="mt-1 text-base font-medium text-foreground">{topTaskGuidance.nextStep}</p>
                       </div>
 
@@ -1252,7 +1252,7 @@ export default function WorkPlanOptimizerPage() {
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="secondary" onClick={() => focusSessionInSchedule(topTaskSession.id)}>
                             <CalendarDays className="h-4 w-4" />
-                            focus in schedule
+                            Focus in schedule
                           </Button>
                           <a
                             href={topTaskSession.taskUrl}
@@ -1261,7 +1261,7 @@ export default function WorkPlanOptimizerPage() {
                             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                           >
                             <FileText className="h-4 w-4" />
-                            open task
+                            Open task
                           </a>
                           <a
                             href={topTaskSession.submissionUrl}
@@ -1270,7 +1270,7 @@ export default function WorkPlanOptimizerPage() {
                             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                           >
                             <FolderOpen className="h-4 w-4" />
-                            dropbox/rubric
+                            Dropbox/rubric
                           </a>
                           {topTaskStudyLink ? (
                             <a
@@ -1280,7 +1280,7 @@ export default function WorkPlanOptimizerPage() {
                               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                           >
                             <BookOpen className="h-4 w-4" />
-                            open resources
+                            Open resources
                           </a>
                         ) : null}
                         </div>
@@ -1288,7 +1288,7 @@ export default function WorkPlanOptimizerPage() {
                     </div>
 
                     <div className="rounded-xl border border-border/70 bg-secondary/20 p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">score breakdown</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Score breakdown</p>
                       <div className="mt-3 space-y-3">
                         {([
                           ["deadline pressure", plan.topTask.scoreBreakdown.deadlineProximity],
@@ -1314,7 +1314,7 @@ export default function WorkPlanOptimizerPage() {
                       </div>
 
                       <div className="mt-4 rounded-lg border border-primary/30 bg-primary/10 p-3">
-                        <p className="text-xs text-muted-foreground">if delayed 24h</p>
+                        <p className="text-xs text-muted-foreground">If delayed 24h</p>
                         <p className="text-lg font-semibold text-foreground">
                           {describeDelayImpact(plan.topTask.delayImpactIfDeferred24h).label} slip-risk increase
                         </p>
@@ -1332,7 +1332,7 @@ export default function WorkPlanOptimizerPage() {
 
             <Card id="session-details-panel">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-xl md:text-2xl">session details</CardTitle>
+                <CardTitle className="text-xl md:text-2xl">Session Details</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Click any schedule block to inspect rationale, resources, and one-click actions.
                 </p>
@@ -1359,22 +1359,22 @@ export default function WorkPlanOptimizerPage() {
 
                         <div className="mt-4 grid gap-3 md:grid-cols-3">
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">why now</p>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Why now</p>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.rationale}</p>
                           </div>
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">dependency</p>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Dependency</p>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.dependencies.join(" -> ")}</p>
                           </div>
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">if you do one thing</p>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">If you do one thing</p>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.ifOnlyOneThing}</p>
                           </div>
                         </div>
                       </div>
 
                       <div className="rounded-xl border border-border/70 bg-secondary/20 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">checklist targets</p>
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Checklist targets</p>
                         <div className="mt-3 space-y-2">
                           {selectedSession.checklistTasks.slice(0, 5).map((task) => (
                             <div
@@ -1391,7 +1391,7 @@ export default function WorkPlanOptimizerPage() {
                       <div className="flex flex-wrap gap-2">
                         <Button variant="secondary" size="sm" onClick={() => focusSessionInSchedule(selectedSession.id)}>
                           <CalendarDays className="h-4 w-4" />
-                          focus in schedule
+                          Focus in schedule
                         </Button>
                         <a
                           href={selectedSession.taskUrl}
@@ -1400,7 +1400,7 @@ export default function WorkPlanOptimizerPage() {
                           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                         >
                           <FileText className="h-4 w-4" />
-                          open task
+                          Open task
                         </a>
                         <a
                           href={selectedSession.submissionUrl}
@@ -1409,7 +1409,7 @@ export default function WorkPlanOptimizerPage() {
                           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                         >
                           <FolderOpen className="h-4 w-4" />
-                          dropbox/rubric
+                          Dropbox/rubric
                         </a>
                         {selectedSessionStudyLink ? (
                           <a
@@ -1419,7 +1419,7 @@ export default function WorkPlanOptimizerPage() {
                             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                           >
                             <BookOpen className="h-4 w-4" />
-                            open resources
+                            Open resources
                           </a>
                         ) : null}
                       </div>
@@ -1478,21 +1478,21 @@ export default function WorkPlanOptimizerPage() {
         <div className="fixed inset-0 z-50 bg-black/45">
           <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto bg-background p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">edit inputs</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Edit inputs</p>
               <div className="flex gap-2">
                 <Button variant="secondary" size="sm" onClick={() => setWizardOpen(false)}>
                   close
                 </Button>
                 <Button size="sm" onClick={() => void generatePlan("initial")} disabled={!requiredAnswered || isGenerating}>
-                  re-generate
+                  Re-generate
                 </Button>
               </div>
             </div>
             <Card className="border-primary/30">
               <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">quick setup wizard</CardTitle>
-                  <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} answered</Badge>
+                  <CardTitle className="text-base">Quick Setup Wizard</CardTitle>
+                  <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} Answered</Badge>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-secondary/70">
                   <div
@@ -1504,7 +1504,7 @@ export default function WorkPlanOptimizerPage() {
               <CardContent className="space-y-4">
                 <div key={`${question.key}-modal-${wizardStep}`} className="rounded-md border border-border/70 bg-card/70 p-4 animate-slide-in">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    question {wizardStep + 1} / {wizardQuestions.length}
+                    Question {wizardStep + 1} / {wizardQuestions.length}
                   </p>
                   <p className="mt-1 text-sm font-medium">{question.prompt}</p>
                   <div className="mt-3 grid gap-2">

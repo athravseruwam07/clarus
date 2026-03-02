@@ -39,7 +39,7 @@ export default function UpcomingItemCard({
         <Badge variant={badge.variant}>{badge.label}</Badge>
         {overviewHref ? (
           <span className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "pointer-events-none")}>
-            view
+            View
           </span>
         ) : null}
       </div>

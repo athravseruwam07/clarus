@@ -31,15 +31,15 @@ export function computeUrgency(eventDate: Date, now: Date): UrgencyLevel {
 export function urgencyBadgeProps(level: UrgencyLevel): { label: string; variant: "destructive" | "default" | "secondary" } {
   switch (level) {
     case "due_today":
-      return { label: "today", variant: "destructive" };
+      return { label: "Today", variant: "destructive" };
     case "due_tomorrow":
-      return { label: "tomorrow", variant: "destructive" };
+      return { label: "Tomorrow", variant: "destructive" };
     case "due_this_week":
-      return { label: "this week", variant: "default" };
+      return { label: "This week", variant: "default" };
     case "due_next_week":
-      return { label: "next week", variant: "secondary" };
+      return { label: "Next week", variant: "secondary" };
     case "upcoming":
-      return { label: "upcoming", variant: "secondary" };
+      return { label: "Upcoming", variant: "secondary" };
   }
 }
 
@@ -99,13 +99,13 @@ export function groupEventsByTime(events: TimelineEventDTO[], now: Date): TimeGr
   }
 
   const labelMap: Record<TimeGroupKey, string> = {
-    today: "today",
-    tomorrow: "tomorrow",
-    this_week: "this week",
-    next_week: "next week",
-    later_this_month: "later this month",
-    next_month: "next month",
-    further_out: "further out"
+    today: "Today",
+    tomorrow: "Tomorrow",
+    this_week: "This week",
+    next_week: "Next week",
+    later_this_month: "Later this month",
+    next_month: "Next month",
+    further_out: "Further out"
   };
 
   return (Object.keys(buckets) as TimeGroupKey[])

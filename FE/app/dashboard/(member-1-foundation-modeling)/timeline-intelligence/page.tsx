@@ -40,6 +40,11 @@ function dayKey(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
+function startCase(value: string): string {
+  if (!value) return value;
+  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1).replace(/_/g, " ")}`;
+}
+
 export default function TimelineIntelligencePage() {
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => startOfDay(new Date()));
@@ -235,7 +240,7 @@ export default function TimelineIntelligencePage() {
       setNeedsSync(payload.needsSync);
       setLastSyncedAt(payload.lastSyncedAt);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "failed to load calendar";
+      const message = error instanceof Error ? error.message : "Failed to load calendar";
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -255,36 +260,36 @@ export default function TimelineIntelligencePage() {
     try {
       const result = await syncCalendar();
       if (result.orgUnitsForbidden && result.orgUnitsForbidden.length > 0) {
-        toast.success("calendar synced (partial)", {
+        toast.success("Calendar synced (partial)", {
           description: `${result.orgUnitsForbidden.length} course(s) blocked calendar access on Brightspace and were skipped.`
         });
       } else {
-        toast.success("calendar synced");
+        toast.success("Calendar synced");
       }
       await loadCalendar();
     } catch (error) {
       if (error instanceof ApiError && error.code === "no_courses") {
-        toast.error("sync courses first", { description: "run course sync from the dashboard before syncing calendar." });
+        toast.error("Sync courses first", { description: "Run course sync from the dashboard before syncing calendar." });
         return;
       }
 
       if (error instanceof ApiError && error.code === "not_connected") {
-        toast.error("connect to d2l first", { description: "reconnect from the login screen and retry." });
+        toast.error("Connect to D2L first", { description: "Reconnect from the login screen and retry." });
         return;
       }
 
       if (error instanceof ApiError && error.code === "calendar_forbidden") {
-        toast.error("calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
+        toast.error("Calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
         return;
       }
 
       if (error instanceof ApiError && error.code === "session_expired") {
-        toast.error("session expired", { description: "reconnect from the login screen and retry." });
+        toast.error("Session expired", { description: "Reconnect from the login screen and retry." });
         return;
       }
 
-      const message = error instanceof Error ? error.message : "calendar sync failed";
-      toast.error("calendar sync failed", { description: message });
+      const message = error instanceof Error ? error.message : "Calendar sync failed";
+      toast.error("Calendar sync failed", { description: message });
     } finally {
       setIsSyncing(false);
     }
@@ -295,21 +300,21 @@ export default function TimelineIntelligencePage() {
       {needsSync ? (
         <Alert className="border-primary/20 bg-secondary/20">
           <AlertTitle className="flex items-center justify-between gap-3">
-            <span>calendar needs sync</span>
+            <span>Calendar needs sync</span>
             <Button onClick={() => void handleSync()} disabled={isSyncing} size="sm">
               {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              {isSyncing ? "syncing..." : "sync calendar"}
+              {isSyncing ? "Syncing..." : "Sync calendar"}
             </Button>
           </AlertTitle>
           <AlertDescription>
-            {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleString()}` : "no calendar sync found yet."}
+            {lastSyncedAt ? `Last synced ${new Date(lastSyncedAt).toLocaleString()}` : "No calendar sync found yet."}
           </AlertDescription>
         </Alert>
       ) : null}
 
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>calendar unavailable</AlertTitle>
+          <AlertTitle>Calendar unavailable</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       ) : null}
@@ -318,12 +323,12 @@ export default function TimelineIntelligencePage() {
         <Card className="h-full card-glow">
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-base">calendar</CardTitle>
+              <CardTitle className="text-base">Calendar</CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm text-muted-foreground">{format(visibleMonth, "MMMM yyyy")}</p>
                 {lastSyncedAt ? (
                   <span className="text-xs text-muted-foreground/80">
-                    · last sync {new Date(lastSyncedAt).toLocaleString()}
+                    · Last sync {new Date(lastSyncedAt).toLocaleString()}
                   </span>
                 ) : null}
               </div>
@@ -339,7 +344,7 @@ export default function TimelineIntelligencePage() {
                   setSelectedDay(startOfDay(today));
                 }}
               >
-                today
+                Today
               </Button>
               <Button
                 variant="secondary"
@@ -361,7 +366,7 @@ export default function TimelineIntelligencePage() {
               {!needsSync ? (
                 <Button variant="ghost" size="sm" onClick={() => void handleSync()} disabled={isSyncing}>
                   {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                  resync
+                  Resync
                 </Button>
               ) : null}
             </div>
@@ -371,7 +376,7 @@ export default function TimelineIntelligencePage() {
             <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-secondary/10 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-                  show
+                  Show
                 </span>
                 {(["start", "due", "end", "event"] as const).map((kind) => {
                   const selected = includeKinds.includes(kind);
@@ -390,7 +395,7 @@ export default function TimelineIntelligencePage() {
                         });
                       }}
                     >
-                      {kind}
+                      {startCase(kind)}
                     </Button>
                   );
                 })}
@@ -398,16 +403,16 @@ export default function TimelineIntelligencePage() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-                  sources
+                  Sources
                 </span>
                 {(
                   [
-                    { key: "calendar", label: "calendar" },
-                    { key: "content", label: "content" },
-                    { key: "dropbox", label: "dropbox" },
-                    { key: "quiz", label: "quizzes" },
-                    { key: "discussion", label: "discussions" },
-                    { key: "checklist", label: "checklists" }
+                    { key: "calendar", label: "Calendar" },
+                    { key: "content", label: "Content" },
+                    { key: "dropbox", label: "Dropbox" },
+                    { key: "quiz", label: "Quizzes" },
+                    { key: "discussion", label: "Discussions" },
+                    { key: "checklist", label: "Checklists" }
                   ] as const
                 ).map((item) => {
                   const selected = sourceGroups[item.key];
@@ -434,13 +439,13 @@ export default function TimelineIntelligencePage() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-                  noise
+                  Noise
                 </span>
                 {(
                   [
-                    { key: "content", label: "content" },
-                    { key: "checklists", label: "checklists" },
-                    { key: "other", label: "other" }
+                    { key: "content", label: "Content" },
+                    { key: "checklists", label: "Checklists" },
+                    { key: "other", label: "Other" }
                   ] as const
                 ).map((item) => {
                   const selected = noiseFlags[item.key];
@@ -453,7 +458,7 @@ export default function TimelineIntelligencePage() {
                       className={cn("h-7 px-2 text-xs", !selected ? "border border-border/60" : null)}
                       onClick={() => setNoiseFlags((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
                     >
-                      {selected ? "show" : "hide"} {item.label}
+                      {selected ? "Show" : "Hide"} {item.label}
                     </Button>
                   );
                 })}
@@ -541,7 +546,7 @@ export default function TimelineIntelligencePage() {
           <CardHeader className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-base">agenda</CardTitle>
+                <CardTitle className="text-base">Agenda</CardTitle>
                 <p className="text-sm text-muted-foreground">{format(selectedDay, "EEEE, MMM d")}</p>
               </div>
               <Badge variant={selectedEvents.length > 0 ? "default" : "secondary"}>
@@ -559,23 +564,23 @@ export default function TimelineIntelligencePage() {
               </div>
             ) : selectedEvents.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-8 text-center text-sm text-muted-foreground">
-                no items on this day.
+                No items on this day.
               </div>
             ) : (
               <div className="space-y-4">
                 {(
                   [
-                    { key: "assignments", label: "assignments", items: agendaByCategory.assignments },
-                    { key: "exams", label: "exams", items: agendaByCategory.exams },
-                    { key: "quizzes", label: "quizzes", items: agendaByCategory.quizzes },
-                    { key: "classes", label: "classes", items: agendaByCategory.classes },
-                    { key: "labs", label: "labs", items: agendaByCategory.labs },
-                    { key: "tutorials", label: "tutorials", items: agendaByCategory.tutorials },
-                    { key: "officeHours", label: "office hours", items: agendaByCategory.officeHours },
-                    { key: "discussions", label: "discussions", items: agendaByCategory.discussions },
-                    { key: "checklists", label: "checklists", items: agendaByCategory.checklists },
-                    { key: "content", label: "content", items: agendaByCategory.content },
-                    { key: "other", label: "other", items: agendaByCategory.other }
+                    { key: "assignments", label: "Assignments", items: agendaByCategory.assignments },
+                    { key: "exams", label: "Exams", items: agendaByCategory.exams },
+                    { key: "quizzes", label: "Quizzes", items: agendaByCategory.quizzes },
+                    { key: "classes", label: "Classes", items: agendaByCategory.classes },
+                    { key: "labs", label: "Labs", items: agendaByCategory.labs },
+                    { key: "tutorials", label: "Tutorials", items: agendaByCategory.tutorials },
+                    { key: "officeHours", label: "Office hours", items: agendaByCategory.officeHours },
+                    { key: "discussions", label: "Discussions", items: agendaByCategory.discussions },
+                    { key: "checklists", label: "Checklists", items: agendaByCategory.checklists },
+                    { key: "content", label: "Content", items: agendaByCategory.content },
+                    { key: "other", label: "Other", items: agendaByCategory.other }
                   ] as const
                 )
                   .filter((section) => section.items.length > 0)
@@ -593,7 +598,7 @@ export default function TimelineIntelligencePage() {
                       <div className="space-y-2">
                         {section.items.map((event) => {
                           const startAt = safeDateFromIso(event.startAt);
-                          const timeLabel = event.isAllDay ? "all day" : startAt ? format(startAt, "p") : "tbd";
+                          const timeLabel = event.isAllDay ? "All day" : startAt ? format(startAt, "p") : "TBD";
                           const courseLabel = event.courseCode ?? event.courseName;
                           const category = classifyEvent(event);
 
@@ -614,13 +619,13 @@ export default function TimelineIntelligencePage() {
                                       <span className="text-xs text-muted-foreground">· {courseLabel}</span>
                                     ) : null}
                                     <Badge variant="secondary" className="text-[10px]">
-                                      {event.dateKind}
+                                      {startCase(event.dateKind)}
                                     </Badge>
                                     <Badge variant="secondary" className="text-[10px]">
-                                      {event.sourceType}
+                                      {startCase(event.sourceType)}
                                     </Badge>
                                     <Badge variant="secondary" className="text-[10px]">
-                                      {category}
+                                      {startCase(category)}
                                     </Badge>
                                   </div>
                                   <p className="text-sm font-medium text-foreground">{event.title}</p>
@@ -635,7 +640,7 @@ export default function TimelineIntelligencePage() {
                                       href={overviewHref as any}
                                       className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                                     >
-                                      view overview
+                                      View overview
                                     </Link>
                                   ) : null}
 
@@ -646,7 +651,7 @@ export default function TimelineIntelligencePage() {
                                       rel="noreferrer"
                                       className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
                                     >
-                                      open
+                                      Open
                                     </a>
                                   ) : null}
                                 </div>

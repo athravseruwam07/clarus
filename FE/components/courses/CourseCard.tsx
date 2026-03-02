@@ -9,12 +9,12 @@ import { cn } from "@/lib/utils";
 
 function formatDate(value: string | null): string {
   if (!value) {
-    return "tbd";
+    return "TBD";
   }
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return "tbd";
+    return "TBD";
   }
 
   return format(parsed, "MMM d, yyyy");
@@ -72,7 +72,7 @@ export function CourseCard({ course }: CourseCardProps) {
         <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between gap-2">
           <span className="max-w-[78%] truncate text-xs font-medium text-white/90">{codeLabel}</span>
           <Badge variant={course.isActive ? "default" : "outline"} className="border-white/20 bg-black/45 text-white">
-            {course.isActive ? "active" : "inactive"}
+            {course.isActive ? "Active" : "Inactive"}
           </Badge>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function CourseCard({ course }: CourseCardProps) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base leading-snug">{course.courseName}</CardTitle>
-            <CardDescription>{course.courseCode ?? "no course code"}</CardDescription>
+            <CardDescription>{course.courseCode ?? "No course code"}</CardDescription>
           </div>
         </div>
         {course.courseHomeUrl ? (
@@ -91,7 +91,7 @@ export function CourseCard({ course }: CourseCardProps) {
             rel="noreferrer"
             className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline"
           >
-            open in d2l
+            Open in D2L
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         ) : null}
@@ -99,7 +99,7 @@ export function CourseCard({ course }: CourseCardProps) {
       <CardContent className="space-y-2 pt-0 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <BookMarked className="h-4 w-4 text-primary" />
-          org unit id: {course.brightspaceCourseId}
+          Org Unit ID: {course.brightspaceCourseId}
         </div>
         <div className="flex items-center gap-2">
           <CalendarRange className="h-4 w-4 text-primary" />
