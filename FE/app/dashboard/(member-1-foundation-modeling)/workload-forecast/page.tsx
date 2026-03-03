@@ -216,7 +216,7 @@ function WeekDetailContent({ week }: { week: WeekForecast }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-medium text-foreground">{a.title}</p>
-                  {isDriver && <Badge className="text-[10px] px-1.5 py-0 bg-blue-600 text-white border-blue-600">Most time needed</Badge>}
+                  {isDriver && <Badge className="text-[10px] px-1.5 py-0 bg-primary/15 text-primary border-primary/30">Most time needed</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {a.courseName} &middot; due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}

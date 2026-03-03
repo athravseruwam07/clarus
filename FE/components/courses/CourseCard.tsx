@@ -25,12 +25,12 @@ interface CourseCardProps {
 }
 
 const FALLBACK_IMAGE_STYLES = [
-  "from-sky-600 via-cyan-500 to-blue-500",
-  "from-teal-700 via-emerald-600 to-green-500",
-  "from-indigo-700 via-blue-600 to-cyan-500",
-  "from-orange-700 via-amber-600 to-yellow-500",
-  "from-fuchsia-700 via-rose-600 to-orange-500",
-  "from-violet-700 via-purple-600 to-indigo-500"
+  "from-zinc-950 via-zinc-900 to-zinc-800",
+  "from-neutral-950 via-neutral-900 to-neutral-800",
+  "from-stone-950 via-stone-900 to-stone-800",
+  "from-slate-950 via-zinc-900 to-stone-800",
+  "from-neutral-900 via-zinc-800 to-stone-700",
+  "from-zinc-900 via-neutral-800 to-zinc-700"
 ] as const;
 
 function hashText(input: string): number {

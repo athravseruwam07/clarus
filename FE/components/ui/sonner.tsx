@@ -11,9 +11,9 @@ export function Toaster() {
       position="top-right"
       toastOptions={{
         style: {
-          background: "hsl(222 16% 11%)",
-          border: "1px solid hsl(222 15% 18%)",
-          color: "hsl(210 20% 93%)"
+          background: "hsl(0 0% 9%)",
+          border: "1px solid hsl(0 0% 20%)",
+          color: "hsl(0 0% 94%)"
         }
       }}
     />

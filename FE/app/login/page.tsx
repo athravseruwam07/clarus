@@ -24,8 +24,8 @@ const CORE_FEATURES = [
 export default function LoginPage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.18),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_78%,rgba(8,46,116,0.35),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.12),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_78%,rgba(255,255,255,0.08),transparent_46%)]" />
 
       <div className="landing-snap relative h-screen overflow-y-auto scroll-smooth">
         <section className="landing-panel flex min-h-screen items-center px-5 py-16 md:px-8">
