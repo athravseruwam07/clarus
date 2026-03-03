@@ -120,9 +120,9 @@ export function Navbar() {
           <Image
             src="/Clarus-logo.svg"
             alt="Clarus logo"
-            width={24}
-            height={24}
-            className="h-6 w-6 object-contain"
+            width={32}
+            height={32}
+            className="h-full w-full object-cover"
           />
         </div>
         <h1 className="text-sm font-semibold tracking-tight">Clarus</h1>

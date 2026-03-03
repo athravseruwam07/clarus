@@ -1,6 +1,18 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Loader2, RefreshCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  Loader2,
+  RefreshCcw,
+  type LucideIcon,
+  ListTodo,
+  Target
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -85,6 +97,25 @@ function dueInDaysText(dueAt: string): string {
 function startCase(text: string): string {
   if (!text) return text;
   return `${text[0]?.toUpperCase() ?? ""}${text.slice(1)}`;
+}
+
+function OverviewCardTitle(props: {
+  icon: LucideIcon;
+  title: string;
+  iconClassName?: string;
+}) {
+  const Icon = props.icon;
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/70 bg-secondary/45 ${props.iconClassName ?? ""}`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <CardTitle className="text-base leading-snug">{props.title}</CardTitle>
+    </div>
+  );
 }
 
 function buildRiskCopy(topTask: WorkPlanContextItem | null, allItems: WorkPlanContextItem[]): {
@@ -400,18 +431,20 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <section className="grid gap-4 lg:grid-cols-4">
-        <Card className="animate-fade-up" style={{ animationDelay: "0ms" }}>
-          <CardHeader>
-            <CardTitle className="text-base">Highest Leverage Task Right Now</CardTitle>
+        <Card className="card-glow animate-fade-up overflow-hidden" style={{ animationDelay: "0ms" }}>
+          <div className="h-1 w-full bg-gradient-to-r from-primary/65 via-primary/15 to-transparent" />
+          <CardHeader className="pb-3">
+            <OverviewCardTitle icon={Target} title="Highest Leverage Task Right Now" iconClassName="text-primary" />
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
             {isLoadingOverview ? (
               <p>Loading intelligence...</p>
             ) : topTask && topTaskItem ? (
               <>
                 <p className="font-medium text-foreground">{topTask.title}</p>
                 <p>{topTask.reason}</p>
-                <p className="font-mono text-xs">
+                <p className="inline-flex items-center gap-1.5 font-mono text-xs">
+                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
                   {startCase(dueInDaysText(topTaskItem.dueAt))} · Estimated {toHours(topTaskItem.estimatedMinutes)}h
                 </p>
                 <a
@@ -430,11 +463,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-up" style={{ animationDelay: "75ms" }}>
-          <CardHeader>
-            <CardTitle className="text-base">Risk Alert</CardTitle>
+        <Card className="card-glow animate-fade-up overflow-hidden" style={{ animationDelay: "75ms" }}>
+          <div className="h-1 w-full bg-gradient-to-r from-destructive/70 via-destructive/15 to-transparent" />
+          <CardHeader className="pb-3">
+            <OverviewCardTitle icon={AlertTriangle} title="Risk Alert" iconClassName="text-destructive" />
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
             {isLoadingOverview ? (
               <p>Loading risk summary...</p>
             ) : (
@@ -442,27 +476,30 @@ export default function DashboardPage() {
                 <p className="font-medium text-foreground">{riskCopy.title}</p>
                 <p>{riskCopy.summary}</p>
                 {riskCopy.actions.map((action) => (
-                  <p key={action} className="text-foreground/80">
-                    - {action}
-                  </p>
+                  <div key={action} className="flex items-start gap-2 text-foreground/80">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary/80" />
+                    <p>{action}</p>
+                  </div>
                 ))}
               </>
             )}
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-up" style={{ animationDelay: "150ms" }}>
-          <CardHeader>
-            <CardTitle className="text-base">Workload Radar Preview</CardTitle>
+        <Card className="card-glow animate-fade-up overflow-hidden" style={{ animationDelay: "150ms" }}>
+          <div className="h-1 w-full bg-gradient-to-r from-primary/60 via-primary/10 to-transparent" />
+          <CardHeader className="pb-3">
+            <OverviewCardTitle icon={BarChart3} title="Workload Radar Preview" iconClassName="text-primary" />
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
             {isLoadingOverview ? (
               <p>Loading forecast...</p>
             ) : (
               <>
                 <p className="font-medium text-foreground">{workloadCopy.title}</p>
                 <p>{workloadCopy.details}</p>
-                <Link href={"/dashboard/workload-forecast" as any} className="text-primary hover:underline">
+                <Link href={"/dashboard/workload-forecast" as any} className="inline-flex items-center gap-2 text-primary hover:underline">
+                  <BarChart3 className="h-4 w-4" />
                   Open Weekly Workload
                 </Link>
               </>
@@ -470,11 +507,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-up" style={{ animationDelay: "225ms" }}>
-          <CardHeader>
-            <CardTitle className="text-base">To Do</CardTitle>
+        <Card className="card-glow animate-fade-up overflow-hidden" style={{ animationDelay: "225ms" }}>
+          <div className="h-1 w-full bg-gradient-to-r from-foreground/65 via-foreground/15 to-transparent" />
+          <CardHeader className="pb-3">
+            <OverviewCardTitle icon={ListTodo} title="To Do" iconClassName="text-foreground" />
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CardContent className="space-y-2.5 text-sm text-muted-foreground">
             {isLoadingOverview ? (
               <p>Loading tasks...</p>
             ) : todoItems.length > 0 ? (
@@ -499,7 +537,10 @@ export default function DashboardPage() {
                       {item.title}
                     </a>
                     <p className="text-xs text-muted-foreground">{item.action}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{startCase(item.dueText)}</p>
+                    <p className="inline-flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {startCase(item.dueText)}
+                    </p>
                   </div>
                 </label>
               ))
@@ -533,7 +574,10 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Calendar</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              Calendar
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoadingOverview ? (
@@ -616,7 +660,10 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Courses</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Courses
+            </CardTitle>
           </CardHeader>
           <CardContent>{isLoadingCourses ? <CourseSkeleton /> : <CourseList courses={courses} />}</CardContent>
         </Card>
