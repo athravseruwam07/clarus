@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ExternalLink, Loader2, LogOut } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, LogOut, Settings2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -171,6 +171,18 @@ export function Navbar() {
             </div>
 
             <div className="p-2">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  router.push("/dashboard/settings");
+                }}
+              >
+                <span>Settings</span>
+                <Settings2 className="h-4 w-4" />
+              </button>
+
               <a
                 href={canOpenD2L ? d2lHomeUrl ?? undefined : undefined}
                 target="_blank"
