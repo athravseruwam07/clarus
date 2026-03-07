@@ -482,6 +482,12 @@ export interface SyncCalendarResponse {
   syncedAt: string;
 }
 
+export interface CalendarFeedAccessResponse {
+  feedUrl: string;
+  webcalUrl: string;
+  expiresAt: string;
+}
+
 export interface DropboxRubricCriterionDTO {
   id: string;
   name: string;
@@ -741,6 +747,12 @@ export async function syncCourses(): Promise<SyncCoursesResponse> {
 export async function syncCalendar(): Promise<SyncCalendarResponse> {
   return request<SyncCalendarResponse>("/v1/sync/calendar", {
     method: "POST"
+  });
+}
+
+export async function getCalendarFeedAccess(): Promise<CalendarFeedAccessResponse> {
+  return request<CalendarFeedAccessResponse>("/v1/calendar/integrations/feed", {
+    method: "GET"
   });
 }
 
