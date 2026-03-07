@@ -42,7 +42,7 @@ export default function LoginPage() {
             </div>
             <p className="mt-6 text-xs uppercase tracking-[0.22em] text-primary/90">Clarus</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-6xl">
-              Turn Brightspace into a clear daily action plan.
+              Turn Brightspace into a brighter space.
             </h1>
             <p className="mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">
               One connected workspace for deadlines, priorities, and study execution.
