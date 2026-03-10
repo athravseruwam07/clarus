@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  BookOpen,
   CalendarClock,
   Gauge,
   LayoutDashboard,
@@ -23,6 +24,7 @@ type NavigationItem = {
 
 const navItems: NavigationItem[] = [
   { kind: "link", label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { kind: "link", label: "Courses", href: "/dashboard/courses", icon: BookOpen },
   { kind: "link", label: "Calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
   { kind: "link", label: "Upcoming", href: "/dashboard/upcoming/assignments", icon: ListTodo },
   { kind: "link", label: "Weekly Workload", href: "/dashboard/workload-forecast", icon: Gauge },
