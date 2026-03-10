@@ -10,7 +10,7 @@ export function CourseList({ courses, limit }: CourseListProps) {
   if (courses.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-8 text-center text-sm text-muted-foreground">
-        no courses yet. run a sync to pull your enrolled courses.
+        No current-term courses found. Training and undated shells are hidden.
       </div>
     );
   }

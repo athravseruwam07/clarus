@@ -36,10 +36,10 @@ import { CourseList } from "@/components/courses/CourseList";
 import { CourseSkeleton } from "@/components/courses/CourseSkeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentTermCourses } from "@/lib/courseFilters";
 import { buildOverviewHref, deduplicateBySource } from "@/lib/upcomingUtils";
-import { cn } from "@/lib/utils";
 
 type ConnectionState = "loading" | "connected" | "expired" | "disconnected";
 
@@ -205,7 +205,7 @@ export default function DashboardPage() {
     () => deduplicateBySource(timelineEvents, "due").slice(0, 8),
     [timelineEvents]
   );
-  const previewCourses = useMemo(() => courses.slice(0, 3), [courses]);
+  const currentTermCourses = useMemo(() => getCurrentTermCourses(courses), [courses]);
   const fallbackWorkItems = useMemo(() => context?.workItems.slice(0, 8) ?? [], [context?.workItems]);
 
   const todoItems = useMemo(() => {
@@ -661,28 +661,21 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="gap-4 md:flex-row md:items-end md:justify-between">
+          <CardHeader>
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-base">
                 <BookOpen className="h-4 w-4 text-primary" />
                 Courses
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {courses.length > 3
-                  ? `Showing 3 of ${courses.length} courses to keep the overview lighter.`
-                  : "A compact snapshot of your enrolled courses."}
+                {currentTermCourses.length === 0
+                  ? "Only courses that still look active this term appear here."
+                  : `${currentTermCourses.length} course${currentTermCourses.length === 1 ? "" : "s"} still look active this term.`}
               </p>
             </div>
-
-            <Link
-              href={"/dashboard/courses" as any}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full md:w-auto")}
-            >
-              {courses.length > 3 ? "Show all courses" : "Open courses page"}
-            </Link>
           </CardHeader>
           <CardContent>
-            {isLoadingCourses ? <CourseSkeleton /> : <CourseList courses={previewCourses} />}
+            {isLoadingCourses ? <CourseSkeleton /> : <CourseList courses={currentTermCourses} />}
           </CardContent>
         </Card>
       </section>

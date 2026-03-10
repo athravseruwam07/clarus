@@ -1,24 +1,10 @@
-import { format } from "date-fns";
-import { BookMarked, CalendarRange, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { Course } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "TBD";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "TBD";
-  }
-
-  return format(parsed, "MMM d, yyyy");
-}
 
 interface CourseCardProps {
   course: Course;
@@ -53,6 +39,7 @@ export function CourseCard({ course }: CourseCardProps) {
   const proxiedImageUrl = `${apiBaseUrl}/v1/courses/${encodeURIComponent(course.id)}/image?v=${encodeURIComponent(course.updatedAt)}`;
   const imageUrl = !imageFailed ? proxiedImageUrl : "";
   const codeLabel = (course.courseCode ?? course.courseName).slice(0, 44);
+  const subtitle = course.courseCode && course.courseCode !== course.courseName ? course.courseCode : null;
 
   return (
     <Card className="h-full overflow-hidden border-border/80">
@@ -77,11 +64,11 @@ export function CourseCard({ course }: CourseCardProps) {
         </div>
       </div>
 
-      <CardHeader className="pb-3">
+      <CardHeader className="space-y-3 pb-2">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="space-y-1">
             <CardTitle className="text-base leading-snug">{course.courseName}</CardTitle>
-            <CardDescription>{course.courseCode ?? "No course code"}</CardDescription>
+            {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
           </div>
         </div>
         {course.courseHomeUrl ? (
@@ -89,23 +76,14 @@ export function CourseCard({ course }: CourseCardProps) {
             href={course.courseHomeUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex w-fit items-center gap-1 text-sm text-primary hover:underline"
           >
             Open in D2L
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-2 pt-0 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <BookMarked className="h-4 w-4 text-primary" />
-          Org Unit ID: {course.brightspaceCourseId}
-        </div>
-        <div className="flex items-center gap-2">
-          <CalendarRange className="h-4 w-4 text-primary" />
-          {formatDate(course.startDate)} - {formatDate(course.endDate)}
-        </div>
-      </CardContent>
+      <CardContent className="pt-0" />
     </Card>
   );
 }
