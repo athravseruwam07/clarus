@@ -1,5 +1,6 @@
 "use client";
 
+import { format, isToday, isYesterday } from "date-fns";
 import Link from "next/link";
 import { Bot, ExternalLink, Loader2, MessageSquarePlus, Send, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
@@ -44,6 +45,23 @@ function formatThreadTime(iso: string): string {
   }).format(date);
 }
 
+function formatThreadGroupLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "Older";
+  }
+
+  if (isToday(date)) {
+    return "Today";
+  }
+
+  if (isYesterday(date)) {
+    return "Yesterday";
+  }
+
+  return format(date, "MMMM d");
+}
+
 function getApiErrorDetail(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -76,6 +94,27 @@ export default function CopilotModePage() {
     () => (activeThreadId ? messagesByThread[activeThreadId] ?? [] : []),
     [activeThreadId, messagesByThread]
   );
+
+  const groupedThreads = useMemo(() => {
+    const groups: Array<{ label: string; items: CopilotThreadDTO[] }> = [];
+
+    for (const thread of threads) {
+      const label = formatThreadGroupLabel(thread.lastMessageAt);
+      const lastGroup = groups[groups.length - 1];
+
+      if (lastGroup && lastGroup.label === label) {
+        lastGroup.items.push(thread);
+        continue;
+      }
+
+      groups.push({
+        label,
+        items: [thread]
+      });
+    }
+
+    return groups;
+  }, [threads]);
 
   useEffect(() => {
     let cancelled = false;
@@ -381,7 +420,7 @@ export default function CopilotModePage() {
   const hasAnyThread = threads.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-[calc(100vh-8.5rem)] min-h-[640px] flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
@@ -397,12 +436,17 @@ export default function CopilotModePage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <Card className={cn("hidden xl:flex xl:flex-col", mobileThreadPickerOpen && "flex")}>
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <Card
+          className={cn(
+            "min-h-0 overflow-hidden xl:flex xl:h-full xl:flex-col",
+            mobileThreadPickerOpen ? "flex" : "hidden"
+          )}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Clarus AI Chat</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 space-y-2 overflow-y-auto">
+          <CardContent className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
             {isLoadingThreads ? <p className="text-sm text-muted-foreground">Loading chats...</p> : null}
 
             {threadError ? <p className="text-sm text-destructive">{threadError}</p> : null}
@@ -411,46 +455,56 @@ export default function CopilotModePage() {
               <p className="text-sm text-muted-foreground">Start a chat to plan your week and prioritize work.</p>
             ) : null}
 
-            {threads.map((thread) => {
-              const isActive = thread.id === activeThreadId;
-              return (
-                <div
-                  key={thread.id}
-                  className={cn(
-                    "rounded-md border border-border/60 p-2 transition-colors",
-                    isActive ? "bg-primary/10" : "bg-secondary/10 hover:bg-secondary/30"
-                  )}
-                >
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => {
-                      setActiveThreadId(thread.id);
-                      setMobileThreadPickerOpen(false);
-                    }}
-                  >
-                    <p className="truncate text-sm font-medium text-foreground">{thread.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{thread.preview ?? "No messages yet"}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{formatThreadTime(thread.lastMessageAt)}</p>
-                  </button>
+            <div className="space-y-4">
+              {groupedThreads.map((group) => (
+                <div key={group.label} className="space-y-1.5">
+                  <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+                    {group.label}
+                  </p>
+                  <div className="space-y-1">
+                    {group.items.map((thread) => {
+                      const isActive = thread.id === activeThreadId;
+                      return (
+                        <div
+                          key={thread.id}
+                          className={cn(
+                            "group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors",
+                            isActive ? "bg-primary/10" : "hover:bg-secondary/40"
+                          )}
+                        >
+                          <button
+                            type="button"
+                            className="min-w-0 flex-1 text-left"
+                            onClick={() => {
+                              setActiveThreadId(thread.id);
+                              setMobileThreadPickerOpen(false);
+                            }}
+                          >
+                            <p className="truncate text-sm font-medium text-foreground">{thread.title}</p>
+                          </button>
 
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDeleteThread(thread.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-7 w-7 shrink-0 px-0 text-muted-foreground hover:text-destructive",
+                              isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            )}
+                            onClick={() => void handleDeleteThread(thread.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-[70vh] flex-col">
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
           <CardHeader className="border-b border-border/60 pb-4">
             <CardTitle className="text-base">
               {activeThreadId
@@ -460,7 +514,7 @@ export default function CopilotModePage() {
           </CardHeader>
 
           <CardContent className="flex min-h-0 flex-1 flex-col gap-4 p-0">
-            <div ref={messageScrollRef} className="h-[56vh] space-y-3 overflow-y-auto px-6 pt-5">
+            <div ref={messageScrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 pt-5">
               {isLoadingMessages ? <p className="text-sm text-muted-foreground">Loading conversation...</p> : null}
 
               {!activeThreadId && !isLoadingThreads ? (
