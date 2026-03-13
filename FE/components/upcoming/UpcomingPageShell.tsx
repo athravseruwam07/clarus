@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { getCurrentTermCourses } from "@/lib/courseFilters";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -130,13 +131,24 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
 
   // Deduplicate course list for filter buttons using brightspaceCourseId.
   const uniqueCourses = useMemo(() => {
+    const currentTermCourses = getCurrentTermCourses(courses);
     const seen = new Set<string>();
-    return courses.filter((c) => {
+    return currentTermCourses.filter((c) => {
       if (seen.has(c.brightspaceCourseId)) return false;
       seen.add(c.brightspaceCourseId);
       return true;
     });
   }, [courses]);
+
+  useEffect(() => {
+    if (!selectedCourseId) {
+      return;
+    }
+
+    if (!uniqueCourses.some((course) => course.brightspaceCourseId === selectedCourseId)) {
+      setSelectedCourseId(null);
+    }
+  }, [selectedCourseId, uniqueCourses]);
 
   return (
     <div className="space-y-6">
