@@ -36,6 +36,10 @@ interface UpcomingPageShellProps {
   children: (props: UpcomingChildProps) => React.ReactNode;
 }
 
+function courseFilterLabel(course: Course): string {
+  return course.courseName ?? course.courseCode ?? "Untitled course";
+}
+
 export default function UpcomingPageShell({ children }: UpcomingPageShellProps) {
   const pathname = usePathname();
 
@@ -188,34 +192,30 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       </div>
 
       {uniqueCourses.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-            course
-          </span>
-          <Button
-            type="button"
-            variant={selectedCourseId === null ? "secondary" : "ghost"}
-            size="sm"
-            className={cn("h-7 px-2 text-xs", selectedCourseId !== null ? "border border-border/60" : null)}
-            onClick={() => setSelectedCourseId(null)}
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-secondary/10 px-3 py-2.5">
+          <label
+            htmlFor="upcoming-course-filter"
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/90"
           >
-            All
-          </Button>
-          {uniqueCourses.map((course) => {
-            const isActive = selectedCourseId === course.brightspaceCourseId;
-            return (
-              <Button
-                key={course.id}
-                type="button"
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn("h-7 px-2 text-xs", !isActive ? "border border-border/60" : null)}
-                onClick={() => setSelectedCourseId(isActive ? null : course.brightspaceCourseId)}
-              >
-                {course.courseCode ?? course.courseName}
-              </Button>
-            );
-          })}
+            Course
+          </label>
+          <div className="min-w-[220px] flex-1 sm:max-w-sm">
+            <select
+              id="upcoming-course-filter"
+              value={selectedCourseId ?? "__all__"}
+              onChange={(event) =>
+                setSelectedCourseId(event.target.value === "__all__" ? null : event.target.value)
+              }
+              className="h-10 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary/40"
+            >
+              <option value="__all__">All courses</option>
+              {uniqueCourses.map((course) => (
+                <option key={course.id} value={course.brightspaceCourseId}>
+                  {courseFilterLabel(course)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       ) : null}
 
