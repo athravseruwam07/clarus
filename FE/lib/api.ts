@@ -461,6 +461,7 @@ export interface TimelineEventDTO {
   associatedEntityType: string | null;
   associatedEntityId: string | null;
   viewUrl: string | null;
+  submissionStatus: DropboxSubmissionStatusDTO | null;
 }
 
 export interface CalendarTimelineResponse {
@@ -504,6 +505,14 @@ export type DropboxAttachmentDTO =
   | { kind: "file"; fileId: string; name: string; sizeBytes: number }
   | { kind: "link"; linkId: string; name: string; href: string };
 
+export interface DropboxSubmissionStatusDTO {
+  orgUnitId: string;
+  folderId: string;
+  state: "submitted" | "not_submitted" | "unknown";
+  hasSubmission: boolean;
+  latestSubmissionAt: string | null;
+}
+
 export interface DropboxAssignmentOverviewDTO {
   orgUnitId: string;
   folderId: string;
@@ -522,6 +531,7 @@ export interface DropboxAssignmentOverviewDTO {
   rubrics: DropboxRubricDTO[];
   attachments: Array<Extract<DropboxAttachmentDTO, { kind: "file" }>>;
   linkAttachments: Array<Extract<DropboxAttachmentDTO, { kind: "link" }>>;
+  submissionStatus: DropboxSubmissionStatusDTO;
 }
 
 export interface ContentTopicOverviewDTO {
@@ -764,6 +774,17 @@ export async function getDropboxAssignmentOverview(params: {
   const folderId = encodeURIComponent(params.folderId);
   return request<DropboxAssignmentOverviewDTO>(`/v1/assignments/dropbox/${orgUnitId}/${folderId}`, {
     method: "GET"
+  });
+}
+
+export async function getDropboxAssignmentStatuses(params: {
+  items: Array<{ orgUnitId: string; folderId: string }>;
+}): Promise<{ items: DropboxSubmissionStatusDTO[] }> {
+  return request<{ items: DropboxSubmissionStatusDTO[] }>("/v1/assignments/dropbox/status", {
+    method: "POST",
+    body: JSON.stringify({
+      items: params.items
+    })
   });
 }
 
