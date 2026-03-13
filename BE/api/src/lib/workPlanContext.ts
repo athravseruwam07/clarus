@@ -1,6 +1,7 @@
 import type { Course, User } from "@prisma/client";
 
 import { connectorRequest } from "./connectorClient.js";
+import { fetchDropboxSubmissionStatusesBatch } from "./dropboxSubmissionStatus.js";
 import { AppError, isAppError } from "./errors.js";
 import { prisma } from "./prisma.js";
 import { decodeStorageState } from "./storageState.js";
@@ -273,10 +274,47 @@ async function buildCourseContext(input: {
     ...parseDiscussionTopicItems(discussionTopicsData?.data, courseId)
   ]);
 
+  const assignmentItems = rawItems.filter((item) => item.type === "assignment" || item.type === "project");
+  const completedAssignmentIds = new Set<string>();
+
+  if (assignmentItems.length > 0) {
+    const submissionStatuses = await fetchDropboxSubmissionStatusesBatch({
+      instanceUrl: user.institutionUrl!,
+      storageState,
+      brightspaceUserId: user.brightspaceUserId,
+      items: assignmentItems.map((item) => ({
+        orgUnitId: courseId,
+        folderId: extractSourceId({
+          courseId,
+          type: item.type,
+          itemId: item.id
+        })
+      })),
+      concurrency: 4
+    });
+
+    const submittedFolderIds = new Set(
+      submissionStatuses.filter((status) => status.state === "submitted").map((status) => status.folderId)
+    );
+
+    assignmentItems.forEach((item) => {
+      const folderId = extractSourceId({
+        courseId,
+        type: item.type,
+        itemId: item.id
+      });
+
+      if (submittedFolderIds.has(folderId)) {
+        completedAssignmentIds.add(item.id);
+      }
+    });
+  }
+
   const now = new Date();
   const minDueAtMs = now.getTime() - 1000 * 60 * 60 * 24 * 2;
   const maxDueAtMs = now.getTime() + 1000 * 60 * 60 * 24 * 180;
   const items: WorkPlanContextItem[] = rawItems
+    .filter((item) => !completedAssignmentIds.has(item.id))
     .filter((item) => {
       const due = new Date(item.dueAt);
       const dueAtMs = due.getTime();

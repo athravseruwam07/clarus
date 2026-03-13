@@ -59,7 +59,8 @@ const calendarEventsRoute: FastifyPluginAsync = async (fastify) => {
         dateKind: event.dateKind,
         associatedEntityType: event.associatedEntityType ?? null,
         associatedEntityId: event.associatedEntityId ?? null,
-        viewUrl: event.viewUrl ?? null
+        viewUrl: event.viewUrl ?? null,
+        submissionStatus: null
       };
     }
   );
