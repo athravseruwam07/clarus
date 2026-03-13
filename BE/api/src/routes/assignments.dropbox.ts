@@ -4,6 +4,10 @@ import { callGeminiForBrief } from "../lib/aiBrief.js";
 import { getAiBrief, upsertAiBrief } from "../lib/aiBriefStore.js";
 import { formatIsoInClientPrefs, readClientPrefs } from "../lib/clientPrefs.js";
 import { connectorRequest } from "../lib/connectorClient.js";
+import {
+  fetchDropboxSubmissionStatus,
+  fetchDropboxSubmissionStatusesBatch
+} from "../lib/dropboxSubmissionStatus.js";
 import { AppError, isAppError } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import { decodeStorageState } from "../lib/storageState.js";
@@ -460,8 +464,52 @@ function parseLinkAttachments(folder: JsonRecord): Array<{
 
   return parsed;
 }
-
 const dropboxAssignmentsRoute: FastifyPluginAsync = async (fastify) => {
+  fastify.post(
+    "/assignments/dropbox/status",
+    {
+      preHandler: fastify.requireAuth
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new AppError(401, "authentication required", "unauthorized");
+      }
+
+      const user = request.auth.user;
+      if (!user.brightspaceStateEncrypted || !user.institutionUrl) {
+        throw new AppError(400, "connect to d2l first", "not_connected");
+      }
+
+      const body = request.body as { items?: Array<{ orgUnitId?: string; folderId?: string }> } | null;
+      const rawItems = Array.isArray(body?.items) ? body.items : [];
+      const normalizedItems = rawItems
+        .map((item) => ({
+          orgUnitId: (item.orgUnitId ?? "").trim(),
+          folderId: (item.folderId ?? "").trim()
+        }))
+        .filter((item) => item.orgUnitId.length > 0 && item.folderId.length > 0);
+
+      if (normalizedItems.length === 0) {
+        return { items: [] };
+      }
+
+      if (normalizedItems.length > 50) {
+        throw new AppError(400, "too many dropbox folders requested", "too_many_items");
+      }
+
+      const storageState = decodeStorageState(user.brightspaceStateEncrypted);
+      const items = await fetchDropboxSubmissionStatusesBatch({
+        instanceUrl: user.institutionUrl!,
+        storageState,
+        brightspaceUserId: user.brightspaceUserId,
+        items: normalizedItems,
+        concurrency: 4
+      });
+
+      return { items };
+    }
+  );
+
   fastify.get(
     "/assignments/dropbox/:orgUnitId/:folderId",
     {
@@ -507,6 +555,13 @@ const dropboxAssignmentsRoute: FastifyPluginAsync = async (fastify) => {
         orgUnitId,
         folderId
       });
+      const submissionStatus = await fetchDropboxSubmissionStatus({
+        instanceUrl: user.institutionUrl,
+        storageState,
+        brightspaceUserId: user.brightspaceUserId,
+        orgUnitId,
+        folderId
+      });
 
       const availability = asRecord(folder["Availability"]);
       const assessment = asRecord(folder["Assessment"]);
@@ -534,7 +589,8 @@ const dropboxAssignmentsRoute: FastifyPluginAsync = async (fastify) => {
         instructionsHtml: instructionsHtml && instructionsHtml.length > 0 ? instructionsHtml : null,
         rubrics,
         attachments: parseAttachments(folder),
-        linkAttachments: parseLinkAttachments(folder)
+        linkAttachments: parseLinkAttachments(folder),
+        submissionStatus
       };
     }
   );

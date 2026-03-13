@@ -601,6 +601,7 @@ export default function TimelineIntelligencePage() {
                           const timeLabel = event.isAllDay ? "All day" : startAt ? format(startAt, "p") : "TBD";
                           const courseLabel = event.courseCode ?? event.courseName;
                           const category = classifyEvent(event);
+                          const isSubmitted = event.submissionStatus?.state === "submitted";
 
                           const overviewHref = buildOverviewHref(event);
 
@@ -627,8 +628,18 @@ export default function TimelineIntelligencePage() {
                                     <Badge variant="secondary" className="text-[10px]">
                                       {startCase(category)}
                                     </Badge>
+                                    {isSubmitted ? (
+                                      <Badge variant="secondary" className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700">
+                                        Completed
+                                      </Badge>
+                                    ) : null}
                                   </div>
                                   <p className="text-sm font-medium text-foreground">{event.title}</p>
+                                  {isSubmitted && event.submissionStatus?.latestSubmissionAt ? (
+                                    <p className="text-xs text-emerald-700">
+                                      Submitted {format(new Date(event.submissionStatus.latestSubmissionAt), "PPp")}
+                                    </p>
+                                  ) : null}
                                   {event.description ? (
                                     <p className="line-clamp-2 text-xs text-muted-foreground">{event.description}</p>
                                   ) : null}

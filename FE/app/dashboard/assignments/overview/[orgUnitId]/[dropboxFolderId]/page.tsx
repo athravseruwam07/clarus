@@ -104,6 +104,23 @@ function sizeLabel(bytes: number): string {
   return `${rounded} ${units[index]}`;
 }
 
+function submissionStateLabel(overview: DropboxAssignmentOverviewDTO | null): string | null {
+  const status = overview?.submissionStatus;
+  if (!status) {
+    return null;
+  }
+
+  if (status.state === "submitted") {
+    return status.latestSubmissionAt ? `Submitted ${formatLocal(status.latestSubmissionAt)}` : "Submitted";
+  }
+
+  if (status.state === "not_submitted") {
+    return "Not submitted";
+  }
+
+  return "Submission status unavailable";
+}
+
 export default function DropboxAssignmentOverviewPage() {
   const router = useRouter();
   const params = useParams<{ orgUnitId: string; dropboxFolderId: string }>();
@@ -231,6 +248,15 @@ export default function DropboxAssignmentOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {overview?.submissionStatus.state === "submitted" ? (
+        <Alert>
+          <AlertTitle>Submission detected</AlertTitle>
+          <AlertDescription>
+            This dropbox folder already has a submission on Brightspace, so it is hidden from the upcoming assignments list.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {errorMessage ? (
         <Alert variant="destructive">
           <AlertTitle>Overview unavailable</AlertTitle>
@@ -261,6 +287,10 @@ export default function DropboxAssignmentOverviewPage() {
           {
             label: "points",
             value: <span className="font-mono text-[11px]">{overview?.pointsPossible ?? "unknown"}</span>
+          },
+          {
+            label: "status",
+            value: <span className="text-foreground/80">{submissionStateLabel(overview) ?? "Unknown"}</span>
           },
           { label: "submission", value: <span className="text-foreground/80">{submissionTypeLabel(overview?.submissionType ?? "unknown")}</span> },
           { label: "completion", value: <span className="text-foreground/80">{completionTypeLabel(overview?.completionType ?? "unknown")}</span> },
