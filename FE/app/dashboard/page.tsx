@@ -337,7 +337,7 @@ export default function DashboardPage() {
     try {
       const [statusResult, contextResult, timelineResult, forecastResult] = await Promise.allSettled([
         getD2LStatus(),
-        getWorkPlanContext(),
+        getWorkPlanContext({ refresh: true }),
         getCalendarEvents({
           from: from.toISOString(),
           to: to.toISOString(),
@@ -587,6 +587,7 @@ export default function DashboardPage() {
             ) : timelinePreview.length > 0 ? (
               timelinePreview.map((event) => {
                 const overviewHref = buildOverviewHref(event);
+                const isSubmitted = event.submissionStatus?.state === "submitted";
                 const content = (
                   <>
                     <div className="flex items-start justify-between gap-3">
@@ -595,8 +596,15 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">
                           {(event.courseCode ?? event.courseName ?? "course")} · {formatDateTime(event.startAt)}
                         </p>
+                        {isSubmitted ? (
+                          <p className="mt-1 text-xs text-emerald-700">
+                            Submitted{event.submissionStatus?.latestSubmissionAt ? ` · ${formatDateTime(event.submissionStatus.latestSubmissionAt)}` : ""}
+                          </p>
+                        ) : null}
                       </div>
-                      <Badge variant={event.dateKind === "due" ? "default" : "secondary"}>{startCase(event.dateKind)}</Badge>
+                      <Badge variant={isSubmitted ? "secondary" : event.dateKind === "due" ? "default" : "secondary"}>
+                        {isSubmitted ? "Completed" : startCase(event.dateKind)}
+                      </Badge>
                     </div>
                     <p className="mt-2 font-mono text-xs text-muted-foreground">
                       {startCase(event.sourceType.replace(/_/g, " "))} · Org unit {event.orgUnitId}
