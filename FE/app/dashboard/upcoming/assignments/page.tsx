@@ -47,7 +47,7 @@ function UpcomingAssignmentsContent({ events, isLoading }: UpcomingChildProps) {
               ? `Due: ${format(startAt, "EEE, MMM d 'at' p")}`
               : "Due: TBD";
             const urgency = startAt ? computeUrgency(startAt, now) : "upcoming";
-            const courseLabel = event.courseCode ?? event.courseName;
+            const courseLabel = event.courseName ?? event.courseCode;
 
             return (
               <UpcomingItemCard

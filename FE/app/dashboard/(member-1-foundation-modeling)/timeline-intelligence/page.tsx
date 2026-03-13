@@ -599,7 +599,7 @@ export default function TimelineIntelligencePage() {
                         {section.items.map((event) => {
                           const startAt = safeDateFromIso(event.startAt);
                           const timeLabel = event.isAllDay ? "All day" : startAt ? format(startAt, "p") : "TBD";
-                          const courseLabel = event.courseCode ?? event.courseName;
+                          const courseLabel = event.courseName ?? event.courseCode;
                           const category = classifyEvent(event);
                           const isSubmitted = event.submissionStatus?.state === "submitted";
 
