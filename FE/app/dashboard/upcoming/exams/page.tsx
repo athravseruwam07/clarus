@@ -55,7 +55,7 @@ export default function UpcomingExamsPage() {
                   }
 
                   const urgency = startAt ? computeUrgency(startAt, now) : "upcoming";
-                  const courseLabel = event.courseCode ?? event.courseName;
+                  const courseLabel = event.courseName ?? event.courseCode;
 
                   return (
                     <UpcomingItemCard

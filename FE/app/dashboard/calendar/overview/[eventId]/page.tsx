@@ -110,10 +110,7 @@ export default function CalendarEventOverviewPage() {
 
   const courseLabel = useMemo(() => {
     if (!event) return null;
-    if (event.courseCode) {
-      return `${event.courseCode} · ${event.courseName ?? ""}`.trim();
-    }
-    return event.courseName;
+    return event.courseName ?? event.courseCode ?? null;
   }, [event]);
 
   const handleGenerate = useCallback(async () => {

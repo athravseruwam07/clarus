@@ -145,11 +145,7 @@ export default function DropboxAssignmentOverviewPage() {
       return null;
     }
 
-    if (overview.courseCode && overview.courseName) {
-      return `${overview.courseCode} · ${overview.courseName}`;
-    }
-
-    return overview.courseCode ?? overview.courseName ?? null;
+    return overview.courseName ?? overview.courseCode ?? null;
   }, [overview]);
 
   const loadOverview = useCallback(async () => {

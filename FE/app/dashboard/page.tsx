@@ -594,7 +594,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="font-medium">{event.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {(event.courseCode ?? event.courseName ?? "course")} · {formatDateTime(event.startAt)}
+                          {(event.courseName ?? event.courseCode ?? "course")} · {formatDateTime(event.startAt)}
                         </p>
                         {isSubmitted ? (
                           <p className="mt-1 text-xs text-emerald-700">
@@ -606,9 +606,6 @@ export default function DashboardPage() {
                         {isSubmitted ? "Completed" : startCase(event.dateKind)}
                       </Badge>
                     </div>
-                    <p className="mt-2 font-mono text-xs text-muted-foreground">
-                      {startCase(event.sourceType.replace(/_/g, " "))} · Org unit {event.orgUnitId}
-                    </p>
                   </>
                 );
 
