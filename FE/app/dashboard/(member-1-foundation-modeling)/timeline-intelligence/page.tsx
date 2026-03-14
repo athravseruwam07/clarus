@@ -12,9 +12,9 @@ import {
   startOfMonth,
   startOfWeek
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, RefreshCcw } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import {
@@ -43,6 +43,31 @@ function dayKey(date: Date): string {
 function startCase(value: string): string {
   if (!value) return value;
   return `${value[0]?.toUpperCase() ?? ""}${value.slice(1).replace(/_/g, " ")}`;
+}
+
+function FilterPill(props: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-pressed={props.active}
+      className={cn(
+        "h-8 rounded-full border px-3 text-xs transition-all",
+        props.active
+          ? "border-primary/35 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+          : "border-border/70 bg-background text-muted-foreground hover:border-primary/25 hover:bg-secondary/20 hover:text-foreground"
+      )}
+      onClick={props.onClick}
+    >
+      {props.active ? <Check className="h-3.5 w-3.5" /> : null}
+      <span>{props.children}</span>
+    </Button>
+  );
 }
 
 export default function TimelineIntelligencePage() {
@@ -381,12 +406,9 @@ export default function TimelineIntelligencePage() {
                 {(["start", "due", "end", "event"] as const).map((kind) => {
                   const selected = includeKinds.includes(kind);
                   return (
-                    <Button
+                    <FilterPill
                       key={kind}
-                      type="button"
-                      variant={selected ? "secondary" : "ghost"}
-                      size="sm"
-                      className={cn("h-7 px-2 text-xs", !selected ? "border border-border/60" : null)}
+                      active={selected}
                       onClick={() => {
                         setIncludeKinds((prev) => {
                           const has = prev.includes(kind);
@@ -396,7 +418,7 @@ export default function TimelineIntelligencePage() {
                       }}
                     >
                       {startCase(kind)}
-                    </Button>
+                    </FilterPill>
                   );
                 })}
               </div>
@@ -417,12 +439,9 @@ export default function TimelineIntelligencePage() {
                 ).map((item) => {
                   const selected = sourceGroups[item.key];
                   return (
-                    <Button
+                    <FilterPill
                       key={item.key}
-                      type="button"
-                      variant={selected ? "secondary" : "ghost"}
-                      size="sm"
-                      className={cn("h-7 px-2 text-xs", !selected ? "border border-border/60" : null)}
+                      active={selected}
                       onClick={() => {
                         setSourceGroups((prev) => {
                           const next = { ...prev, [item.key]: !prev[item.key] };
@@ -432,14 +451,14 @@ export default function TimelineIntelligencePage() {
                       }}
                     >
                       {item.label}
-                    </Button>
+                    </FilterPill>
                   );
                 })}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-                  Noise
+                  Also show
                 </span>
                 {(
                   [
@@ -450,16 +469,13 @@ export default function TimelineIntelligencePage() {
                 ).map((item) => {
                   const selected = noiseFlags[item.key];
                   return (
-                    <Button
+                    <FilterPill
                       key={item.key}
-                      type="button"
-                      variant={selected ? "secondary" : "ghost"}
-                      size="sm"
-                      className={cn("h-7 px-2 text-xs", !selected ? "border border-border/60" : null)}
+                      active={selected}
                       onClick={() => setNoiseFlags((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
                     >
-                      {selected ? "Show" : "Hide"} {item.label}
-                    </Button>
+                      {item.label}
+                    </FilterPill>
                   );
                 })}
               </div>
