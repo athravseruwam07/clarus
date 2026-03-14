@@ -1,0 +1,60 @@
+
+> clarus-fe@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3000
+   - Network:      http://172.19.64.1:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+   Downloading swc package @next/swc-win32-x64-msvc... to C:\Users\ahuss\AppData\Local\next-swc
+ ✓ Ready in 14s
+ ○ Compiling / ...
+ ✓ Compiled / in 1038ms (546 modules)
+ GET / 307 in 2714ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 672ms (610 modules)
+ GET /login 200 in 2273ms
+ GET / 307 in 150ms
+ GET /login 200 in 98ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1206ms (859 modules)
+ GET /dashboard?boot=1 200 in 2471ms
+ ○ Compiling /dashboard/timeline-intelligence ...
+ ✓ Compiled /dashboard/timeline-intelligence in 1254ms (904 modules)
+ GET /dashboard/timeline-intelligence 200 in 1493ms
+ ○ Compiling /dashboard/quizzes/overview/[orgUnitId]/[quizId] ...
+ ✓ Compiled /dashboard/quizzes/overview/[orgUnitId]/[quizId] in 1518ms (955 modules)
+ GET /dashboard/quizzes/overview/1214457/311155?openUrl=https%3A%2F%2Flearn.uwaterloo.ca%2Fd2l%2Flms%2Fquizzing%2Fquizzing.d2l%3Fou%3D1214457%26qi%3D311155 200 in 2373ms
+ GET /dashboard/timeline-intelligence 200 in 70ms
+ ○ Compiling /dashboard/upcoming/assignments ...
+ ✓ Compiled /dashboard/upcoming/assignments in 656ms (964 modules)
+ GET /dashboard/upcoming/assignments 200 in 1826ms
+ GET /dashboard/upcoming/assignments 200 in 47ms
+ GET /dashboard/upcoming/assignments 200 in 37ms
+ ○ Compiling /dashboard/upcoming/quizzes ...
+ ✓ Compiled /dashboard/upcoming/quizzes in 822ms (971 modules)
+ GET /dashboard/upcoming/quizzes 200 in 986ms
+ GET /dashboard/upcoming/quizzes 200 in 77ms
+ GET /dashboard/upcoming/assignments 200 in 53ms
+ ○ Compiling /dashboard/upcoming/exams ...
+ ✓ Compiled /dashboard/upcoming/exams in 1268ms (978 modules)
+ GET /dashboard/upcoming/exams 200 in 1500ms
+ GET /dashboard/upcoming/quizzes 200 in 661ms
+ ○ Compiling /dashboard/workload-forecast ...
+ ✓ Compiled /dashboard/workload-forecast in 3.2s (1928 modules)
+ GET /dashboard/workload-forecast 200 in 3537ms
+ GET /dashboard/workload-forecast 200 in 56ms
+ ○ Compiling /dashboard/study-plan-optimizer ...
+ ✓ Compiled /dashboard/study-plan-optimizer in 1187ms (1926 modules)
+ GET /dashboard/study-plan-optimizer 200 in 1409ms
+ GET /dashboard/study-plan-optimizer 200 in 36ms
+ ○ Compiling /dashboard/copilot-mode ...
+ ✓ Compiled /dashboard/copilot-mode in 1223ms (1926 modules)
+ GET /dashboard/copilot-mode 200 in 1366ms
+ GET /dashboard/copilot-mode 200 in 46ms
+ ✓ Compiled /dashboard in 361ms (1068 modules)
+ GET /dashboard 200 in 649ms
+ GET /dashboard 200 in 32ms
+[?25h

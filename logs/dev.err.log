@@ -1,0 +1,4 @@
+ Container clarus-postgres Starting 
+ Container clarus-postgres Started 
+Environment variables loaded from .env
+timed out waiting for api on port 4001.
