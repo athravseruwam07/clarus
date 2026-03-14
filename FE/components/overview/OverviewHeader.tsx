@@ -24,10 +24,10 @@ export function OverviewHeader(props: {
         {props.isLoading ? (
           <Skeleton className="h-6 w-72" />
         ) : (
-          <h1 className="text-xl font-bold tracking-tight">{props.title ?? "overview"}</h1>
+          <h1 className="text-xl font-bold tracking-tight">{props.title ?? "Overview"}</h1>
         )}
         <div className="text-sm text-muted-foreground">
-          {props.isLoading ? <Skeleton className="h-4 w-48" /> : props.subtitle ?? "brightspace"}
+          {props.isLoading ? <Skeleton className="h-4 w-48" /> : props.subtitle ?? "Brightspace"}
         </div>
         {props.metadataItems && props.metadataItems.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/90">
@@ -51,7 +51,7 @@ export function OverviewHeader(props: {
 
         <Button variant="secondary" size="sm" onClick={props.onBack}>
           <ArrowLeft className="h-4 w-4" />
-          back
+          Back
         </Button>
 
         {props.openUrl ? (
@@ -62,13 +62,13 @@ export function OverviewHeader(props: {
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
             <ExternalLink className="h-4 w-4" />
-            open in brightspace
+            Open in Brightspace
           </a>
         ) : null}
 
         {props.reconnectHref ? (
           <Link href={props.reconnectHref as any} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-            reconnect
+            Reconnect
           </Link>
         ) : null}
       </div>

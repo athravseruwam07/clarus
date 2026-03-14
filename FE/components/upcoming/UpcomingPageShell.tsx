@@ -17,12 +17,13 @@ import {
 } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { getCurrentTermCourses } from "@/lib/courseFilters";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "assignments", href: "/dashboard/upcoming/assignments" },
-  { label: "quizzes", href: "/dashboard/upcoming/quizzes" },
-  { label: "exams", href: "/dashboard/upcoming/exams" }
+  { label: "Assignments", href: "/dashboard/upcoming/assignments" },
+  { label: "Quizzes", href: "/dashboard/upcoming/quizzes" },
+  { label: "Exams", href: "/dashboard/upcoming/exams" }
 ] as const;
 
 export interface UpcomingChildProps {
@@ -34,6 +35,10 @@ export interface UpcomingChildProps {
 
 interface UpcomingPageShellProps {
   children: (props: UpcomingChildProps) => React.ReactNode;
+}
+
+function courseFilterLabel(course: Course): string {
+  return course.courseName ?? course.courseCode ?? "Untitled course";
 }
 
 export default function UpcomingPageShell({ children }: UpcomingPageShellProps) {
@@ -70,7 +75,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       setLastSyncedAt(calendarPayload.lastSyncedAt);
       setCourses(courseList);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "failed to load calendar";
+      const message = error instanceof Error ? error.message : "Failed to load calendar";
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -88,32 +93,32 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
     try {
       const result = await syncCalendar();
       if (result.orgUnitsForbidden && result.orgUnitsForbidden.length > 0) {
-        toast.success("calendar synced (partial)", {
+        toast.success("Calendar synced (partial)", {
           description: `${result.orgUnitsForbidden.length} course(s) blocked calendar access on Brightspace and were skipped.`
         });
       } else {
-        toast.success("calendar synced");
+        toast.success("Calendar synced");
       }
       await loadData();
     } catch (error) {
       if (error instanceof ApiError && error.code === "no_courses") {
-        toast.error("sync courses first", { description: "run course sync from the dashboard before syncing calendar." });
+        toast.error("Sync courses first", { description: "Run course sync from the dashboard before syncing calendar." });
         return;
       }
       if (error instanceof ApiError && error.code === "not_connected") {
-        toast.error("connect to d2l first", { description: "reconnect from the login screen and retry." });
+        toast.error("Connect to D2L first", { description: "Reconnect from the login screen and retry." });
         return;
       }
       if (error instanceof ApiError && error.code === "calendar_forbidden") {
-        toast.error("calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
+        toast.error("Calendar unavailable", { description: "Brightspace blocked calendar access for this account." });
         return;
       }
       if (error instanceof ApiError && error.code === "session_expired") {
-        toast.error("session expired", { description: "reconnect from the login screen and retry." });
+        toast.error("Session expired", { description: "Reconnect from the login screen and retry." });
         return;
       }
-      const message = error instanceof Error ? error.message : "calendar sync failed";
-      toast.error("calendar sync failed", { description: message });
+      const message = error instanceof Error ? error.message : "Calendar sync failed";
+      toast.error("Calendar sync failed", { description: message });
     } finally {
       setIsSyncing(false);
     }
@@ -126,43 +131,54 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
 
   // Deduplicate course list for filter buttons using brightspaceCourseId.
   const uniqueCourses = useMemo(() => {
+    const currentTermCourses = getCurrentTermCourses(courses);
     const seen = new Set<string>();
-    return courses.filter((c) => {
+    return currentTermCourses.filter((c) => {
       if (seen.has(c.brightspaceCourseId)) return false;
       seen.add(c.brightspaceCourseId);
       return true;
     });
   }, [courses]);
 
+  useEffect(() => {
+    if (!selectedCourseId) {
+      return;
+    }
+
+    if (!uniqueCourses.some((course) => course.brightspaceCourseId === selectedCourseId)) {
+      setSelectedCourseId(null);
+    }
+  }, [selectedCourseId, uniqueCourses]);
+
   return (
     <div className="space-y-6">
       {needsSync ? (
         <Alert className="border-primary/20 bg-secondary/20">
           <AlertTitle className="flex items-center justify-between gap-3">
-            <span>calendar needs sync</span>
+            <span>Calendar needs sync</span>
             <Button onClick={() => void handleSync()} disabled={isSyncing} size="sm">
               {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-              {isSyncing ? "syncing..." : "sync calendar"}
+              {isSyncing ? "Syncing..." : "Sync calendar"}
             </Button>
           </AlertTitle>
           <AlertDescription>
-            {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleString()}` : "no calendar sync found yet."}
+            {lastSyncedAt ? `Last synced ${new Date(lastSyncedAt).toLocaleString()}` : "No calendar sync found yet."}
           </AlertDescription>
         </Alert>
       ) : null}
 
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>calendar unavailable</AlertTitle>
+          <AlertTitle>Calendar unavailable</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold tracking-tight">upcoming</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Upcoming</h1>
         {lastSyncedAt && !needsSync ? (
           <span className="text-xs text-muted-foreground/80">
-            last sync {new Date(lastSyncedAt).toLocaleString()}
+            Last sync {new Date(lastSyncedAt).toLocaleString()}
           </span>
         ) : null}
       </div>
@@ -188,34 +204,30 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       </div>
 
       {uniqueCourses.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
-            course
-          </span>
-          <Button
-            type="button"
-            variant={selectedCourseId === null ? "secondary" : "ghost"}
-            size="sm"
-            className={cn("h-7 px-2 text-xs", selectedCourseId !== null ? "border border-border/60" : null)}
-            onClick={() => setSelectedCourseId(null)}
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-secondary/10 px-3 py-2.5">
+          <label
+            htmlFor="upcoming-course-filter"
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/90"
           >
-            all
-          </Button>
-          {uniqueCourses.map((course) => {
-            const isActive = selectedCourseId === course.brightspaceCourseId;
-            return (
-              <Button
-                key={course.id}
-                type="button"
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn("h-7 px-2 text-xs", !isActive ? "border border-border/60" : null)}
-                onClick={() => setSelectedCourseId(isActive ? null : course.brightspaceCourseId)}
-              >
-                {course.courseCode ?? course.courseName}
-              </Button>
-            );
-          })}
+            Course
+          </label>
+          <div className="min-w-[220px] flex-1 sm:max-w-sm">
+            <select
+              id="upcoming-course-filter"
+              value={selectedCourseId ?? "__all__"}
+              onChange={(event) =>
+                setSelectedCourseId(event.target.value === "__all__" ? null : event.target.value)
+              }
+              className="h-10 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary/40"
+            >
+              <option value="__all__">All courses</option>
+              {uniqueCourses.map((course) => (
+                <option key={course.id} value={course.brightspaceCourseId}>
+                  {courseFilterLabel(course)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       ) : null}
 

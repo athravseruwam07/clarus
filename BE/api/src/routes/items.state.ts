@@ -5,7 +5,13 @@ import { z } from "zod";
 import { AppError } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 
-const targetTypeSchema = z.enum(["dropbox", "content_topic", "quiz", "calendar_event"]);
+const targetTypeSchema = z.enum([
+  "dropbox",
+  "content_topic",
+  "quiz",
+  "calendar_event",
+  "work_plan_optimizer"
+]);
 
 const putBodySchema = z.object({
   targetType: targetTypeSchema,
@@ -109,4 +115,3 @@ const itemsStateRoute: FastifyPluginAsync = async (fastify) => {
 };
 
 export default itemsStateRoute;
-

@@ -31,11 +31,11 @@ import { useItemState } from "@/components/overview/useItemState";
 
 function formatLocal(value: string | null | undefined): string {
   if (!value) {
-    return "unknown";
+    return "Unknown";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "unknown";
+    return "Unknown";
   }
   return date.toLocaleString();
 }
@@ -77,7 +77,7 @@ export default function QuizOverviewPage() {
             ? "Your D2L session expired. Reconnect and try again."
             : error instanceof Error
               ? error.message
-              : "failed to load overview";
+              : "Failed to load overview";
         setErrorMessage(message);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -123,7 +123,7 @@ export default function QuizOverviewPage() {
       const payload = await generateQuizBrief({ orgUnitId, quizId });
       setAiBrief(payload);
       itemState.resetChecked();
-      toast.success(aiBrief ? "ai briefing regenerated" : "ai briefing generated");
+      toast.success(aiBrief ? "AI briefing regenerated" : "AI briefing generated");
     } catch (error) {
       if (error instanceof ApiError && error.code === "ai_not_configured") {
         setAiNotConfigured(true);
@@ -141,9 +141,9 @@ export default function QuizOverviewPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to generate ai briefing";
+      const message = error instanceof Error ? error.message : "Failed to generate AI briefing";
       setAiError(message);
-      toast.error("ai unavailable", { description: message });
+      toast.error("AI unavailable", { description: message });
     } finally {
       setIsGenerating(false);
     }
@@ -172,14 +172,14 @@ export default function QuizOverviewPage() {
     <div className="space-y-6">
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>overview unavailable</AlertTitle>
+          <AlertTitle>Overview unavailable</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>{errorMessage}</span>
             <Link
               href={"/login" as any}
               className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
-              reconnect
+              Reconnect
             </Link>
           </AlertDescription>
         </Alert>
@@ -204,7 +204,7 @@ export default function QuizOverviewPage() {
             label: "status",
             value: overview ? (
               <Badge variant={overview.isActive ? "default" : "secondary"} className="text-[10px]">
-                {overview.isActive ? "active" : "inactive"}
+                {overview.isActive ? "Active" : "Inactive"}
               </Badge>
             ) : null
           }
@@ -217,12 +217,12 @@ export default function QuizOverviewPage() {
         tabs={[
           {
             id: "overview",
-            label: "overview",
+            label: "Overview",
             icon: FileText,
             content: (
               <Card className="card-glow">
                 <CardHeader>
-                  <CardTitle className="text-base">instructions</CardTitle>
+                  <CardTitle className="text-base">Instructions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   {isLoading ? (
@@ -235,13 +235,13 @@ export default function QuizOverviewPage() {
                     <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{instructionsText}</p>
                   ) : (
                     <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                      <p className="text-sm text-muted-foreground">no instructions provided by brightspace.</p>
+                      <p className="text-sm text-muted-foreground">No instructions provided by Brightspace.</p>
                       {openUrl ? (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          open in brightspace for more details, then add notes.
+                          Open in Brightspace for more details, then add notes.
                         </p>
                       ) : (
-                        <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Use the Notes tab to capture details.</p>
                       )}
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function QuizOverviewPage() {
           },
           {
             id: "ai",
-            label: "ai workspace",
+            label: "AI Workspace",
             icon: Sparkles,
             badge: aiBadge,
             content: (
@@ -278,10 +278,10 @@ export default function QuizOverviewPage() {
                 ) : (
                   <Card className="card-glow">
                     <CardHeader>
-                      <CardTitle className="text-base">ai checklist</CardTitle>
+                      <CardTitle className="text-base">AI Checklist</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                      generate the briefing to get a checklist.
+                      Generate the briefing to get a checklist.
                     </CardContent>
                   </Card>
                 )}
@@ -290,7 +290,7 @@ export default function QuizOverviewPage() {
           },
           {
             id: "notes",
-            label: "notes",
+            label: "Notes",
             icon: NotebookPen,
             content: (
               <NotesCard

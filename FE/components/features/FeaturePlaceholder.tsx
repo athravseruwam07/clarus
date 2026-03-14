@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { laneLabels, type FeatureRoadmapItem } from "@/lib/feature-roadmap";
 
 const statusLabel: Record<FeatureRoadmapItem["status"], string> = {
-  "foundation-ready": "foundation ready",
-  scaffolded: "placeholder scaffolded"
+  "foundation-ready": "Foundation ready",
+  scaffolded: "Placeholder scaffolded"
 };
 
 export function FeaturePlaceholder({ feature }: { feature: FeatureRoadmapItem }) {
@@ -22,19 +22,19 @@ export function FeaturePlaceholder({ feature }: { feature: FeatureRoadmapItem })
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              frontend workspace
+              Frontend workspace
             </p>
             <p className="font-mono text-xs text-foreground">{feature.frontendWorkspace}</p>
           </div>
           <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              backend workspace
+              Backend workspace
             </p>
             <p className="font-mono text-xs text-foreground">{feature.backendWorkspace}</p>
           </div>
           <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/30 p-4 md:col-span-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              ownership focus
+              Ownership focus
             </p>
             <p className="text-sm text-foreground">{feature.ownership}</p>
           </div>
@@ -44,7 +44,7 @@ export function FeaturePlaceholder({ feature }: { feature: FeatureRoadmapItem })
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">planned api contracts</CardTitle>
+            <CardTitle className="text-base">Planned API Contracts</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-muted-foreground">
@@ -59,7 +59,7 @@ export function FeaturePlaceholder({ feature }: { feature: FeatureRoadmapItem })
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">starter checklist</CardTitle>
+            <CardTitle className="text-base">Starter Checklist</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-muted-foreground">

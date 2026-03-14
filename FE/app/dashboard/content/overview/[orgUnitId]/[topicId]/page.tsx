@@ -31,11 +31,11 @@ import { useItemState } from "@/components/overview/useItemState";
 
 function formatLocal(value: string | null | undefined): string {
   if (!value) {
-    return "unknown";
+    return "Unknown";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "unknown";
+    return "Unknown";
   }
   return date.toLocaleString();
 }
@@ -77,7 +77,7 @@ export default function ContentTopicOverviewPage() {
             ? "Your D2L session expired. Reconnect and try again."
             : error instanceof Error
               ? error.message
-              : "failed to load overview";
+              : "Failed to load overview";
         setErrorMessage(message);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -131,7 +131,7 @@ export default function ContentTopicOverviewPage() {
       const payload = await generateContentTopicBrief({ orgUnitId, topicId });
       setAiBrief(payload);
       itemState.resetChecked();
-      toast.success(aiBrief ? "ai briefing regenerated" : "ai briefing generated");
+      toast.success(aiBrief ? "AI briefing regenerated" : "AI briefing generated");
     } catch (error) {
       if (error instanceof ApiError && error.code === "ai_not_configured") {
         setAiNotConfigured(true);
@@ -149,9 +149,9 @@ export default function ContentTopicOverviewPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to generate ai briefing";
+      const message = error instanceof Error ? error.message : "Failed to generate AI briefing";
       setAiError(message);
-      toast.error("ai unavailable", { description: message });
+      toast.error("AI unavailable", { description: message });
     } finally {
       setIsGenerating(false);
     }
@@ -173,14 +173,14 @@ export default function ContentTopicOverviewPage() {
     <div className="space-y-6">
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>overview unavailable</AlertTitle>
+          <AlertTitle>Overview unavailable</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>{errorMessage}</span>
             <Link
               href={"/login" as any}
               className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
-              reconnect
+              Reconnect
             </Link>
           </AlertDescription>
         </Alert>
@@ -188,7 +188,7 @@ export default function ContentTopicOverviewPage() {
 
       <OverviewHeader
         title={overview?.title ?? null}
-        subtitle={courseLabel ?? "brightspace content"}
+        subtitle={courseLabel ?? "Brightspace content"}
         badgeText={dueBadge}
         openUrl={openUrl}
         onBack={() => router.back()}
@@ -201,9 +201,9 @@ export default function ContentTopicOverviewPage() {
               </span>
             )
           },
-          { label: "type", value: <Badge variant="secondary" className="text-[10px]">content item</Badge> },
+          { label: "type", value: <Badge variant="secondary" className="text-[10px]">Content item</Badge> },
           ...(overview?.openAsExternalResource
-            ? [{ label: "note", value: <span className="text-foreground/80">opens an external tool</span> }]
+            ? [{ label: "note", value: <span className="text-foreground/80">Opens an external tool</span> }]
             : [])
         ]}
         isLoading={isLoading}
@@ -214,12 +214,12 @@ export default function ContentTopicOverviewPage() {
         tabs={[
           {
             id: "overview",
-            label: "overview",
+            label: "Overview",
             icon: FileText,
             content: (
               <Card className="card-glow">
                 <CardHeader>
-                  <CardTitle className="text-base">instructions</CardTitle>
+                  <CardTitle className="text-base">Instructions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   {isLoading ? (
@@ -232,13 +232,13 @@ export default function ContentTopicOverviewPage() {
                     <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{instructionsText}</p>
                   ) : (
                     <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                      <p className="text-sm text-muted-foreground">no instructions provided by brightspace.</p>
+                      <p className="text-sm text-muted-foreground">No instructions provided by Brightspace.</p>
                       {openUrl ? (
                         <p className="mt-1 text-xs text-muted-foreground">
                           open the Brightspace link for full details, then add notes.
                         </p>
                       ) : (
-                        <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Use the Notes tab to capture details.</p>
                       )}
                     </div>
                   )}
@@ -248,7 +248,7 @@ export default function ContentTopicOverviewPage() {
           },
           {
             id: "ai",
-            label: "ai workspace",
+            label: "AI Workspace",
             icon: Sparkles,
             badge: aiBadge,
             content: (
@@ -275,10 +275,10 @@ export default function ContentTopicOverviewPage() {
                 ) : (
                   <Card className="card-glow">
                     <CardHeader>
-                      <CardTitle className="text-base">ai checklist</CardTitle>
+                      <CardTitle className="text-base">AI Checklist</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                      generate the briefing to get a checklist.
+                      Generate the briefing to get a checklist.
                     </CardContent>
                   </Card>
                 )}
@@ -287,7 +287,7 @@ export default function ContentTopicOverviewPage() {
           },
           {
             id: "notes",
-            label: "notes",
+            label: "Notes",
             icon: NotebookPen,
             content: (
               <NotesCard

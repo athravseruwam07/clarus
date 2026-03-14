@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 
+import { fetchDropboxSubmissionStatusesBatch } from "../../lib/dropboxSubmissionStatus.js";
 import { AppError } from "../../lib/errors.js";
 import { buildPlaceholderResponse } from "../../lib/placeholder.js";
 import { prisma } from "../../lib/prisma.js";
+import { decodeStorageState } from "../../lib/storageState.js";
 import { getCurrentMonday, buildForecast } from "../../lib/workloadForecast.js";
 import type { ForecastAssessment } from "../../lib/workloadForecast.js";
 
@@ -30,6 +32,77 @@ function parseIsoDateOrNull(value: unknown): Date | null {
   }
 
   return parsed;
+}
+
+async function buildDropboxSubmissionStatusMap(input: {
+  user: {
+    brightspaceStateEncrypted: string | null;
+    institutionUrl: string | null;
+    brightspaceUserId: string | null;
+  };
+  events: Array<{
+    sourceType: string;
+    brightspaceOrgUnitId: string;
+    sourceId: string;
+    associatedEntityType?: string | null;
+    associatedEntityId?: string | null;
+  }>;
+}) {
+  if (!input.user.brightspaceStateEncrypted || !input.user.institutionUrl) {
+    return new Map<string, Awaited<ReturnType<typeof fetchDropboxSubmissionStatusesBatch>>[number]>();
+  }
+
+  const dropboxItems = Array.from(
+    new Map(
+      input.events
+        .map((event) => {
+          if (event.sourceType === "dropbox_folder") {
+            return {
+              orgUnitId: event.brightspaceOrgUnitId,
+              folderId: event.sourceId
+            };
+          }
+
+          if (
+            event.associatedEntityType === "D2L.LE.Dropbox.Dropbox" &&
+            event.associatedEntityId
+          ) {
+            return {
+              orgUnitId: event.brightspaceOrgUnitId,
+              folderId: event.associatedEntityId
+            };
+          }
+
+          return null;
+        })
+        .filter((item): item is { orgUnitId: string; folderId: string } => Boolean(item))
+        .map((event) => [
+          `${event.orgUnitId}:${event.folderId}`,
+          {
+            orgUnitId: event.orgUnitId,
+            folderId: event.folderId
+          }
+        ] as const)
+    ).values()
+  );
+
+  if (dropboxItems.length === 0) {
+    return new Map<string, Awaited<ReturnType<typeof fetchDropboxSubmissionStatusesBatch>>[number]>();
+  }
+
+  try {
+    const submissionStatuses = await fetchDropboxSubmissionStatusesBatch({
+      instanceUrl: input.user.institutionUrl,
+      storageState: decodeStorageState(input.user.brightspaceStateEncrypted),
+      brightspaceUserId: input.user.brightspaceUserId,
+      items: dropboxItems,
+      concurrency: 4
+    });
+
+    return new Map(submissionStatuses.map((status) => [`${status.orgUnitId}:${status.folderId}`, status] as const));
+  } catch {
+    return new Map<string, Awaited<ReturnType<typeof fetchDropboxSubmissionStatusesBatch>>[number]>();
+  }
 }
 
 const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
@@ -158,26 +231,43 @@ const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
         }
       });
 
+      const submissionStatusByKey = await buildDropboxSubmissionStatusMap({
+        user: request.auth.user,
+        events
+      });
+
       return {
         lastSyncedAt: lastSync?.syncedAt.toISOString() ?? null,
         needsSync,
-        events: events.map((event) => ({
-          id: `${event.sourceType}:${event.sourceId}:${event.dateKind}`,
-          sourceId: event.sourceId,
-          orgUnitId: event.brightspaceOrgUnitId,
-          courseName: event.course?.courseName ?? null,
-          courseCode: event.course?.courseCode ?? null,
-          title: event.title,
-          description: event.description ?? null,
-          startAt: event.startAt.toISOString(),
-          endAt: event.endAt ? event.endAt.toISOString() : null,
-          isAllDay: event.isAllDay,
-          sourceType: event.sourceType,
-          dateKind: event.dateKind,
-          associatedEntityType: event.associatedEntityType ?? null,
-          associatedEntityId: event.associatedEntityId ?? null,
-          viewUrl: event.viewUrl ?? null
-        }))
+        events: events.map((event) => {
+          const dropboxFolderId =
+            event.sourceType === "dropbox_folder"
+              ? event.sourceId
+              : event.associatedEntityType === "D2L.LE.Dropbox.Dropbox"
+                ? event.associatedEntityId ?? null
+                : null;
+
+          return {
+            id: `${event.sourceType}:${event.sourceId}:${event.dateKind}`,
+            sourceId: event.sourceId,
+            orgUnitId: event.brightspaceOrgUnitId,
+            courseName: event.course?.courseName ?? null,
+            courseCode: event.course?.courseCode ?? null,
+            title: event.title,
+            description: event.description ?? null,
+            startAt: event.startAt.toISOString(),
+            endAt: event.endAt ? event.endAt.toISOString() : null,
+            isAllDay: event.isAllDay,
+            sourceType: event.sourceType,
+            dateKind: event.dateKind,
+            associatedEntityType: event.associatedEntityType ?? null,
+            associatedEntityId: event.associatedEntityId ?? null,
+            viewUrl: event.viewUrl ?? null,
+            submissionStatus: dropboxFolderId
+              ? submissionStatusByKey.get(`${event.brightspaceOrgUnitId}:${dropboxFolderId}`) ?? null
+              : null
+          };
+        })
       };
     }
   );
@@ -222,6 +312,11 @@ const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
           course: { select: { courseName: true, courseCode: true } }
         },
         orderBy: { startAt: "asc" }
+      });
+
+      const submissionStatusByKey = await buildDropboxSubmissionStatusMap({
+        user: request.auth.user,
+        events
       });
 
       // Build brief lookup keys based on how each source type stores its targetKey
@@ -344,7 +439,23 @@ const member1FoundationRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Map events to ForecastAssessment[]
-      const assessments: ForecastAssessment[] = events.map((e) => {
+      const assessments: ForecastAssessment[] = events
+        .filter((e) => {
+          const dropboxFolderId =
+            e.sourceType === "dropbox_folder"
+              ? e.sourceId
+              : e.associatedEntityType === "D2L.LE.Dropbox.Dropbox"
+                ? e.associatedEntityId ?? null
+                : null;
+
+          if (!dropboxFolderId) {
+            return true;
+          }
+
+          const status = submissionStatusByKey.get(`${e.brightspaceOrgUnitId}:${dropboxFolderId}`);
+          return status?.state !== "submitted";
+        })
+        .map((e) => {
         const assessmentType = inferAssessmentType(e);
         const bKey = briefKeyFor(e);
         const briefJson = bKey ? briefMap.get(bKey) ?? null : null;

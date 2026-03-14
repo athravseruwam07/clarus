@@ -167,7 +167,15 @@ const member3OptimizationRoutes: FastifyPluginAsync = async (fastify) => {
         throw new AppError(401, "authentication required", "unauthorized");
       }
 
-      return getWorkPlanContext(request.auth.user);
+      const query = request.query as { refresh?: string | boolean | number | null | undefined };
+      const refreshRaw = query?.refresh;
+      const forceRefresh =
+        refreshRaw === true ||
+        refreshRaw === "true" ||
+        refreshRaw === "1" ||
+        refreshRaw === 1;
+
+      return getWorkPlanContext(request.auth.user, { forceRefresh });
     }
   );
 

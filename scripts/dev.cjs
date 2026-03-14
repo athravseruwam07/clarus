@@ -82,32 +82,48 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-function ensurePortFree(port, service) {
+function testPortBinding(port, host) {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
 
     server.once("error", (error) => {
       if (error && error.code === "EADDRINUSE") {
-        reject(
-          new Error(
-            `port ${port} is already in use. stop that process before starting ${service}.`
-          )
-        );
+        resolve(false);
         return;
       }
+
+      if (error && (error.code === "EAFNOSUPPORT" || error.code === "EINVAL")) {
+        resolve(true);
+        return;
+      }
+
       reject(error);
     });
 
-    server.listen(port, () => {
+    server.listen({ port, host }, () => {
       server.close((closeError) => {
         if (closeError) {
           reject(closeError);
           return;
         }
-        resolve();
+
+        resolve(true);
       });
     });
   });
+}
+
+async function ensurePortFree(port, service) {
+  const [ipv4Free, ipv6Free] = await Promise.all([
+    testPortBinding(port, "0.0.0.0"),
+    testPortBinding(port, "::")
+  ]);
+
+  if (!ipv4Free || !ipv6Free) {
+    throw new Error(
+      `port ${port} is already in use. stop that process before starting ${service}.`
+    );
+  }
 }
 
 function canConnect(port) {

@@ -32,11 +32,11 @@ import { useItemState } from "@/components/overview/useItemState";
 
 function formatLocal(value: string | null | undefined): string {
   if (!value) {
-    return "unknown";
+    return "Unknown";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "unknown";
+    return "Unknown";
   }
   return date.toLocaleString();
 }
@@ -74,7 +74,7 @@ export default function CalendarEventOverviewPage() {
             ? "Your D2L session expired. Reconnect and try again."
             : error instanceof Error
               ? error.message
-              : "failed to load overview";
+              : "Failed to load overview";
         setErrorMessage(message);
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -110,10 +110,7 @@ export default function CalendarEventOverviewPage() {
 
   const courseLabel = useMemo(() => {
     if (!event) return null;
-    if (event.courseCode) {
-      return `${event.courseCode} · ${event.courseName ?? ""}`.trim();
-    }
-    return event.courseName;
+    return event.courseName ?? event.courseCode ?? null;
   }, [event]);
 
   const handleGenerate = useCallback(async () => {
@@ -128,7 +125,7 @@ export default function CalendarEventOverviewPage() {
       const payload = await generateCalendarEventBrief(eventId);
       setAiBrief(payload);
       itemState.resetChecked();
-      toast.success(aiBrief ? "ai briefing regenerated" : "ai briefing generated");
+      toast.success(aiBrief ? "AI briefing regenerated" : "AI briefing generated");
     } catch (error) {
       if (error instanceof ApiError && error.code === "ai_not_configured") {
         setAiNotConfigured(true);
@@ -141,9 +138,9 @@ export default function CalendarEventOverviewPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to generate ai briefing";
+      const message = error instanceof Error ? error.message : "Failed to generate AI briefing";
       setAiError(message);
-      toast.error("ai unavailable", { description: message });
+      toast.error("AI unavailable", { description: message });
     } finally {
       setIsGenerating(false);
     }
@@ -165,11 +162,11 @@ export default function CalendarEventOverviewPage() {
     <div className="space-y-6">
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>overview unavailable</AlertTitle>
+          <AlertTitle>Overview unavailable</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>{errorMessage}</span>
             <Link href={"/login" as any} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-              reconnect
+              Reconnect
             </Link>
           </AlertDescription>
         </Alert>
@@ -193,12 +190,12 @@ export default function CalendarEventOverviewPage() {
         tabs={[
           {
             id: "overview",
-            label: "overview",
+            label: "Overview",
             icon: FileText,
             content: (
               <Card className="card-glow">
                 <CardHeader>
-                  <CardTitle className="text-base">description</CardTitle>
+                  <CardTitle className="text-base">Description</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   {isLoading ? (
@@ -211,8 +208,8 @@ export default function CalendarEventOverviewPage() {
                     <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{descriptionText}</p>
                   ) : (
                     <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                      <p className="text-sm text-muted-foreground">no description provided by brightspace.</p>
-                      <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                      <p className="text-sm text-muted-foreground">No description provided by Brightspace.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Use the Notes tab to capture details.</p>
                     </div>
                   )}
                 </CardContent>
@@ -221,7 +218,7 @@ export default function CalendarEventOverviewPage() {
           },
           {
             id: "ai",
-            label: "ai workspace",
+            label: "AI Workspace",
             icon: Sparkles,
             badge: aiBadge,
             content: (
@@ -248,10 +245,10 @@ export default function CalendarEventOverviewPage() {
                 ) : (
                   <Card className="card-glow">
                     <CardHeader>
-                      <CardTitle className="text-base">ai checklist</CardTitle>
+                      <CardTitle className="text-base">AI Checklist</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                      generate the briefing to get a checklist.
+                      Generate the briefing to get a checklist.
                     </CardContent>
                   </Card>
                 )}
@@ -260,7 +257,7 @@ export default function CalendarEventOverviewPage() {
           },
           {
             id: "notes",
-            label: "notes",
+            label: "Notes",
             icon: NotebookPen,
             content: (
               <NotesCard

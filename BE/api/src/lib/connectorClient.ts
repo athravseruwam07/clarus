@@ -1,6 +1,10 @@
 import { AppError } from "./errors.js";
 import { env } from "./env.js";
-import type { ConnectorLoginResponse, ConnectorRequestResponse } from "./types.js";
+import type {
+  ConnectorAssetResponse,
+  ConnectorLoginResponse,
+  ConnectorRequestResponse
+} from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
 const DEFAULT_CONNECTOR_TIMEOUT_MS = 65000;
@@ -108,4 +112,12 @@ export async function connectorRequest<TData>(payload: {
   apiPath: string;
 }): Promise<ConnectorRequestResponse<TData>> {
   return callConnector<ConnectorRequestResponse<TData>>("/internal/request", payload);
+}
+
+export async function connectorAssetRequest(payload: {
+  instanceUrl: string;
+  storageState: Record<string, unknown>;
+  assetUrl: string;
+}): Promise<ConnectorAssetResponse> {
+  return callConnector<ConnectorAssetResponse>("/internal/request/asset", payload);
 }

@@ -1,19 +1,40 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "sonner";
 
+import { UI_SETTINGS_EVENT, readUiSettings } from "@/lib/uiSettings";
+
 export function Toaster() {
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    function syncTheme() {
+      const settings = readUiSettings();
+      setTheme(settings.theme);
+    }
+
+    syncTheme();
+    window.addEventListener(UI_SETTINGS_EVENT, syncTheme as EventListener);
+    window.addEventListener("storage", syncTheme);
+
+    return () => {
+      window.removeEventListener(UI_SETTINGS_EVENT, syncTheme as EventListener);
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
+
   return (
     <Sonner
-      theme="dark"
+      theme={theme}
       richColors
       closeButton
       position="top-right"
       toastOptions={{
         style: {
-          background: "hsl(222 16% 11%)",
-          border: "1px solid hsl(222 15% 18%)",
-          color: "hsl(210 20% 93%)"
+          background: "hsl(var(--card))",
+          border: "1px solid hsl(var(--border))",
+          color: "hsl(var(--foreground))"
         }
       }}
     />

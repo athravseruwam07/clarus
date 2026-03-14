@@ -6,7 +6,12 @@ interface ErrorPayload {
   message?: string;
 }
 
-export type OverviewTargetType = "dropbox" | "content_topic" | "quiz" | "calendar_event";
+export type OverviewTargetType =
+  | "dropbox"
+  | "content_topic"
+  | "quiz"
+  | "calendar_event"
+  | "work_plan_optimizer";
 
 export interface ItemStateDTO {
   targetType: OverviewTargetType;
@@ -53,12 +58,39 @@ export type ConnectionStatusResponse =
       reason: "expired" | "disconnected";
     };
 
+export type D2LProfileResponse =
+  | {
+      connected: true;
+      lastVerifiedAt: string;
+      profile: {
+        name: string;
+        email: string;
+        brightspaceUsername: string | null;
+        institutionUrl: string | null;
+        d2lHomeUrl: string | null;
+      };
+    }
+  | {
+      connected: false;
+      reason: "expired" | "disconnected";
+      lastVerifiedAt: string | null;
+      profile: {
+        name: string;
+        email: string;
+        brightspaceUsername: string | null;
+        institutionUrl: string | null;
+        d2lHomeUrl: string | null;
+      };
+    };
+
 export interface Course {
   id: string;
   userId: string;
   brightspaceCourseId: string;
   courseName: string;
   courseCode: string | null;
+  courseImageUrl?: string | null;
+  courseHomeUrl?: string | null;
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
@@ -429,6 +461,7 @@ export interface TimelineEventDTO {
   associatedEntityType: string | null;
   associatedEntityId: string | null;
   viewUrl: string | null;
+  submissionStatus: DropboxSubmissionStatusDTO | null;
 }
 
 export interface CalendarTimelineResponse {
@@ -450,6 +483,12 @@ export interface SyncCalendarResponse {
   syncedAt: string;
 }
 
+export interface CalendarFeedAccessResponse {
+  feedUrl: string;
+  webcalUrl: string;
+  expiresAt: string;
+}
+
 export interface DropboxRubricCriterionDTO {
   id: string;
   name: string;
@@ -465,6 +504,14 @@ export interface DropboxRubricDTO {
 export type DropboxAttachmentDTO =
   | { kind: "file"; fileId: string; name: string; sizeBytes: number }
   | { kind: "link"; linkId: string; name: string; href: string };
+
+export interface DropboxSubmissionStatusDTO {
+  orgUnitId: string;
+  folderId: string;
+  state: "submitted" | "not_submitted" | "unknown";
+  hasSubmission: boolean;
+  latestSubmissionAt: string | null;
+}
 
 export interface DropboxAssignmentOverviewDTO {
   orgUnitId: string;
@@ -484,6 +531,7 @@ export interface DropboxAssignmentOverviewDTO {
   rubrics: DropboxRubricDTO[];
   attachments: Array<Extract<DropboxAttachmentDTO, { kind: "file" }>>;
   linkAttachments: Array<Extract<DropboxAttachmentDTO, { kind: "link" }>>;
+  submissionStatus: DropboxSubmissionStatusDTO;
 }
 
 export interface ContentTopicOverviewDTO {
@@ -688,6 +736,12 @@ export async function getD2LStatus(): Promise<ConnectionStatusResponse> {
   });
 }
 
+export async function getD2LProfile(): Promise<D2LProfileResponse> {
+  return request<D2LProfileResponse>("/v1/d2l/profile", {
+    method: "GET"
+  });
+}
+
 export async function disconnectD2L(): Promise<{ success: true }> {
   return request<{ success: true }>("/v1/d2l/disconnect", {
     method: "POST"
@@ -706,6 +760,12 @@ export async function syncCalendar(): Promise<SyncCalendarResponse> {
   });
 }
 
+export async function getCalendarFeedAccess(): Promise<CalendarFeedAccessResponse> {
+  return request<CalendarFeedAccessResponse>("/v1/calendar/integrations/feed", {
+    method: "GET"
+  });
+}
+
 export async function getDropboxAssignmentOverview(params: {
   orgUnitId: string;
   folderId: string;
@@ -714,6 +774,17 @@ export async function getDropboxAssignmentOverview(params: {
   const folderId = encodeURIComponent(params.folderId);
   return request<DropboxAssignmentOverviewDTO>(`/v1/assignments/dropbox/${orgUnitId}/${folderId}`, {
     method: "GET"
+  });
+}
+
+export async function getDropboxAssignmentStatuses(params: {
+  items: Array<{ orgUnitId: string; folderId: string }>;
+}): Promise<{ items: DropboxSubmissionStatusDTO[] }> {
+  return request<{ items: DropboxSubmissionStatusDTO[] }>("/v1/assignments/dropbox/status", {
+    method: "POST",
+    body: JSON.stringify({
+      items: params.items
+    })
   });
 }
 
@@ -1014,8 +1085,17 @@ export async function optimizeStudentWorkPlan(
   });
 }
 
-export async function getWorkPlanContext(): Promise<WorkPlanContextResponse> {
-  return request<WorkPlanContextResponse>("/v1/work-plan/context", {
+export async function getWorkPlanContext(params?: {
+  refresh?: boolean;
+}): Promise<WorkPlanContextResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.refresh) {
+    searchParams.set("refresh", "1");
+  }
+
+  const suffix = searchParams.toString();
+  const path = `/v1/work-plan/context${suffix ? `?${suffix}` : ""}`;
+  return request<WorkPlanContextResponse>(path, {
     method: "GET"
   });
 }

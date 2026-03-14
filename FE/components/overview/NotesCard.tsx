@@ -18,9 +18,9 @@ export function NotesCard(props: {
   return (
     <Card className={cn("card-glow mx-auto w-full max-w-2xl", props.className)}>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-base">your notes</CardTitle>
+        <CardTitle className="text-base">Your Notes</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {props.saveError ? "not saved" : props.isSaving ? "saving..." : "saved"}
+          {props.saveError ? "Not saved" : props.isSaving ? "Saving..." : "Saved"}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -31,7 +31,7 @@ export function NotesCard(props: {
           <Input
             value={props.locationText}
             onChange={(e) => props.onLocationChange(e.target.value)}
-            placeholder="location (optional)"
+            placeholder="Location (optional)"
             className="pl-9"
           />
         </div>
@@ -41,7 +41,7 @@ export function NotesCard(props: {
           <textarea
             value={props.notesText}
             onChange={(e) => props.onNotesChange(e.target.value)}
-            placeholder="add quick notes, what to bring, what to ask, reminders..."
+            placeholder="Add quick notes, what to bring, what to ask, reminders..."
             rows={10}
             className={cn(
               "w-full resize-none rounded-md border border-input bg-secondary/50 px-9 py-2 text-sm text-foreground",

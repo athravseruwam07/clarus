@@ -32,12 +32,12 @@ import { useItemState } from "@/components/overview/useItemState";
 
 function formatLocal(iso: string | null): string {
   if (!iso) {
-    return "unknown";
+    return "Unknown";
   }
 
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) {
-    return "unknown";
+    return "Unknown";
   }
 
   return format(parsed, "PPpp");
@@ -104,6 +104,23 @@ function sizeLabel(bytes: number): string {
   return `${rounded} ${units[index]}`;
 }
 
+function submissionStateLabel(overview: DropboxAssignmentOverviewDTO | null): string | null {
+  const status = overview?.submissionStatus;
+  if (!status) {
+    return null;
+  }
+
+  if (status.state === "submitted") {
+    return status.latestSubmissionAt ? `Submitted ${formatLocal(status.latestSubmissionAt)}` : "Submitted";
+  }
+
+  if (status.state === "not_submitted") {
+    return "Not submitted";
+  }
+
+  return "Submission status unavailable";
+}
+
 export default function DropboxAssignmentOverviewPage() {
   const router = useRouter();
   const params = useParams<{ orgUnitId: string; dropboxFolderId: string }>();
@@ -128,11 +145,7 @@ export default function DropboxAssignmentOverviewPage() {
       return null;
     }
 
-    if (overview.courseCode && overview.courseName) {
-      return `${overview.courseCode} · ${overview.courseName}`;
-    }
-
-    return overview.courseCode ?? overview.courseName ?? null;
+    return overview.courseName ?? overview.courseCode ?? null;
   }, [overview]);
 
   const loadOverview = useCallback(async () => {
@@ -148,7 +161,7 @@ export default function DropboxAssignmentOverviewPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to load assignment overview";
+      const message = error instanceof Error ? error.message : "Failed to load assignment overview";
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -193,7 +206,7 @@ export default function DropboxAssignmentOverviewPage() {
       const payload = await generateDropboxAssignmentBrief({ orgUnitId, folderId });
       setAiBrief(payload);
       itemState.resetChecked();
-      toast.success(aiBrief ? "ai briefing regenerated" : "ai briefing generated");
+      toast.success(aiBrief ? "AI briefing regenerated" : "AI briefing generated");
     } catch (error) {
       if (error instanceof ApiError && error.code === "ai_not_configured") {
         setAiNotConfigured(true);
@@ -211,9 +224,9 @@ export default function DropboxAssignmentOverviewPage() {
         return;
       }
 
-      const message = error instanceof Error ? error.message : "failed to generate ai briefing";
+      const message = error instanceof Error ? error.message : "Failed to generate AI briefing";
       setAiError(message);
-      toast.error("ai unavailable", { description: message });
+      toast.error("AI unavailable", { description: message });
     } finally {
       setIsGenerating(false);
     }
@@ -231,13 +244,22 @@ export default function DropboxAssignmentOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {overview?.submissionStatus.state === "submitted" ? (
+        <Alert>
+          <AlertTitle>Submission detected</AlertTitle>
+          <AlertDescription>
+            This dropbox folder already has a submission on Brightspace, so it is hidden from the upcoming assignments list.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {errorMessage ? (
         <Alert variant="destructive">
-          <AlertTitle>overview unavailable</AlertTitle>
+          <AlertTitle>Overview unavailable</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>{errorMessage}</span>
             <Link href={"/login" as any} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
-              reconnect
+              Reconnect
             </Link>
           </AlertDescription>
         </Alert>
@@ -245,7 +267,7 @@ export default function DropboxAssignmentOverviewPage() {
 
       <OverviewHeader
         title={overview?.title ?? null}
-        subtitle={courseLabel ?? "brightspace dropbox"}
+        subtitle={courseLabel ?? "Brightspace Dropbox"}
         badgeText={dueBadge}
         openUrl={openUrl}
         onBack={() => router.back()}
@@ -262,6 +284,10 @@ export default function DropboxAssignmentOverviewPage() {
             label: "points",
             value: <span className="font-mono text-[11px]">{overview?.pointsPossible ?? "unknown"}</span>
           },
+          {
+            label: "status",
+            value: <span className="text-foreground/80">{submissionStateLabel(overview) ?? "Unknown"}</span>
+          },
           { label: "submission", value: <span className="text-foreground/80">{submissionTypeLabel(overview?.submissionType ?? "unknown")}</span> },
           { label: "completion", value: <span className="text-foreground/80">{completionTypeLabel(overview?.completionType ?? "unknown")}</span> },
           { label: "mode", value: <span className="text-foreground/80">{dropboxTypeLabel(overview?.dropboxType ?? "unknown")}</span> }
@@ -274,13 +300,13 @@ export default function DropboxAssignmentOverviewPage() {
         tabs={[
           {
             id: "overview",
-            label: "overview",
+            label: "Overview",
             icon: FileText,
             content: (
               <div className="space-y-4">
                 <Card className="card-glow">
                   <CardHeader>
-                    <CardTitle className="text-base">instructions</CardTitle>
+                    <CardTitle className="text-base">Instructions</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm">
                     {isLoading || !overview ? (
@@ -293,8 +319,8 @@ export default function DropboxAssignmentOverviewPage() {
                       <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">{instructionsText}</p>
                     ) : (
                       <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center">
-                        <p className="text-sm text-muted-foreground">no instructions provided by brightspace.</p>
-                        <p className="mt-1 text-xs text-muted-foreground">use the notes tab to capture details.</p>
+                        <p className="text-sm text-muted-foreground">No instructions provided by Brightspace.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Use the Notes tab to capture details.</p>
                       </div>
                     )}
                   </CardContent>
@@ -302,7 +328,7 @@ export default function DropboxAssignmentOverviewPage() {
 
                 <Card className="card-glow">
                   <CardHeader>
-                    <CardTitle className="text-base">rubric</CardTitle>
+                    <CardTitle className="text-base">Rubric</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {isLoading || !overview ? (
@@ -313,12 +339,12 @@ export default function DropboxAssignmentOverviewPage() {
                       </div>
                     ) : overview.rubrics.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
-                        no rubric data available for this assignment.
+                        No rubric data available for this assignment.
                       </div>
                     ) : (
                       <details className="rounded-xl border border-border/80 bg-secondary/20 p-4">
                         <summary className="cursor-pointer select-none text-sm font-semibold text-foreground">
-                          view rubric criteria ({overview.rubrics.reduce((sum, r) => sum + r.criteria.length, 0)})
+                          View rubric criteria ({overview.rubrics.reduce((sum, r) => sum + r.criteria.length, 0)})
                         </summary>
                         <div className="mt-3 space-y-3">
                           {overview.rubrics.map((rubric) => (
@@ -334,7 +360,7 @@ export default function DropboxAssignmentOverviewPage() {
                                       {criterion.name}
                                     </summary>
                                     <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                                      {criterion.exemplaryText ?? "no criterion text available."}
+                                      {criterion.exemplaryText ?? "No criterion text available."}
                                     </div>
                                   </details>
                                 ))}
@@ -349,7 +375,7 @@ export default function DropboxAssignmentOverviewPage() {
 
                 <Card className="card-glow">
                   <CardHeader>
-                    <CardTitle className="text-base">attachments</CardTitle>
+                    <CardTitle className="text-base">Attachments</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {isLoading || !overview ? (
@@ -360,14 +386,14 @@ export default function DropboxAssignmentOverviewPage() {
                       </div>
                     ) : overview.linkAttachments.length === 0 && overview.attachments.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-border bg-secondary/20 p-6 text-center text-sm text-muted-foreground">
-                        no attachments detected in this dropbox folder.
+                        No attachments detected in this Dropbox folder.
                       </div>
                     ) : (
                       <>
                         {overview.linkAttachments.length > 0 ? (
                           <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
-                              links
+                              Links
                             </p>
                             {overview.linkAttachments.map((link) => (
                               <a
@@ -386,7 +412,7 @@ export default function DropboxAssignmentOverviewPage() {
                         {overview.attachments.length > 0 ? (
                           <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/90">
-                              files
+                              Files
                             </p>
                             {overview.attachments.map((file) => (
                               <div
@@ -397,7 +423,7 @@ export default function DropboxAssignmentOverviewPage() {
                                 <span className="font-mono text-xs text-muted-foreground">{sizeLabel(file.sizeBytes)}</span>
                               </div>
                             ))}
-                            <p className="text-xs text-muted-foreground">open in brightspace to download files.</p>
+                            <p className="text-xs text-muted-foreground">Open in Brightspace to download files.</p>
                           </div>
                         ) : null}
                       </>
@@ -409,7 +435,7 @@ export default function DropboxAssignmentOverviewPage() {
           },
           {
             id: "ai",
-            label: "ai workspace",
+            label: "AI Workspace",
             icon: Sparkles,
             badge: aiBadge,
             content: (
@@ -436,10 +462,10 @@ export default function DropboxAssignmentOverviewPage() {
                 ) : (
                   <Card className="card-glow">
                     <CardHeader>
-                      <CardTitle className="text-base">ai checklist</CardTitle>
+                      <CardTitle className="text-base">AI Checklist</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                      generate the briefing to get a checklist.
+                      Generate the briefing to get a checklist.
                     </CardContent>
                   </Card>
                 )}
@@ -448,7 +474,7 @@ export default function DropboxAssignmentOverviewPage() {
           },
           {
             id: "notes",
-            label: "notes",
+            label: "Notes",
             icon: NotebookPen,
             content: (
               <NotesCard

@@ -9,6 +9,11 @@ export interface ConnectorRequestResponse<TData = unknown> {
   data: TData;
 }
 
+export interface ConnectorAssetResponse {
+  contentType: string;
+  bodyBase64: string;
+}
+
 export interface D2LAccess {
   StartDate?: string | null;
   EndDate?: string | null;
