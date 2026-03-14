@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { dataCache } from "@/lib/dataCache";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -270,9 +271,19 @@ export default function WorkloadForecastPage() {
 
   useEffect(() => {
     async function load() {
+      const cached = dataCache.workloadForecast.get();
+      if (cached) {
+        setData(cached);
+        const firstWeekWithData = cached.weeks.findIndex((week) => week.featureVector.assessmentCount > 0);
+        setActiveWeek(firstWeekWithData >= 0 ? firstWeekWithData : 0);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         const result = await getWorkloadForecast();
+        dataCache.workloadForecast.set(result);
         setData(result);
         const firstWeekWithData = result.weeks.findIndex((week) => week.featureVector.assessmentCount > 0);
         setActiveWeek(firstWeekWithData >= 0 ? firstWeekWithData : 0);

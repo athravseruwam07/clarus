@@ -166,13 +166,60 @@ const d2lConnectRoute: FastifyPluginAsync = async (fastify) => {
     }
 
     const encryptedState = encryptString(JSON.stringify(loginResult.storageState));
+    const now = new Date();
+
+    let user: { id: string; name: string | null; brightspaceUsername: string | null; email: string };
+
+    if (request.auth) {
+      // Clarus account is already signed in — link D2L to the existing user instead of
+      // upserting by brightspaceUserId, which would create a duplicate record.
+
+      // If a different (guest) user already owns this brightspaceUserId, remove that
+      // association first so the unique constraint doesn't fire when we update the
+      // Clarus user. Guest records without a passwordHash are safe to clean up.
+      const conflicting = await prisma.user.findUnique({
+        where: { brightspaceUserId: whoami.brightspaceUserId },
+        select: { id: true, passwordHash: true }
+      });
+
+      if (conflicting && conflicting.id !== request.auth.user.id) {
+        if (conflicting.passwordHash !== null) {
+          // Another Clarus account already owns this D2L identity — reject.
+          throw new AppError(409, "this Brightspace account is already linked to another Clarus account", "d2l_account_taken");
+        }
+        // Guest user — delete it (all data cascades) to free the unique slot.
+        await prisma.user.delete({ where: { id: conflicting.id } });
+      }
+
+      user = await prisma.user.update({
+        where: { id: request.auth.user.id },
+        data: {
+          institutionUrl: instanceUrl,
+          brightspaceUserId: whoami.brightspaceUserId,
+          brightspaceUsername: whoami.brightspaceUsername,
+          // Only overwrite name if the Clarus user hasn't set one yet
+          ...(request.auth.user.name ? {} : { name: whoami.name }),
+          brightspaceStateEncrypted: encryptedState,
+          stateLastVerifiedAt: now
+        }
+      });
+
+      // Session already exists for this Clarus user — reuse it
+      return {
+        connected: true,
+        user: {
+          name: user.name ?? user.brightspaceUsername ?? user.email,
+          email: user.email
+        }
+      };
+    }
+
+    // Guest / no Clarus session — original upsert-by-brightspaceUserId flow
     const emailForCreate = wantsCredentials
       ? (providedUsername as string)
       : deriveUserEmail({ instanceUrl, whoami });
 
-    const now = new Date();
-
-    const user = await prisma.user.upsert({
+    user = await prisma.user.upsert({
       where: {
         brightspaceUserId: whoami.brightspaceUserId
       },

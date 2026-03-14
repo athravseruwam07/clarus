@@ -4,13 +4,16 @@ import {
   Bot,
   CalendarClock,
   Gauge,
-  LayoutDashboard,
   ListTodo,
+  Settings2,
   Target
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -22,7 +25,6 @@ type NavigationItem = {
 };
 
 const navItems: NavigationItem[] = [
-  { kind: "link", label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { kind: "link", label: "Calendar", href: "/dashboard/timeline-intelligence", icon: CalendarClock },
   { kind: "link", label: "Upcoming", href: "/dashboard/upcoming/assignments", icon: ListTodo },
   { kind: "link", label: "Weekly Workload", href: "/dashboard/workload-forecast", icon: Gauge },
@@ -32,36 +34,117 @@ const navItems: NavigationItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <aside className="hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-border/80 bg-card/50 p-4 backdrop-blur md:sticky md:top-0 md:block">
-      <p className="px-2 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        navigation
-      </p>
+    <motion.aside
+      animate={{ width: isOpen ? 220 : 60 }}
+      transition={{ duration: 0.25, ease: "easeInOut" }}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      className={cn(
+        "hidden md:flex flex-col h-screen shrink-0 overflow-hidden",
+        "border-r border-border/60 bg-sidebar backdrop-blur-md",
+        "sticky top-0"
+      )}
+    >
+      {/* Top: Logo */}
+      <Link href="/dashboard" className="flex h-14 shrink-0 items-center border-b border-border/40 px-3 hover:opacity-80 transition-opacity duration-150">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-primary/20">
+          <Image
+            src="/Clarus-logo.svg"
+            alt="Clarus"
+            width={32}
+            height={32}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.span
+              key="logo-label"
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="ml-2.5 text-sm font-semibold tracking-tight text-foreground overflow-hidden whitespace-nowrap"
+            >
+              Clarus
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </Link>
 
-      <nav className="space-y-1">
+      {/* Middle: Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
         {navItems.map((item) => {
           const routePath = item.href.split(/[?#]/)[0];
           const isActive =
-            pathname === routePath || (routePath === "/dashboard/upcoming/assignments" && pathname.startsWith("/dashboard/upcoming"));
+            pathname === routePath ||
+            (routePath === "/dashboard/upcoming/assignments" && pathname.startsWith("/dashboard/upcoming"));
 
           return (
             <Link
               key={item.href}
               href={item.href as any}
+              title={!isOpen ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-[background-color,color] duration-150",
+                !isOpen ? "justify-center" : "",
                 isActive
-                  ? "border-l-2 border-primary bg-primary/10 text-foreground animate-slide-in"
-                  : "text-muted-foreground hover:bg-secondary/50"
+                  ? "bg-primary/[0.12] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)] animate-slide-in"
+                  : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
               )}
             >
-              <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-              <span>{item.label}</span>
+              <item.icon
+                className={cn("h-4 w-4 shrink-0", isActive ? "text-foreground" : "text-muted-foreground")}
+              />
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.span
+                    key={`label-${item.href}`}
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="truncate overflow-hidden whitespace-nowrap"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </Link>
           );
         })}
       </nav>
-    </aside>
+
+      {/* Bottom: Settings */}
+      <div className="shrink-0 border-t border-border/40 p-2 space-y-0.5">
+        <Link
+          href={"/dashboard/settings" as any}
+          title={!isOpen ? "Settings" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 hover:bg-surface-2 hover:text-foreground",
+            !isOpen ? "justify-center" : ""
+          )}
+        >
+          <Settings2 className="h-4 w-4 shrink-0" />
+          <AnimatePresence initial={false}>
+            {isOpen && (
+              <motion.span
+                key="settings-label"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                Settings
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
+      </div>
+    </motion.aside>
   );
 }

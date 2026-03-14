@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentTermCourses } from "@/lib/courseFilters";
+import { dataCache } from "@/lib/dataCache";
 import { buildOverviewHref, deduplicateBySource } from "@/lib/upcomingUtils";
 
 type ConnectionState = "loading" | "connected" | "expired" | "disconnected";
@@ -110,7 +111,7 @@ function OverviewCardTitle(props: {
   return (
     <div className="flex items-center gap-2.5">
       <span
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/70 bg-secondary/45 ${props.iconClassName ?? ""}`}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/40 bg-surface-2 shadow-[0_1px_3px_rgba(0,0,0,0.4)] ${props.iconClassName ?? ""}`}
       >
         <Icon className="h-4 w-4" />
       </span>
@@ -305,10 +306,18 @@ export default function DashboardPage() {
   }, [context?.workItems, forecast?.weeks]);
 
   const loadCourses = useCallback(async () => {
+    const cached = dataCache.courses.get();
+    if (cached) {
+      setCourses(cached);
+      setIsLoadingCourses(false);
+      return;
+    }
+
     setIsLoadingCourses(true);
 
     try {
       const nextCourses = await getCourses();
+      dataCache.courses.set(nextCourses);
       setCourses(nextCourses);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -324,6 +333,19 @@ export default function DashboardPage() {
   }, [router]);
 
   const loadOverviewData = useCallback(async () => {
+    const cachedContext = dataCache.workPlanContext.get();
+    const cachedEvents = dataCache.dashboardEvents.get();
+    const cachedForecast = dataCache.workloadForecast.get();
+
+    if (cachedContext && cachedEvents && cachedForecast) {
+      setContext(cachedContext);
+      setTimelineEvents(cachedEvents.events);
+      setForecast(cachedForecast);
+      setConnectionState("connected");
+      setIsLoadingOverview(false);
+      return;
+    }
+
     setIsLoadingOverview(true);
 
     const now = new Date();
@@ -357,6 +379,7 @@ export default function DashboardPage() {
       }
 
       if (contextResult.status === "fulfilled") {
+        dataCache.workPlanContext.set(contextResult.value);
         setContext(contextResult.value);
         setConnectionState((previous) => (previous === "loading" ? "connected" : previous));
       } else {
@@ -390,12 +413,14 @@ export default function DashboardPage() {
       }
 
       if (timelineResult.status === "fulfilled") {
+        dataCache.dashboardEvents.set(timelineResult.value);
         setTimelineEvents(timelineResult.value.events);
       } else {
         setTimelineEvents([]);
       }
 
       if (forecastResult.status === "fulfilled") {
+        dataCache.workloadForecast.set(forecastResult.value);
         setForecast(forecastResult.value);
       } else {
         setForecast(null);
@@ -421,6 +446,10 @@ export default function DashboardPage() {
       toast.success("Courses synced", {
         description: `${result.coursesSynced} courses updated.`
       });
+      dataCache.courses.invalidate();
+      dataCache.dashboardEvents.invalidate();
+      dataCache.workPlanContext.invalidate();
+      dataCache.workloadForecast.invalidate();
       await Promise.all([loadCourses(), loadOverviewData()]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Sync failed";
@@ -554,16 +583,6 @@ export default function DashboardPage() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => void handleSyncCourses()}
-            disabled={isSyncing || connectionState === "expired" || connectionState === "disconnected"}
-          >
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-            {isSyncing ? "Syncing courses..." : "Sync courses"}
-          </Button>
-        </div>
-
         {(connectionState === "expired" || connectionState === "disconnected") && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -575,11 +594,21 @@ export default function DashboardPage() {
         )}
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="flex items-center gap-2 font-display text-base tracking-[-0.02em]">
               <CalendarDays className="h-4 w-4 text-primary" />
               Calendar
             </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleSyncCourses()}
+              disabled={isSyncing || connectionState === "expired" || connectionState === "disconnected"}
+              className="h-8 gap-1.5 text-xs"
+            >
+              {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+              {isSyncing ? "Syncing..." : "Sync"}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoadingOverview ? (
@@ -592,7 +621,7 @@ export default function DashboardPage() {
                   <>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium">{event.title}</p>
+                        <p className="font-medium tracking-[-0.01em]">{event.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {(event.courseName ?? event.courseCode ?? "course")} · {formatDateTime(event.startAt)}
                         </p>
@@ -610,7 +639,7 @@ export default function DashboardPage() {
                 );
 
                 const className =
-                  "block rounded-md border border-border/80 bg-secondary/30 p-3 transition-colors hover:border-primary/20 hover:bg-secondary/50";
+                  "block rounded-lg border border-border/40 bg-surface-2/60 p-4 transition-[background-color,border-color] duration-150 hover:border-border/70 hover:bg-surface-2";
 
                 if (overviewHref) {
                   return (
@@ -641,7 +670,7 @@ export default function DashboardPage() {
                   href={item.taskUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded-md border border-border/80 bg-secondary/30 p-3 transition-colors hover:border-primary/20 hover:bg-secondary/50"
+                  className="block rounded-lg border border-border/40 bg-surface-2/60 p-4 transition-[background-color,border-color] duration-150 hover:border-border/70 hover:bg-surface-2"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -668,7 +697,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 font-display text-base tracking-[-0.02em]">
                 <BookOpen className="h-4 w-4 text-primary" />
                 Courses
               </CardTitle>

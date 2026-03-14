@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getCurrentTermCourses } from "@/lib/courseFilters";
+import { dataCache } from "@/lib/dataCache";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -56,19 +57,38 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    const cachedEvents = dataCache.upcomingEvents.get();
+    const cachedCourses = dataCache.courses.get();
+
+    if (cachedEvents && cachedCourses) {
+      setEvents(cachedEvents.events);
+      setNeedsSync(cachedEvents.needsSync);
+      setLastSyncedAt(cachedEvents.lastSyncedAt);
+      setCourses(cachedCourses);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
       const now = new Date();
       const [calendarPayload, courseList] = await Promise.all([
-        getCalendarEvents({
-          from: startOfDay(now).toISOString(),
-          to: addMonths(now, 3).toISOString(),
-          include: ["due", "event", "start", "end"]
-        }),
-        getCourses().catch(() => [] as Course[])
+        cachedEvents
+          ? Promise.resolve(cachedEvents)
+          : getCalendarEvents({
+              from: startOfDay(now).toISOString(),
+              to: addMonths(now, 3).toISOString(),
+              include: ["due", "event", "start", "end"]
+            }),
+        cachedCourses
+          ? Promise.resolve(cachedCourses)
+          : getCourses().catch(() => [] as Course[])
       ]);
+
+      dataCache.upcomingEvents.set(calendarPayload);
+      dataCache.courses.set(courseList);
 
       setEvents(calendarPayload.events);
       setNeedsSync(calendarPayload.needsSync);
@@ -91,6 +111,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
     setIsSyncing(true);
 
     try {
+      dataCache.upcomingEvents.invalidate();
       const result = await syncCalendar();
       if (result.orgUnitsForbidden && result.orgUnitsForbidden.length > 0) {
         toast.success("Calendar synced (partial)", {
@@ -183,7 +204,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 rounded-xl border border-border/40 bg-surface-1 p-1">
         {TABS.map((tab) => {
           const isActive = pathname === tab.href;
           return (
@@ -191,10 +212,10 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
               key={tab.href}
               href={tab.href}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition-[background-color,box-shadow,color] duration-150",
                 isActive
-                  ? "bg-primary/15 text-primary border border-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-transparent"
+                  ? "tab-pill-active bg-surface-3 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-2/60"
               )}
             >
               {tab.label}
@@ -204,7 +225,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
       </div>
 
       {uniqueCourses.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-secondary/10 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-surface-1 px-4 py-3">
           <label
             htmlFor="upcoming-course-filter"
             className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/90"
@@ -218,7 +239,7 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
               onChange={(event) =>
                 setSelectedCourseId(event.target.value === "__all__" ? null : event.target.value)
               }
-              className="h-10 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary/40"
+              className="h-9 w-full rounded-lg border border-border/50 bg-surface-2 px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-150 focus:border-border focus:shadow-[0_0_0_2px_hsl(var(--ring)/0.3)]"
             >
               <option value="__all__">All courses</option>
               {uniqueCourses.map((course) => (

@@ -31,6 +31,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { classifyEvent, safeDateFromIso, sortByStartAt } from "@/lib/classifyEvent";
+import { dataCache } from "@/lib/dataCache";
 import { buildOverviewHref } from "@/lib/upcomingUtils";
 import { cn } from "@/lib/utils";
 
@@ -251,6 +252,16 @@ export default function TimelineIntelligencePage() {
   }, [sourceGroups]);
 
   const loadCalendar = useCallback(async () => {
+    const cacheKey = `${rangeFromIso}|${rangeToIso}|${includeKinds?.join(",") ?? ""}|${selectedSources?.join(",") ?? ""}`;
+    const cached = dataCache.timelineEvents.get(cacheKey);
+    if (cached) {
+      setEvents(cached.events);
+      setNeedsSync(cached.needsSync);
+      setLastSyncedAt(cached.lastSyncedAt);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -261,6 +272,7 @@ export default function TimelineIntelligencePage() {
         include: includeKinds,
         sources: selectedSources
       });
+      dataCache.timelineEvents.set(cacheKey, payload);
       setEvents(payload.events);
       setNeedsSync(payload.needsSync);
       setLastSyncedAt(payload.lastSyncedAt);
@@ -283,6 +295,7 @@ export default function TimelineIntelligencePage() {
 
     setIsSyncing(true);
     try {
+      dataCache.timelineEvents.invalidate();
       const result = await syncCalendar();
       if (result.orgUnitsForbidden && result.orgUnitsForbidden.length > 0) {
         toast.success("Calendar synced (partial)", {

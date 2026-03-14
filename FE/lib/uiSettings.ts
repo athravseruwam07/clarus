@@ -1,18 +1,27 @@
 export type AppTheme = "dark" | "light";
+export type AccentColor = "default" | "teal" | "violet" | "amber";
 
 export interface UiSettings {
   theme: AppTheme;
+  accent: AccentColor;
 }
 
 export const UI_SETTINGS_STORAGE_KEY = "clarus.ui.settings.v1";
 export const UI_SETTINGS_EVENT = "clarus:ui-settings-changed";
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
-  theme: "dark"
+  theme: "dark",
+  accent: "default"
 };
 
 function toTheme(value: unknown): AppTheme {
   return value === "light" ? "light" : "dark";
+}
+
+const VALID_ACCENTS: AccentColor[] = ["default", "teal", "violet", "amber"];
+
+function toAccent(value: unknown): AccentColor {
+  return VALID_ACCENTS.includes(value as AccentColor) ? (value as AccentColor) : "default";
 }
 
 function sanitizeUiSettings(value: unknown): UiSettings {
@@ -21,7 +30,10 @@ function sanitizeUiSettings(value: unknown): UiSettings {
   }
 
   const source = value as Partial<UiSettings>;
-  return { theme: toTheme(source.theme) };
+  return {
+    theme: toTheme(source.theme),
+    accent: toAccent(source.accent)
+  };
 }
 
 export function readUiSettings(): UiSettings {
@@ -59,6 +71,11 @@ export function applyUiSettings(settings: UiSettings): void {
   root.classList.toggle("light", settings.theme === "light");
   root.classList.toggle("dark", settings.theme === "dark");
   root.style.colorScheme = settings.theme;
+
+  root.classList.remove("accent-teal", "accent-violet", "accent-amber");
+  if (settings.accent !== "default") {
+    root.classList.add(`accent-${settings.accent}`);
+  }
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(UI_SETTINGS_EVENT, { detail: settings }));

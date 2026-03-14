@@ -138,9 +138,10 @@ function UniversityLogo(props: {
   );
 }
 
-export function ConnectForm() {
+export function ConnectForm(props: { defaultUniversityId?: string } = {}) {
+  const { defaultUniversityId } = props;
   const router = useRouter();
-  const [selectedUniversityId, setSelectedUniversityId] = useState<string>("");
+  const [selectedUniversityId, setSelectedUniversityId] = useState<string>(defaultUniversityId ?? "");
   const [customInstanceUrl, setCustomInstanceUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

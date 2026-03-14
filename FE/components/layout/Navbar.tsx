@@ -1,12 +1,11 @@
 "use client";
 
 import { ChevronDown, ExternalLink, Loader2, LogOut, Settings2 } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { ApiError, disconnectD2L, getD2LProfile, type D2LProfileResponse } from "@/lib/api";
+import { ApiError, disconnectD2L, getClarusProfile, getD2LProfile, logoutClarus, type D2LProfileResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 function initials(value: string): string {
@@ -42,6 +41,7 @@ export function Navbar() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasClarusAccount, setHasClarusAccount] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setIsLoadingProfile(true);
@@ -59,6 +59,11 @@ export function Navbar() {
     } finally {
       setIsLoadingProfile(false);
     }
+
+    // Check Clarus account status in parallel (non-blocking)
+    getClarusProfile()
+      .then((cp) => setHasClarusAccount(cp.hasClarusAccount))
+      .catch(() => setHasClarusAccount(false));
   }, [router]);
 
   useEffect(() => {
@@ -98,7 +103,13 @@ export function Navbar() {
     setIsSigningOut(true);
 
     try {
-      await disconnectD2L();
+      if (hasClarusAccount) {
+        // Clarus user: sign out of Clarus only (keeps D2L state on server, session ends)
+        await logoutClarus();
+      } else {
+        // Guest: disconnect D2L and clear session entirely
+        await disconnectD2L();
+      }
       toast.success("Signed out");
       router.push("/login");
     } catch (error) {
@@ -114,25 +125,16 @@ export function Navbar() {
   const canOpenD2L = Boolean(d2lHomeUrl);
 
   return (
-    <header className="relative z-40 flex h-14 items-center justify-between border-b border-border/80 bg-background/80 px-6 backdrop-blur">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg ring-1 ring-primary/20">
-          <Image
-            src="/Clarus-logo.svg"
-            alt="Clarus logo"
-            width={32}
-            height={32}
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <h1 className="text-sm font-semibold tracking-tight">Clarus</h1>
+    <header className="relative z-40 flex h-14 items-center justify-between border-b border-border/50 bg-surface-1/70 px-6 backdrop-blur-md">
+      <div className="flex items-center">
+        {/* Page title slot — reserved for future breadcrumb */}
       </div>
 
       <div ref={menuRef} className="relative">
         <button
           type="button"
           onClick={() => setIsMenuOpen((open) => !open)}
-          className="flex h-9 items-center gap-2 rounded-full border border-border/80 bg-secondary/20 px-2.5 transition-colors hover:bg-secondary/40"
+          className="flex h-9 items-center gap-2 rounded-full border border-border/80 bg-secondary/20 px-2.5 transition-[background-color] duration-150 hover:bg-secondary/40"
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
           aria-label="Open profile menu"
@@ -144,7 +146,7 @@ export function Navbar() {
         </button>
 
         {isMenuOpen ? (
-          <div className="absolute right-0 z-[60] mt-2 w-72 overflow-hidden rounded-md border border-border bg-card shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+          <div className="absolute right-0 z-[60] mt-2 w-72 overflow-hidden rounded-md border border-border bg-surface-2 shadow-[0_0_0_1px_hsl(0_0%_100%/0.06),_0_8px_24px_rgba(0,0,0,0.55),_0_24px_60px_rgba(0,0,0,0.30)]">
             <div className="border-b border-border px-3 py-3">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
@@ -173,7 +175,7 @@ export function Navbar() {
             <div className="p-2">
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50"
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-[background-color] duration-150 hover:bg-surface-3/80"
                 onClick={() => {
                   setIsMenuOpen(false);
                   router.push("/dashboard/settings");
@@ -188,9 +190,9 @@ export function Navbar() {
                 target="_blank"
                 rel="noreferrer"
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-[background-color] duration-150",
                   canOpenD2L
-                    ? "text-foreground hover:bg-secondary/50"
+                    ? "text-foreground hover:bg-surface-3/80"
                     : "cursor-not-allowed text-muted-foreground/60"
                 )}
                 onClick={() => {
@@ -209,7 +211,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => void handleSignOut()}
                 disabled={isSigningOut}
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-foreground transition-[background-color] duration-150 hover:bg-surface-3/80 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span>{isSigningOut ? "Signing out..." : "Sign out"}</span>
                 {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}

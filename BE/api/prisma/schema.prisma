@@ -15,6 +15,10 @@ model User {
   brightspaceUserId         String?   @unique @map("brightspace_user_id")
   brightspaceUsername       String?   @map("brightspace_username")
 
+  // clarus account credentials (null = guest/D2L-only user)
+  passwordHash              String?   @map("password_hash")
+  university                String?   @map("university")
+
   // encrypted playwright storage state (cookies + local storage)
   brightspaceStateEncrypted String?   @db.Text @map("brightspace_state_encrypted")
   stateLastVerifiedAt       DateTime? @map("state_last_verified_at")

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 
@@ -13,6 +13,13 @@ const inter = Inter({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono"
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"]
 });
 
 export const metadata: Metadata = {
@@ -29,19 +36,21 @@ const uiSettingsBootstrapScript = `
 (() => {
   try {
     const key = "clarus.ui.settings.v1";
-    const defaults = {
-      theme: "dark"
-    };
+    const validAccents = ["default", "teal", "violet", "amber"];
 
     const parsed = JSON.parse(window.localStorage.getItem(key) || "null") || {};
-    const settings = {
-      theme: parsed.theme === "light" ? "light" : defaults.theme
-    };
+    const theme = parsed.theme === "light" ? "light" : "dark";
+    const accent = validAccents.includes(parsed.accent) ? parsed.accent : "default";
 
     const root = document.documentElement;
-    root.classList.remove("light", "dark", "reduce-motion", "high-contrast", "minimal-effects");
-    root.classList.add(settings.theme);
-    root.style.colorScheme = settings.theme;
+    root.classList.remove("light", "dark", "reduce-motion", "high-contrast", "minimal-effects",
+                          "accent-teal", "accent-violet", "accent-amber");
+    root.classList.add(theme);
+    root.style.colorScheme = theme;
+
+    if (accent !== "default") {
+      root.classList.add("accent-" + accent);
+    }
   } catch {
     document.documentElement.classList.add("dark");
     document.documentElement.style.colorScheme = "dark";
@@ -60,7 +69,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: uiSettingsBootstrapScript }} />
       </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} noise-bg font-sans`}
+        className={`${inter.variable} ${jetbrainsMono.variable} ${fraunces.variable} noise-bg font-sans`}
         style={{ letterSpacing: "-0.011em" }}
         suppressHydrationWarning
       >

@@ -1,0 +1,30 @@
+
+> clarus-api@0.1.0 predev
+> prisma generate
+
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.19.2) to .\node_modules\@prisma\client in 122ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+
+> clarus-api@0.1.0 dev
+> tsx watch src/server.ts
+
+{"level":30,"time":1773525557773,"pid":32936,"hostname":"AliH-ProArt","msg":"Server listening at http://127.0.0.1:4001"}
+{"level":30,"time":1773525557773,"pid":32936,"hostname":"AliH-ProArt","msg":"Server listening at http://172.19.64.1:4001"}
+{"level":30,"time":1773525557773,"pid":32936,"hostname":"AliH-ProArt","msg":"Server listening at http://192.168.68.117:4001"}
+{"level":30,"time":1773525619208,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-1","req":{"method":"OPTIONS","url":"/v1/auth/login","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":59849},"msg":"incoming request"}
+{"level":30,"time":1773525619215,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-1","res":{"statusCode":204},"responseTime":6.821200013160706,"msg":"request completed"}
+{"level":30,"time":1773525619524,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-2","req":{"method":"POST","url":"/v1/auth/login","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":64023},"msg":"incoming request"}
+{"level":30,"time":1773525619944,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-2","res":{"statusCode":200},"responseTime":419.699599981308,"msg":"request completed"}
+{"level":30,"time":1773525622908,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-3","req":{"method":"OPTIONS","url":"/v1/d2l/connect","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":59849},"msg":"incoming request"}
+{"level":30,"time":1773525622909,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-3","res":{"statusCode":204},"responseTime":0.5895000100135803,"msg":"request completed"}
+{"level":30,"time":1773525622911,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-4","req":{"method":"POST","url":"/v1/d2l/connect","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":64023},"msg":"incoming request"}
+{"level":50,"time":1773525651253,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-4","req":{"method":"POST","url":"/v1/d2l/connect","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":64023},"res":{"statusCode":500},"err":{"type":"PrismaClientKnownRequestError","message":"\nInvalid `prisma.user.update()` invocation in\nC:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\src\\routes\\d2l.connect.ts:176:32\n\n  173 if (request.auth) {\n  174   // Clarus account is already signed in — link D2L to the existing user instead of\n  175   // upserting by brightspaceUserId, which would create a duplicate record.\n→ 176   user = await prisma.user.update(\nUnique constraint failed on the fields: (`brightspace_user_id`)","stack":"PrismaClientKnownRequestError: \nInvalid `prisma.user.update()` invocation in\nC:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\src\\routes\\d2l.connect.ts:176:32\n\n  173 if (request.auth) {\n  174   // Clarus account is already signed in — link D2L to the existing user instead of\n  175   // upserting by brightspaceUserId, which would create a duplicate record.\n→ 176   user = await prisma.user.update(\nUnique constraint failed on the fields: (`brightspace_user_id`)\n    at ei.handleRequestError (C:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\node_modules\\@prisma\\client\\src\\runtime\\RequestHandler.ts:228:13)\n    at ei.handleAndLogRequestError (C:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\node_modules\\@prisma\\client\\src\\runtime\\RequestHandler.ts:174:12)\n    at ei.request (C:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\node_modules\\@prisma\\client\\src\\runtime\\RequestHandler.ts:143:12)\n    at async a (C:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\node_modules\\@prisma\\client\\src\\runtime\\getPrismaClient.ts:833:24)\n    at async Object.<anonymous> (C:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\src\\routes\\d2l.connect.ts:176:14)","code":"P2002","meta":{"modelName":"User","target":["brightspace_user_id"]},"clientVersion":"6.19.2","name":"PrismaClientKnownRequestError"},"msg":"\nInvalid `prisma.user.update()` invocation in\nC:\\Users\\ahuss\\Documents\\clarus\\BE\\api\\src\\routes\\d2l.connect.ts:176:32\n\n  173 if (request.auth) {\n  174   // Clarus account is already signed in — link D2L to the existing user instead of\n  175   // upserting by brightspaceUserId, which would create a duplicate record.\n→ 176   user = await prisma.user.update(\nUnique constraint failed on the fields: (`brightspace_user_id`)"}
+{"level":30,"time":1773525651255,"pid":32936,"hostname":"AliH-ProArt","reqId":"req-4","res":{"statusCode":500},"responseTime":28343.700699985027,"msg":"request completed"}
+6:01:52 p.m. [tsx] change in ./src\routes\d2l.connect.ts Restarting...
+c{"level":50,"time":1773525713649,"pid":53552,"hostname":"AliH-ProArt","err":{"type":"Error","message":"listen EADDRINUSE: address already in use 0.0.0.0:4001","stack":"Error: listen EADDRINUSE: address already in use 0.0.0.0:4001\n    at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n    at listenInCluster (node:net:1997:12)\n    at node:net:2206:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","code":"EADDRINUSE","errno":-4091,"syscall":"listen","address":"0.0.0.0","port":4001},"msg":"listen EADDRINUSE: address already in use 0.0.0.0:4001"}

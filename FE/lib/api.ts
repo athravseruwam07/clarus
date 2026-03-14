@@ -1172,3 +1172,71 @@ export async function getWorkloadForecast(): Promise<WorkloadForecastData> {
     method: "GET"
   });
 }
+
+// ─── Clarus Account Auth ──────────────────────────────────────────────────────
+
+export interface ClarusUserPayload {
+  name: string | null;
+  email: string;
+  university: string | null;
+}
+
+export interface ClarusAuthResponse {
+  ok: true;
+  user: ClarusUserPayload;
+}
+
+export interface ClarusProfileResponse extends ClarusUserPayload {
+  hasClarusAccount: boolean;
+}
+
+export async function registerClarus(payload: {
+  name: string;
+  email: string;
+  password: string;
+  university: string;
+}): Promise<ClarusAuthResponse> {
+  return request<ClarusAuthResponse>("/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function loginClarus(payload: {
+  email: string;
+  password: string;
+}): Promise<ClarusAuthResponse> {
+  return request<ClarusAuthResponse>("/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function logoutClarus(): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/v1/auth/logout", { method: "POST" });
+}
+
+export async function getClarusProfile(): Promise<ClarusProfileResponse> {
+  return request<ClarusProfileResponse>("/v1/auth/profile", { method: "GET" });
+}
+
+export async function updateClarusProfile(payload: { name: string }): Promise<{ ok: true; user: ClarusUserPayload }> {
+  return request<{ ok: true; user: ClarusUserPayload }>("/v1/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function changeClarusPassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/v1/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function deleteClarusAccount(): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/v1/auth/account", { method: "DELETE" });
+}

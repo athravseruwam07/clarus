@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { dataCache } from "@/lib/dataCache";
 import { cn } from "@/lib/utils";
 
 type BudgetPreset = "light" | "balanced" | "high";
@@ -399,11 +400,21 @@ export default function WorkPlanOptimizerPage() {
   );
 
   const loadContext = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = dataCache.workPlanContext.get();
+      if (cached) {
+        setContext(cached);
+        setIsLoadingContext(false);
+        return;
+      }
+    }
+
     setIsLoadingContext(true);
     setContextError(null);
 
     try {
       const payload = await getWorkPlanContext({ refresh: forceRefresh });
+      dataCache.workPlanContext.set(payload);
       setContext(payload);
     } catch (error) {
       setContext(null);

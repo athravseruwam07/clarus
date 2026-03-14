@@ -11,7 +11,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"]
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        display: ["var(--font-display)", "Georgia", "serif"]
       },
       colors: {
         border: "hsl(var(--border))",
@@ -51,7 +52,15 @@ const config: Config = {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))"
         },
-        glow: "hsl(var(--glow-primary))"
+        glow: "hsl(var(--glow-primary))",
+        surface: {
+          "0": "hsl(var(--surface-0))",
+          "1": "hsl(var(--surface-1))",
+          "2": "hsl(var(--surface-2))",
+          "3": "hsl(var(--surface-3))",
+          "4": "hsl(var(--surface-4))"
+        },
+        sidebar: "hsl(var(--surface-1))"
       },
       borderRadius: {
         lg: "var(--radius)",

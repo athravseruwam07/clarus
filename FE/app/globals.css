@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 5%;
+  --background: 0 0% 4%;
   --foreground: 0 0% 94%;
-  --card: 0 0% 9%;
+  --card: 0 0% 7%;
   --card-foreground: 0 0% 94%;
   --primary: 0 0% 92%;
   --primary-foreground: 0 0% 8%;
@@ -17,8 +17,8 @@
   --accent-foreground: 0 0% 94%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
   --ring: 0 0% 82%;
   --radius: 0.75rem;
 
@@ -27,6 +27,17 @@
   --success-foreground: 0 0% 100%;
   --warning: 38 92% 50%;
   --warning-foreground: 0 0% 0%;
+
+  /* Depth surface system */
+  --surface-0: 0 0% 4%;
+  --surface-1: 0 0% 7%;
+  --surface-2: 0 0% 11%;
+  --surface-3: 0 0% 15%;
+  --surface-4: 0 0% 20%;
+
+  /* Sidebar layout tokens */
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 56px;
 }
 
 .light {
@@ -48,6 +59,128 @@
   --input: 0 0% 82%;
   --ring: 0 0% 24%;
   --glow-primary: 0 0% 14%;
+
+  --surface-0: 0 0% 97%;
+  --surface-1: 0 0% 100%;
+  --surface-2: 0 0% 97%;
+  --surface-3: 0 0% 93%;
+  --surface-4: 0 0% 88%;
+}
+
+/* ─── Accent: Interactive element overrides ─────────────────────────────────
+   Applied whenever any accent class is present on <html>.
+   Uses marker classes (btn-secondary, btn-ghost, btn-outline, badge-secondary)
+   added to the respective UI components so overrides are targeted, not global.
+   Specificity: (0,2,0) beats Tailwind utilities at (0,1,0) — no !important needed.
+────────────────────────────────────────────────────────────────────────────── */
+
+/* Active tab pill */
+.accent-teal .tab-pill-active,
+.accent-violet .tab-pill-active,
+.accent-amber .tab-pill-active {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+}
+
+/* Card hover glow — dark mode */
+.accent-teal .card-glow:hover,
+.accent-violet .card-glow:hover,
+.accent-amber .card-glow:hover {
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.50),
+    0 12px 40px rgba(0, 0, 0, 0.30);
+}
+
+/* Card hover glow — light mode */
+.light.accent-teal .card-glow:hover,
+.light.accent-violet .card-glow:hover,
+.light.accent-amber .card-glow:hover {
+  border-color: hsl(var(--primary) / 0.30);
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.10),
+    0 4px 14px rgba(0, 0, 0, 0.10),
+    0 10px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Secondary button hover */
+.accent-teal .btn-secondary:hover,
+.accent-violet .btn-secondary:hover,
+.accent-amber .btn-secondary:hover {
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+}
+
+/* Ghost button hover */
+.accent-teal .btn-ghost:hover,
+.accent-violet .btn-ghost:hover,
+.accent-amber .btn-ghost:hover {
+  background-color: hsl(var(--primary) / 0.10);
+  color: hsl(var(--primary));
+}
+
+/* Outline button hover */
+.accent-teal .btn-outline:hover,
+.accent-violet .btn-outline:hover,
+.accent-amber .btn-outline:hover {
+  background-color: hsl(var(--primary) / 0.10);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.45);
+}
+
+/* Secondary badge */
+.accent-teal .badge-secondary,
+.accent-violet .badge-secondary,
+.accent-amber .badge-secondary {
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.20);
+}
+
+/* ─── Accent: Teal ─────────────────────────────────────────────────────────── */
+.accent-teal {
+  --primary: 173 60% 68%;
+  --primary-foreground: 173 30% 8%;
+  --ring: 173 55% 58%;
+  --glow-primary: 173 65% 65%;
+}
+
+.accent-teal.light {
+  --primary: 173 68% 40%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 173 65% 40%;
+  --glow-primary: 173 72% 38%;
+}
+
+/* ─── Accent: Violet ───────────────────────────────────────────────────────── */
+.accent-violet {
+  --primary: 258 65% 75%;
+  --primary-foreground: 258 30% 8%;
+  --ring: 258 60% 65%;
+  --glow-primary: 258 70% 72%;
+}
+
+.accent-violet.light {
+  --primary: 258 72% 52%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 258 68% 52%;
+  --glow-primary: 258 75% 50%;
+}
+
+/* ─── Accent: Amber ────────────────────────────────────────────────────────── */
+.accent-amber {
+  --primary: 38 80% 62%;
+  --primary-foreground: 38 40% 8%;
+  --ring: 38 75% 55%;
+  --glow-primary: 38 85% 60%;
+}
+
+.accent-amber.light {
+  --primary: 38 88% 42%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 38 85% 42%;
+  --glow-primary: 38 90% 40%;
 }
 
 * {
@@ -57,15 +190,17 @@
 body {
   @apply bg-background text-foreground antialiased;
   background-image:
-    radial-gradient(circle at 15% 12%, hsl(0 0% 100% / 0.045), transparent 42%),
-    radial-gradient(circle at 85% 85%, hsl(0 0% 100% / 0.03), transparent 45%);
+    radial-gradient(ellipse 80% 55% at 10% 8%, hsl(0 0% 100% / 0.055), transparent 60%),
+    radial-gradient(circle at 88% 82%, hsl(0 0% 100% / 0.035), transparent 48%),
+    radial-gradient(circle at 50% 50%, hsl(0 0% 100% / 0.015), transparent 70%);
   min-height: 100vh;
 }
 
 .light body {
   background-image:
-    radial-gradient(circle at 15% 12%, hsl(0 0% 0% / 0.055), transparent 46%),
-    radial-gradient(circle at 85% 85%, hsl(0 0% 0% / 0.04), transparent 48%);
+    radial-gradient(ellipse 80% 55% at 10% 8%, hsl(0 0% 0% / 0.04), transparent 60%),
+    radial-gradient(circle at 88% 82%, hsl(0 0% 0% / 0.03), transparent 48%),
+    radial-gradient(circle at 50% 50%, hsl(0 0% 0% / 0.015), transparent 70%);
 }
 
 /* Noise texture overlay */
@@ -88,17 +223,53 @@ body {
 
 /* Card hover glow */
 .card-glow {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .card-glow:hover {
-  box-shadow: 0 0 26px hsl(0 0% 100% / 0.08), 0 3px 14px rgba(0, 0, 0, 0.42);
-  border-color: hsl(0 0% 100% / 0.2);
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.07),
+    0 4px 16px rgba(0, 0, 0, 0.50),
+    0 12px 40px rgba(0, 0, 0, 0.30);
+  border-color: hsl(0 0% 100% / 0.18);
 }
 
 .light .card-glow:hover {
-  box-shadow: 0 0 22px hsl(0 0% 0% / 0.08), 0 3px 12px rgba(0, 0, 0, 0.14);
-  border-color: hsl(0 0% 0% / 0.2);
+  box-shadow:
+    0 0 0 1px hsl(0 0% 0% / 0.06),
+    0 4px 14px rgba(0, 0, 0, 0.10),
+    0 10px 32px rgba(0, 0, 0, 0.08);
+  border-color: hsl(0 0% 0% / 0.16);
+}
+
+/* Elevated card (floating panels, ConnectForm) */
+.card-elevated {
+  background: hsl(var(--surface-2));
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 24px 64px rgba(0, 0, 0, 0.25);
+}
+
+/* Sidebar width utilities */
+.sidebar-expanded {
+  width: var(--sidebar-width);
+}
+
+.sidebar-collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+/* Pill tab active state */
+.tab-pill-active {
+  background: hsl(var(--surface-3));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 hsl(0 0% 100% / 0.07);
+}
+
+/* Display font helper */
+.font-display {
+  font-family: var(--font-display, "Georgia", serif);
+  letter-spacing: -0.03em;
 }
 
 /* Shimmer skeleton */
