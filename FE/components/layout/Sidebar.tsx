@@ -43,14 +43,14 @@ export function Sidebar() {
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
       className={cn(
-        "hidden md:flex flex-col h-screen shrink-0 overflow-hidden",
-        "border-r border-border/60 bg-sidebar backdrop-blur-md",
-        "sticky top-0"
+        "hidden md:flex flex-col h-[calc(100vh-1rem)] shrink-0 overflow-hidden rounded-2xl",
+        "sidebar-surface backdrop-blur-md",
+        "sticky top-2 m-2 mr-3"
       )}
     >
       {/* Top: Logo */}
-      <Link href="/dashboard" className="flex h-14 shrink-0 items-center border-b border-border/40 px-3 hover:opacity-80 transition-opacity duration-150">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-primary/20">
+      <Link href="/dashboard" className="sidebar-brand flex h-14 shrink-0 items-center bg-surface-1 px-3 hover:opacity-80 transition-opacity duration-150">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-border/70">
           <Image
             src="/Clarus-logo.svg"
             alt="Clarus"
@@ -93,11 +93,11 @@ export function Sidebar() {
                 !isOpen ? "justify-center" : "",
                 isActive
                   ? "bg-primary/[0.12] text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)] animate-slide-in"
-                  : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                  : "text-foreground/80 hover:bg-surface-2 hover:text-foreground"
               )}
             >
               <item.icon
-                className={cn("h-4 w-4 shrink-0", isActive ? "text-foreground" : "text-muted-foreground")}
+                className={cn("h-4 w-4 shrink-0", isActive ? "text-foreground" : "text-foreground/75")}
               />
               <AnimatePresence initial={false}>
                 {isOpen && (
@@ -124,7 +124,7 @@ export function Sidebar() {
           href={"/dashboard/settings" as any}
           title={!isOpen ? "Settings" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 hover:bg-surface-2 hover:text-foreground",
+            "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-foreground/78 transition-[background-color,color] duration-150 hover:bg-surface-2 hover:text-foreground",
             !isOpen ? "justify-center" : ""
           )}
         >

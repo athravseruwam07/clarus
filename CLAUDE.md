@@ -56,6 +56,23 @@ npm run setup   # installs deps, starts Docker Postgres, runs Prisma migrations
 npm run dev
 ```
 
+**Stop all dev servers (Windows):**
+
+On Windows, `Ctrl+C` may not fully kill all processes. Kill by port explicitly:
+
+```bash
+# Find and kill PIDs on each port, then verify
+netstat -ano | grep -E ":3000|:4001|:4002"
+# Then for each PID listed:
+taskkill //F //PID <pid>
+```
+
+Or kill all Node processes at once (caution — kills every node.exe):
+
+```bash
+taskkill //F //IM node.exe
+```
+
 **Stop Postgres when done:**
 
 ```bash

@@ -7649,3 +7649,9 @@
 {"level":30,"time":1773530064582,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y5","res":{"statusCode":404},"responseTime":145.63010001182556,"msg":"request completed"}
 {"level":30,"time":1773530064583,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y6","req":{"method":"POST","url":"/internal/request","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":57960},"msg":"incoming request"}
 {"level":30,"time":1773530064737,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y6","res":{"statusCode":403},"responseTime":154.1816999912262,"msg":"request completed"}
+{"level":30,"time":1773530988892,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y7","req":{"method":"POST","url":"/internal/request/asset","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":56453},"msg":"incoming request"}
+{"level":30,"time":1773530988907,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y8","req":{"method":"POST","url":"/internal/request/asset","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":56455},"msg":"incoming request"}
+{"level":30,"time":1773530988909,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y9","req":{"method":"POST","url":"/internal/request/asset","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":56457},"msg":"incoming request"}
+{"level":30,"time":1773530989260,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y7","res":{"statusCode":200},"responseTime":367.7832000255585,"msg":"request completed"}
+{"level":30,"time":1773530989313,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y9","res":{"statusCode":200},"responseTime":403.94690001010895,"msg":"request completed"}
+{"level":30,"time":1773530989314,"pid":11704,"hostname":"AliH-ProArt","reqId":"req-2y8","res":{"statusCode":200},"responseTime":406.7145000100136,"msg":"request completed"}

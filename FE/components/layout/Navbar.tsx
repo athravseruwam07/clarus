@@ -125,16 +125,16 @@ export function Navbar() {
   const canOpenD2L = Boolean(d2lHomeUrl);
 
   return (
-    <header className="relative z-40 flex h-14 items-center justify-between border-b border-border/50 bg-surface-1/70 px-6 backdrop-blur-md">
+    <header className="pointer-events-none fixed right-4 top-4 z-50 md:right-6 md:top-5">
       <div className="flex items-center">
         {/* Page title slot — reserved for future breadcrumb */}
       </div>
 
-      <div ref={menuRef} className="relative">
+      <div ref={menuRef} className="pointer-events-auto relative">
         <button
           type="button"
           onClick={() => setIsMenuOpen((open) => !open)}
-          className="flex h-9 items-center gap-2 rounded-full border border-border/80 bg-secondary/20 px-2.5 transition-[background-color] duration-150 hover:bg-secondary/40"
+          className="flex h-9 items-center gap-2 rounded-full border border-border/80 bg-surface-1/90 px-2.5 shadow-[0_8px_20px_rgba(0,0,0,0.22)] backdrop-blur-md transition-[background-color] duration-150 hover:bg-surface-2/95"
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
           aria-label="Open profile menu"
