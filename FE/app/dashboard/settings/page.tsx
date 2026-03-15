@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarSync,
   Check,
+  ChevronDown,
   Copy,
   ExternalLink,
   Loader2,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import {
   DEFAULT_UI_SETTINGS,
   type AccentColor,
+  type OptimizerPreferencePromptFrequency,
   type UiSettings,
   applyUiSettings,
   loadAndApplyUiSettings,
@@ -56,6 +58,18 @@ const ACCENT_SWATCHES: { value: AccentColor; label: string; swatchClass: string 
   { value: "teal",    label: "Teal",     swatchClass: "bg-[hsl(173_60%_55%)]" },
   { value: "violet",  label: "Violet",   swatchClass: "bg-[hsl(258_65%_65%)]" },
   { value: "amber",   label: "Amber",    swatchClass: "bg-[hsl(38_80%_55%)]" },
+];
+
+const OPTIMIZER_PROMPT_FREQUENCY_OPTIONS: Array<{
+  value: OptimizerPreferencePromptFrequency;
+  label: string;
+  hint: string;
+}> = [
+  { value: "daily", label: "Every day", hint: "Reconfirm preferences every 24 hours." },
+  { value: "weekly", label: "Every week", hint: "Reconfirm preferences every 7 days." },
+  { value: "biweekly", label: "Every 2 weeks", hint: "Reconfirm preferences every 14 days." },
+  { value: "monthly", label: "Every month", hint: "Reconfirm preferences every 30 days." },
+  { value: "never", label: "Never", hint: "Keep current preferences until you edit manually." }
 ];
 
 function ThemeCard(props: {
@@ -150,6 +164,102 @@ function ThemeCard(props: {
               );
             })}
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function OptimizerPreferencesCard(props: {
+  settings: UiSettings;
+  onSetFrequency: (frequency: OptimizerPreferencePromptFrequency) => void;
+}) {
+  const { settings, onSetFrequency } = props;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isDropdownOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [isDropdownOpen]);
+
+  const selectedOption =
+    OPTIMIZER_PROMPT_FREQUENCY_OPTIONS.find(
+      (option) => option.value === settings.optimizerPreferencePromptFrequency
+    ) ?? OPTIMIZER_PROMPT_FREQUENCY_OPTIONS[1];
+
+  return (
+    <Card className="card-glow">
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">Study Plan Optimizer</CardTitle>
+          <Badge variant="secondary">
+            {selectedOption?.label ?? "Every week"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Choose how often Clarus should ask you to resubmit optimizer preferences.
+        </p>
+        <div className="space-y-2" ref={dropdownRef}>
+          <Label htmlFor="optimizer-frequency" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Resubmission frequency
+          </Label>
+          <button
+            id="optimizer-frequency"
+            type="button"
+            onClick={() => setIsDropdownOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex flex-col leading-tight">
+              <span className="font-medium">{selectedOption.label}</span>
+              <span className="text-xs text-muted-foreground">{selectedOption.hint}</span>
+            </span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+
+          {isDropdownOpen ? (
+            <div className="relative">
+              <div className="absolute left-0 z-50 mt-2 w-full overflow-hidden rounded-md border border-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+                <div className="max-h-72 overflow-auto">
+                  {OPTIMIZER_PROMPT_FREQUENCY_OPTIONS.map((option) => {
+                    const isSelected = option.value === settings.optimizerPreferencePromptFrequency;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10",
+                          isSelected ? "bg-primary/15" : ""
+                        )}
+                        onClick={() => {
+                          onSetFrequency(option.value);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <span className="flex flex-1 flex-col leading-tight">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">{option.hint}</span>
+                        </span>
+                        {isSelected ? <Check className="h-4 w-4 text-primary" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>
@@ -654,6 +764,13 @@ export default function SettingsPage() {
     applyUiSettings(next);
   }
 
+  function setOptimizerPreferencePromptFrequency(frequency: OptimizerPreferencePromptFrequency) {
+    const next = { ...settings, optimizerPreferencePromptFrequency: frequency };
+    setSettings(next);
+    writeUiSettings(next);
+    applyUiSettings(next);
+  }
+
   const hasClarusAccount = clarusProfile?.hasClarusAccount === true;
 
   return (
@@ -677,6 +794,11 @@ export default function SettingsPage() {
       ) : null}
 
       <ThemeCard settings={settings} onSetTheme={setTheme} onSetAccent={setAccent} />
+
+      <OptimizerPreferencesCard
+        settings={settings}
+        onSetFrequency={setOptimizerPreferencePromptFrequency}
+      />
 
       <CalendarCard />
 

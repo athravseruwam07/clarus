@@ -99,6 +99,10 @@ NEXT_PUBLIC_API_URL=http://localhost:4001
 NEXT_PUBLIC_DEFAULT_INSTANCE_URL=https://yourschool.brightspace.com
 ```
 
+Important (local auth): keep the hostname consistent between frontend and API.
+If FE runs on `http://localhost:3000`, set `NEXT_PUBLIC_API_URL=http://localhost:4001`.
+If FE runs on `http://127.0.0.1:3000`, set `NEXT_PUBLIC_API_URL=http://127.0.0.1:4001`.
+
 ## run instructions
 
 ### easiest path (single command)
@@ -221,6 +225,9 @@ The repo now includes merged-plan scaffolds (MVP + deep AI features) so a 3-pers
 - connector unavailable:
   - verify connector is running at `http://localhost:4002`
   - verify `CONNECTOR_INTERNAL_SECRET` matches in api and connector env files
+- login redirects back to `/login` after success:
+  - ensure FE and API use the same host label (`localhost` with `localhost`, or `127.0.0.1` with `127.0.0.1`)
+  - mixed hostnames can prevent session cookies from being sent consistently
 - status shows expired:
   - reconnect from `/login`
 - no courses after sync:

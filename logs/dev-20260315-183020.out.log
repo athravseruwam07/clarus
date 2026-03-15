@@ -1,0 +1,138 @@
+
+> dev
+> node scripts/dev.cjs
+
+[clarus] waiting for clarus-postgres to become healthy
+[clarus] starting connector
+[clarus] starting api
+
+> clarus-connector@0.1.0 dev
+> tsx watch src/server.ts
+
+
+> clarus-api@0.1.0 predev
+> prisma generate
+
+Prisma schema loaded from prisma\schema.prisma
+{"level":30,"time":1773613824049,"pid":53960,"hostname":"AliH-ProArt","msg":"Server listening at http://127.0.0.1:4002"}
+{"level":30,"time":1773613824049,"pid":53960,"hostname":"AliH-ProArt","msg":"Server listening at http://192.168.68.109:4002"}
+{"level":30,"time":1773613824049,"pid":53960,"hostname":"AliH-ProArt","msg":"Server listening at http://172.19.64.1:4002"}
+
+✔ Generated Prisma Client (v6.19.2) to .\node_modules\@prisma\client in 113ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+
+> clarus-api@0.1.0 dev
+> tsx watch src/server.ts
+
+{"level":30,"time":1773613825028,"pid":30520,"hostname":"AliH-ProArt","msg":"Server listening at http://127.0.0.1:4001"}
+{"level":30,"time":1773613825029,"pid":30520,"hostname":"AliH-ProArt","msg":"Server listening at http://192.168.68.109:4001"}
+{"level":30,"time":1773613825029,"pid":30520,"hostname":"AliH-ProArt","msg":"Server listening at http://172.19.64.1:4001"}
+[clarus] starting frontend
+
+> clarus-fe@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.68.109:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1793ms
+ ○ Compiling / ...
+{"level":30,"time":1773613859310,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-1","req":{"method":"GET","url":"/","host":"localhost:4001","remoteAddress":"127.0.0.1","remotePort":51047},"msg":"incoming request"}
+{"level":30,"time":1773613859311,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-1","msg":"Route GET:/ not found"}
+{"level":30,"time":1773613859313,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-1","res":{"statusCode":404},"responseTime":2.4061000049114227,"msg":"request completed"}
+{"level":30,"time":1773613859436,"pid":53960,"hostname":"AliH-ProArt","reqId":"req-1","req":{"method":"GET","url":"/","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":51056},"msg":"incoming request"}
+{"level":30,"time":1773613859440,"pid":53960,"hostname":"AliH-ProArt","reqId":"req-1","res":{"statusCode":401},"responseTime":3.3728000074625015,"msg":"request completed"}
+ ✓ Compiled / in 2.8s (573 modules)
+ GET / 307 in 3060ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1672ms (685 modules)
+ GET /login 200 in 1899ms
+ GET / 307 in 166ms
+ GET /login 200 in 137ms
+{"level":30,"time":1773613905967,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-2","req":{"method":"OPTIONS","url":"/v1/auth/login","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62678},"msg":"incoming request"}
+{"level":30,"time":1773613905968,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-2","res":{"statusCode":204},"responseTime":1.00730000436306,"msg":"request completed"}
+{"level":30,"time":1773613905971,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-3","req":{"method":"POST","url":"/v1/auth/login","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63963},"msg":"incoming request"}
+{"level":30,"time":1773613906341,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-3","res":{"statusCode":200},"responseTime":369.84720000624657,"msg":"request completed"}
+{"level":30,"time":1773613907333,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-4","req":{"method":"OPTIONS","url":"/v1/d2l/connect","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62678},"msg":"incoming request"}
+{"level":30,"time":1773613907334,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-4","res":{"statusCode":204},"responseTime":0.4886000007390976,"msg":"request completed"}
+{"level":30,"time":1773613907336,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-5","req":{"method":"POST","url":"/v1/d2l/connect","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63963},"msg":"incoming request"}
+{"level":30,"time":1773613907368,"pid":53960,"hostname":"AliH-ProArt","reqId":"req-2","req":{"method":"POST","url":"/internal/login/manual","host":"localhost:4002","remoteAddress":"127.0.0.1","remotePort":62312},"msg":"incoming request"}
+{"level":30,"time":1773613940769,"pid":53960,"hostname":"AliH-ProArt","reqId":"req-2","res":{"statusCode":200},"responseTime":33400.47869999707,"msg":"request completed"}
+{"level":30,"time":1773613940798,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-5","res":{"statusCode":200},"responseTime":33462.31970000267,"msg":"request completed"}
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 2.1s (1648 modules)
+ GET /dashboard?boot=1 200 in 3516ms
+{"level":30,"time":1773613945279,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-6","req":{"method":"OPTIONS","url":"/v1/d2l/profile","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62678},"msg":"incoming request"}
+{"level":30,"time":1773613945280,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-6","res":{"statusCode":204},"responseTime":0.9359000027179718,"msg":"request completed"}
+{"level":30,"time":1773613945288,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-7","req":{"method":"OPTIONS","url":"/v1/courses","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":58042},"msg":"incoming request"}
+{"level":30,"time":1773613945288,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-7","res":{"statusCode":204},"responseTime":0.5416999906301498,"msg":"request completed"}
+{"level":30,"time":1773613945289,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-8","req":{"method":"OPTIONS","url":"/v1/d2l/status","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":65001},"msg":"incoming request"}
+{"level":30,"time":1773613945289,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-8","res":{"statusCode":204},"responseTime":0.35419999063014984,"msg":"request completed"}
+{"level":30,"time":1773613945290,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-9","req":{"method":"OPTIONS","url":"/v1/work-plan/context?refresh=1","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":53452},"msg":"incoming request"}
+{"level":30,"time":1773613945291,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-9","res":{"statusCode":204},"responseTime":0.8390000015497208,"msg":"request completed"}
+{"level":30,"time":1773613945292,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-a","req":{"method":"OPTIONS","url":"/v1/timeline/intelligence?from=2026-03-13T04%3A00%3A00.000Z&to=2026-04-30T03%3A59%3A59.999Z&include=due%2Cevent","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":52589},"msg":"incoming request"}
+{"level":30,"time":1773613945293,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-a","res":{"statusCode":204},"responseTime":0.613400012254715,"msg":"request completed"}
+{"level":30,"time":1773613945293,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-b","req":{"method":"OPTIONS","url":"/v1/workload/forecast","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62701},"msg":"incoming request"}
+{"level":30,"time":1773613945294,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-b","res":{"statusCode":204},"responseTime":0.4814999997615814,"msg":"request completed"}
+{"level":30,"time":1773613945294,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-c","req":{"method":"OPTIONS","url":"/v1/d2l/profile","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62678},"msg":"incoming request"}
+{"level":30,"time":1773613945295,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-c","res":{"statusCode":204},"responseTime":0.36499999463558197,"msg":"request completed"}
+{"level":30,"time":1773613945295,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-d","req":{"method":"OPTIONS","url":"/v1/courses","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":58042},"msg":"incoming request"}
+{"level":30,"time":1773613945295,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-d","res":{"statusCode":204},"responseTime":0.4560000002384186,"msg":"request completed"}
+{"level":30,"time":1773613945296,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-e","req":{"method":"GET","url":"/v1/d2l/profile","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63963},"msg":"incoming request"}
+{"level":30,"time":1773613945297,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-e","res":{"statusCode":401},"responseTime":0.7863999903202057,"msg":"request completed"}
+{"level":30,"time":1773613945297,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-f","req":{"method":"OPTIONS","url":"/v1/d2l/status","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":65001},"msg":"incoming request"}
+{"level":30,"time":1773613945297,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-f","res":{"statusCode":204},"responseTime":0.25929999351501465,"msg":"request completed"}
+{"level":30,"time":1773613945298,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-g","req":{"method":"OPTIONS","url":"/v1/work-plan/context?refresh=1","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":53452},"msg":"incoming request"}
+{"level":30,"time":1773613945298,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-g","res":{"statusCode":204},"responseTime":0.27300000190734863,"msg":"request completed"}
+{"level":30,"time":1773613945299,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-h","req":{"method":"GET","url":"/v1/courses","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":61848},"msg":"incoming request"}
+{"level":30,"time":1773613945300,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-h","res":{"statusCode":401},"responseTime":0.713699996471405,"msg":"request completed"}
+{"level":30,"time":1773613945300,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-i","req":{"method":"GET","url":"/v1/d2l/status","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63550},"msg":"incoming request"}
+{"level":30,"time":1773613945301,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-i","res":{"statusCode":401},"responseTime":0.6538000106811523,"msg":"request completed"}
+{"level":30,"time":1773613945301,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-j","req":{"method":"GET","url":"/v1/work-plan/context?refresh=1","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":49675},"msg":"incoming request"}
+{"level":30,"time":1773613945302,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-j","res":{"statusCode":401},"responseTime":0.533500000834465,"msg":"request completed"}
+{"level":30,"time":1773613945303,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-k","req":{"method":"OPTIONS","url":"/v1/timeline/intelligence?from=2026-03-13T04%3A00%3A00.000Z&to=2026-04-30T03%3A59%3A59.999Z&include=due%2Cevent","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":52589},"msg":"incoming request"}
+{"level":30,"time":1773613945303,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-k","res":{"statusCode":204},"responseTime":0.35119999945163727,"msg":"request completed"}
+{"level":30,"time":1773613945303,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-l","req":{"method":"OPTIONS","url":"/v1/workload/forecast","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62701},"msg":"incoming request"}
+{"level":30,"time":1773613945304,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-l","res":{"statusCode":204},"responseTime":0.3127000033855438,"msg":"request completed"}
+{"level":30,"time":1773613945305,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-m","req":{"method":"GET","url":"/v1/workload/forecast","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63963},"msg":"incoming request"}
+{"level":30,"time":1773613945305,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-m","res":{"statusCode":401},"responseTime":0.5138000100851059,"msg":"request completed"}
+{"level":30,"time":1773613945305,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-n","req":{"method":"GET","url":"/v1/courses","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":61848},"msg":"incoming request"}
+{"level":30,"time":1773613945306,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-n","res":{"statusCode":401},"responseTime":0.7037999927997589,"msg":"request completed"}
+{"level":30,"time":1773613945306,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-o","req":{"method":"GET","url":"/v1/timeline/intelligence?from=2026-03-13T04%3A00%3A00.000Z&to=2026-04-30T03%3A59%3A59.999Z&include=due%2Cevent","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62870},"msg":"incoming request"}
+{"level":30,"time":1773613945307,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-o","res":{"statusCode":401},"responseTime":0.3588999956846237,"msg":"request completed"}
+{"level":30,"time":1773613945307,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-p","req":{"method":"GET","url":"/v1/d2l/profile","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":65311},"msg":"incoming request"}
+{"level":30,"time":1773613945307,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-p","res":{"statusCode":401},"responseTime":0.24130000174045563,"msg":"request completed"}
+{"level":30,"time":1773613945308,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-q","req":{"method":"GET","url":"/v1/d2l/status","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63550},"msg":"incoming request"}
+{"level":30,"time":1773613945308,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-q","res":{"statusCode":401},"responseTime":0.4870000034570694,"msg":"request completed"}
+{"level":30,"time":1773613945308,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-r","req":{"method":"GET","url":"/v1/work-plan/context?refresh=1","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":49675},"msg":"incoming request"}
+{"level":30,"time":1773613945309,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-r","res":{"statusCode":401},"responseTime":0.4563000053167343,"msg":"request completed"}
+{"level":30,"time":1773613945309,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-s","req":{"method":"GET","url":"/v1/workload/forecast","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":63963},"msg":"incoming request"}
+{"level":30,"time":1773613945309,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-s","res":{"statusCode":401},"responseTime":0.2888999879360199,"msg":"request completed"}
+{"level":30,"time":1773613945310,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-t","req":{"method":"GET","url":"/v1/timeline/intelligence?from=2026-03-13T04%3A00%3A00.000Z&to=2026-04-30T03%3A59%3A59.999Z&include=due%2Cevent","host":"127.0.0.1:4001","remoteAddress":"127.0.0.1","remotePort":62870},"msg":"incoming request"}
+{"level":30,"time":1773613945310,"pid":30520,"hostname":"AliH-ProArt","reqId":"req-t","res":{"statusCode":401},"responseTime":0.3076999932527542,"msg":"request completed"}
+ GET /login 200 in 96ms
+ GET /login 200 in 71ms
+ GET /login 200 in 66ms
+ GET /login 200 in 60ms
+ GET /login 200 in 62ms
+ GET /login 200 in 47ms
+ ✓ Compiled in 2.3s (1143 modules)
+ ✓ Compiled in 607ms (739 modules)
+ GET /login 200 in 607ms
+ GET /login 200 in 72ms
+ ✓ Compiled in 689ms (1143 modules)
+ ✓ Compiled in 622ms (739 modules)
+ GET /login 200 in 633ms
+ GET /login 200 in 77ms
+   Reload env: .env.local
+ ✓ Compiled in 982ms (1143 modules)
+ GET /login 200 in 128ms
+[?25h
+[clarus] stopping services

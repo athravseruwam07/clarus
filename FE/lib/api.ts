@@ -1,5 +1,64 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:4001";
+const API_URL_FROM_ENV = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? null;
+const DEFAULT_API_URL = "http://localhost:4001";
+let resolvedApiUrl: string | null = null;
+let didWarnApiHostMismatch = false;
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "[::1]"
+  );
+}
+
+function maybeWarnLocalHostMismatch(apiUrl: string): void {
+  if (process.env.NODE_ENV === "production" || didWarnApiHostMismatch || typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const frontendHostname = window.location.hostname.toLowerCase();
+    const apiHostname = new URL(apiUrl).hostname.toLowerCase();
+
+    if (
+      isLoopbackHostname(frontendHostname) &&
+      isLoopbackHostname(apiHostname) &&
+      frontendHostname !== apiHostname
+    ) {
+      didWarnApiHostMismatch = true;
+      console.warn(
+        `[clarus] frontend host (${frontendHostname}) and API host (${apiHostname}) differ. ` +
+          "Cookie-based auth can break across localhost/127.0.0.1. " +
+          "Use the same hostname for FE and NEXT_PUBLIC_API_URL."
+      );
+    }
+  } catch {
+    // Best-effort warning only.
+  }
+}
+
+function resolveApiUrl(): string {
+  if (resolvedApiUrl) {
+    return resolvedApiUrl;
+  }
+
+  let apiUrl = API_URL_FROM_ENV;
+
+  if (!apiUrl) {
+    if (typeof window !== "undefined") {
+      const protocol = window.location.protocol === "https:" ? "https" : "http";
+      apiUrl = `${protocol}://${window.location.hostname}:4001`;
+    } else {
+      apiUrl = DEFAULT_API_URL;
+    }
+  }
+
+  resolvedApiUrl = apiUrl.replace(/\/$/, "");
+  maybeWarnLocalHostMismatch(resolvedApiUrl);
+  return resolvedApiUrl;
+}
 
 interface ErrorPayload {
   error?: string;
@@ -669,6 +728,7 @@ function parseErrorPayload(payload: unknown): ErrorPayload {
 
 async function request<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
   let response: Response;
+  const apiUrl = resolveApiUrl();
 
   try {
     const headers = new Headers(init?.headers);
@@ -687,7 +747,7 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
       }
     }
 
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(`${apiUrl}${path}`, {
       ...init,
       credentials: "include",
       headers

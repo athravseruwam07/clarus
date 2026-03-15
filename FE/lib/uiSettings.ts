@@ -1,9 +1,11 @@
 export type AppTheme = "dark" | "light";
 export type AccentColor = "default" | "teal" | "violet" | "amber";
+export type OptimizerPreferencePromptFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "never";
 
 export interface UiSettings {
   theme: AppTheme;
   accent: AccentColor;
+  optimizerPreferencePromptFrequency: OptimizerPreferencePromptFrequency;
 }
 
 export const UI_SETTINGS_STORAGE_KEY = "clarus.ui.settings.v1";
@@ -11,7 +13,8 @@ export const UI_SETTINGS_EVENT = "clarus:ui-settings-changed";
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   theme: "dark",
-  accent: "default"
+  accent: "default",
+  optimizerPreferencePromptFrequency: "weekly"
 };
 
 function toTheme(value: unknown): AppTheme {
@@ -24,6 +27,20 @@ function toAccent(value: unknown): AccentColor {
   return VALID_ACCENTS.includes(value as AccentColor) ? (value as AccentColor) : "default";
 }
 
+const VALID_OPTIMIZER_FREQUENCIES: OptimizerPreferencePromptFrequency[] = [
+  "daily",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "never"
+];
+
+function toOptimizerFrequency(value: unknown): OptimizerPreferencePromptFrequency {
+  return VALID_OPTIMIZER_FREQUENCIES.includes(value as OptimizerPreferencePromptFrequency)
+    ? (value as OptimizerPreferencePromptFrequency)
+    : "weekly";
+}
+
 function sanitizeUiSettings(value: unknown): UiSettings {
   if (!value || typeof value !== "object") {
     return DEFAULT_UI_SETTINGS;
@@ -32,7 +49,8 @@ function sanitizeUiSettings(value: unknown): UiSettings {
   const source = value as Partial<UiSettings>;
   return {
     theme: toTheme(source.theme),
-    accent: toAccent(source.accent)
+    accent: toAccent(source.accent),
+    optimizerPreferencePromptFrequency: toOptimizerFrequency(source.optimizerPreferencePromptFrequency)
   };
 }
 
