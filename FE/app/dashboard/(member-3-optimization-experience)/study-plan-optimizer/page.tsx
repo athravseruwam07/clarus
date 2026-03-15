@@ -32,6 +32,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dataCache } from "@/lib/dataCache";
+import {
+  UI_SETTINGS_EVENT,
+  readUiSettings,
+  type OptimizerPreferencePromptFrequency
+} from "@/lib/uiSettings";
 import { cn } from "@/lib/utils";
 
 type BudgetPreset = "light" | "balanced" | "high";
@@ -162,11 +167,13 @@ type BehaviorEvent = {
 
 const PROFILE_STORAGE_KEY = "clarus.optimizer.profile.v3";
 const BEHAVIOR_STORAGE_KEY = "clarus.optimizer.behavior.v3";
+const PROFILE_SUBMITTED_AT_STORAGE_KEY = "clarus.optimizer.profile-submitted-at.v1";
 const OPTIMIZER_STATE_TARGET_TYPE = "work_plan_optimizer" as const;
 const OPTIMIZER_STATE_TARGET_KEY = "quick_setup_v1";
 
 type PersistedOptimizerState = {
   profile: PlannerProfile;
+  profileSubmittedAtIso: string | null;
 };
 
 const defaultProfile: PlannerProfile = {
@@ -279,6 +286,21 @@ const wizardQuestions: WizardQuestion[] = [
   }
 ];
 
+const OPTIMIZER_PROMPT_INTERVAL_MS: Record<Exclude<OptimizerPreferencePromptFrequency, "never">, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  biweekly: 14 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000
+};
+
+const OPTIMIZER_PROMPT_FREQUENCY_LABEL: Record<OptimizerPreferencePromptFrequency, string> = {
+  daily: "Every day",
+  weekly: "Every week",
+  biweekly: "Every 2 weeks",
+  monthly: "Every month",
+  never: "Never"
+};
+
 export default function WorkPlanOptimizerPage() {
   const router = useRouter();
   const [context, setContext] = useState<WorkPlanContextResponse | null>(null);
@@ -290,8 +312,12 @@ export default function WorkPlanOptimizerPage() {
     message: string;
   } | null>(null);
   const [profile, setProfile] = useState<PlannerProfile>(defaultProfile);
+  const [profileSubmittedAtIso, setProfileSubmittedAtIso] = useState<string | null>(null);
+  const [optimizerPromptFrequency, setOptimizerPromptFrequency] = useState<OptimizerPreferencePromptFrequency>(() =>
+    typeof window !== "undefined" ? readUiSettings().optimizerPreferencePromptFrequency : "weekly"
+  );
   const [wizardStep, setWizardStep] = useState(0);
-  const [wizardOpen, setWizardOpen] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
@@ -303,6 +329,22 @@ export default function WorkPlanOptimizerPage() {
 
   const answeredCount = wizardQuestions.filter((q) => profile[q.key] !== null).length;
   const requiredAnswered = requiredProfileKeys.every((key) => profile[key] !== null);
+  const isPreferenceResubmissionDue = useMemo(
+    () =>
+      shouldRequirePreferenceResubmission({
+        frequency: optimizerPromptFrequency,
+        profileSubmittedAtIso
+      }),
+    [optimizerPromptFrequency, profileSubmittedAtIso]
+  );
+  const isPreferenceResetDue = useMemo(
+    () =>
+      shouldResetSubmittedPreferences({
+        frequency: optimizerPromptFrequency,
+        profileSubmittedAtIso
+      }),
+    [optimizerPromptFrequency, profileSubmittedAtIso]
+  );
 
   const selectedDaySessions = useMemo(() => {
     if (!plan || !selectedDayIso) {
@@ -457,12 +499,33 @@ export default function WorkPlanOptimizerPage() {
       return;
     }
 
+    const syncPromptFrequency = () => {
+      const settings = readUiSettings();
+      setOptimizerPromptFrequency(settings.optimizerPreferencePromptFrequency);
+    };
+
+    syncPromptFrequency();
+    window.addEventListener(UI_SETTINGS_EVENT, syncPromptFrequency as EventListener);
+
+    return () => {
+      window.removeEventListener(UI_SETTINGS_EVENT, syncPromptFrequency as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     try {
       const savedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile) as PlannerProfile;
         setProfile((prev) => ({ ...prev, ...parsed }));
       }
+
+      const savedProfileSubmittedAt = window.localStorage.getItem(PROFILE_SUBMITTED_AT_STORAGE_KEY);
+      setProfileSubmittedAtIso(normalizeIsoTimestamp(savedProfileSubmittedAt));
 
       const savedBehavior = window.localStorage.getItem(BEHAVIOR_STORAGE_KEY);
       if (savedBehavior) {
@@ -495,6 +558,9 @@ export default function WorkPlanOptimizerPage() {
         const parsed = parsePersistedOptimizerState(savedState.notesText);
         if (!cancelled && parsed) {
           setProfile((prev) => ({ ...prev, ...parsed.profile }));
+          setProfileSubmittedAtIso((prev) =>
+            newestIsoTimestamp(prev, parsed.profileSubmittedAtIso)
+          );
         }
       } catch (error) {
         if (
@@ -541,6 +607,22 @@ export default function WorkPlanOptimizerPage() {
       return;
     }
 
+    if (profileSubmittedAtIso) {
+      window.localStorage.setItem(PROFILE_SUBMITTED_AT_STORAGE_KEY, profileSubmittedAtIso);
+    } else {
+      window.localStorage.removeItem(PROFILE_SUBMITTED_AT_STORAGE_KEY);
+    }
+  }, [hasHydratedLocalState, profileSubmittedAtIso]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!hasHydratedLocalState) {
+      return;
+    }
+
     window.localStorage.setItem(BEHAVIOR_STORAGE_KEY, JSON.stringify(behaviorEvents));
   }, [behaviorEvents, hasHydratedLocalState]);
 
@@ -551,7 +633,8 @@ export default function WorkPlanOptimizerPage() {
 
     const timeoutId = window.setTimeout(() => {
       const payload: PersistedOptimizerState = {
-        profile
+        profile,
+        profileSubmittedAtIso
       };
 
       void putItemState({
@@ -562,7 +645,7 @@ export default function WorkPlanOptimizerPage() {
     }, 400);
 
     return () => window.clearTimeout(timeoutId);
-  }, [hasHydratedLocalState, hasHydratedRemoteState, profile]);
+  }, [hasHydratedLocalState, hasHydratedRemoteState, profile, profileSubmittedAtIso]);
 
   useEffect(() => {
     if (!plan) {
@@ -611,11 +694,30 @@ export default function WorkPlanOptimizerPage() {
   }, [plan, selectedDayIso]);
 
   useEffect(() => {
+    if (!hasHydratedLocalState || !hasHydratedRemoteState) {
+      return;
+    }
+
+    if (!isPreferenceResetDue) {
+      return;
+    }
+
+    setProfile(defaultProfile);
+    setProfileSubmittedAtIso(null);
+    setPlan(null);
+    setWizardStep(0);
+    setWizardOpen(false);
+    setSelectedWeekIndex(0);
+    setSelectedDayIso(null);
+    setSelectedSessionId(null);
+  }, [hasHydratedLocalState, hasHydratedRemoteState, isPreferenceResetDue]);
+
+  useEffect(() => {
     if (!hasHydratedLocalState || !hasHydratedRemoteState || isLoadingContext || contextError || !context || plan) {
       return;
     }
 
-    if (!requiredAnswered || context.workItems.length === 0) {
+    if (!requiredAnswered || context.workItems.length === 0 || isPreferenceResubmissionDue) {
       return;
     }
 
@@ -651,6 +753,7 @@ export default function WorkPlanOptimizerPage() {
     hasHydratedRemoteState,
     isLoadingContext,
     plan,
+    isPreferenceResubmissionDue,
     profile,
     requiredAnswered
   ]);
@@ -697,6 +800,16 @@ export default function WorkPlanOptimizerPage() {
     }
 
     if (context.workItems.length === 0) {
+      if (mode === "initial") {
+        setProfileSubmittedAtIso(new Date().toISOString());
+        setPlan(null);
+        setWizardOpen(false);
+        toast.success("Preferences submitted", {
+          description: "No assignments are due soon right now, so there is no plan to generate yet."
+        });
+        return;
+      }
+
       toast.error("No active work found in current courses");
       return;
     }
@@ -727,6 +840,9 @@ export default function WorkPlanOptimizerPage() {
       setSelectedDayIso(nextSelectedDay);
       setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
       setSelectedSessionId(nextSelectedSession);
+      if (mode === "initial") {
+        setProfileSubmittedAtIso(new Date().toISOString());
+      }
       toast.success(
         mode === "initial"
           ? "Plan generated"
@@ -827,7 +943,12 @@ export default function WorkPlanOptimizerPage() {
     <div className="space-y-5">
       <Card>
         <CardHeader className="space-y-2">
-          <CardTitle>Study Plan Optimizer</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>Study Plan Optimizer</CardTitle>
+            <Badge variant="secondary">
+              Resubmit preferences: {OPTIMIZER_PROMPT_FREQUENCY_LABEL[optimizerPromptFrequency]}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
             Real-time active-course planning from Brightspace assignments, deadlines, and content.
           </p>
@@ -876,7 +997,7 @@ export default function WorkPlanOptimizerPage() {
         </Card>
       ) : null}
 
-      {!plan && !contextError && !requiredAnswered ? (
+      {!plan && !contextError && (!requiredAnswered || wizardOpen || isPreferenceResubmissionDue) ? (
         <div className="space-y-4">
           <Card className="border-primary/30">
             <CardHeader className="space-y-2">
@@ -892,6 +1013,12 @@ export default function WorkPlanOptimizerPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pb-20">
+              {requiredAnswered && isPreferenceResubmissionDue ? (
+                <div className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-foreground">
+                  Preference check-in due ({OPTIMIZER_PROMPT_FREQUENCY_LABEL[optimizerPromptFrequency]}). Review
+                  inputs and submit again to refresh your plan.
+                </div>
+              ) : null}
               <div
                 key={`${question.key}-${wizardStep}`}
                 className="rounded-md border border-border/70 bg-card/70 p-4 animate-slide-in"
@@ -939,13 +1066,18 @@ export default function WorkPlanOptimizerPage() {
                   <Button variant="ghost" size="sm" onClick={skipQuestion} disabled={!question.optional}>
                     skip
                   </Button>
+                  {requiredAnswered && wizardOpen && !isPreferenceResubmissionDue ? (
+                    <Button variant="ghost" size="sm" onClick={() => setWizardOpen(false)}>
+                      done editing
+                    </Button>
+                  ) : null}
                   <div className="ml-auto">
                     <Button
                       onClick={() => void generatePlan("initial")}
                       disabled={!requiredAnswered || isGenerating || isLoadingContext || !context}
                     >
                       {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Generate Plan
+                      {isPreferenceResubmissionDue ? "Submit" : "Generate Plan"}
                     </Button>
                   </div>
                 </div>
@@ -958,7 +1090,7 @@ export default function WorkPlanOptimizerPage() {
         </div>
       ) : null}
 
-      {!plan && !contextError && requiredAnswered ? (
+      {!plan && !contextError && requiredAnswered && !wizardOpen && !isPreferenceResubmissionDue ? (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
             <div className="space-y-1">
@@ -1577,13 +1709,94 @@ function readEnumValue<TValue extends string>(
   return (allowed as readonly string[]).includes(value) ? (value as TValue) : null;
 }
 
+function normalizeIsoTimestamp(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  const asMs = Date.parse(value);
+  if (Number.isNaN(asMs)) {
+    return null;
+  }
+
+  return new Date(asMs).toISOString();
+}
+
+function newestIsoTimestamp(first: string | null, second: string | null): string | null {
+  const firstNormalized = normalizeIsoTimestamp(first);
+  const secondNormalized = normalizeIsoTimestamp(second);
+
+  if (!firstNormalized) {
+    return secondNormalized;
+  }
+
+  if (!secondNormalized) {
+    return firstNormalized;
+  }
+
+  return Date.parse(firstNormalized) >= Date.parse(secondNormalized) ? firstNormalized : secondNormalized;
+}
+
+function shouldResetSubmittedPreferences(input: {
+  frequency: OptimizerPreferencePromptFrequency;
+  profileSubmittedAtIso: string | null;
+}): boolean {
+  if (input.frequency === "never") {
+    return false;
+  }
+
+  const submittedAtIso = normalizeIsoTimestamp(input.profileSubmittedAtIso);
+  if (!submittedAtIso) {
+    return false;
+  }
+
+  const elapsedMs = Date.now() - Date.parse(submittedAtIso);
+  if (!Number.isFinite(elapsedMs)) {
+    return true;
+  }
+
+  if (elapsedMs < 0) {
+    return false;
+  }
+
+  return elapsedMs >= OPTIMIZER_PROMPT_INTERVAL_MS[input.frequency];
+}
+
+function shouldRequirePreferenceResubmission(input: {
+  frequency: OptimizerPreferencePromptFrequency;
+  profileSubmittedAtIso: string | null;
+}): boolean {
+  if (input.frequency === "never") {
+    return false;
+  }
+
+  const submittedAtIso = normalizeIsoTimestamp(input.profileSubmittedAtIso);
+  if (!submittedAtIso) {
+    return true;
+  }
+
+  const elapsedMs = Date.now() - Date.parse(submittedAtIso);
+  if (!Number.isFinite(elapsedMs)) {
+    return true;
+  }
+
+  if (elapsedMs < 0) {
+    return false;
+  }
+
+  return elapsedMs >= OPTIMIZER_PROMPT_INTERVAL_MS[input.frequency];
+}
+
 function parsePersistedOptimizerState(notesText: string | null): PersistedOptimizerState | null {
   if (!notesText) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(notesText) as { profile?: Partial<Record<ProfileKey, unknown>> } | null;
+    const parsed = JSON.parse(notesText) as {
+      profile?: Partial<Record<ProfileKey, unknown>>;
+      profileSubmittedAtIso?: unknown;
+    } | null;
     if (!parsed || typeof parsed !== "object" || !parsed.profile || typeof parsed.profile !== "object") {
       return null;
     }
@@ -1606,7 +1819,8 @@ function parsePersistedOptimizerState(notesText: string | null): PersistedOptimi
           profile.reminderAggressiveness,
           ["chill", "normal", "aggressive"] as const
         )
-      }
+      },
+      profileSubmittedAtIso: normalizeIsoTimestamp(parsed.profileSubmittedAtIso)
     };
   } catch {
     return null;
