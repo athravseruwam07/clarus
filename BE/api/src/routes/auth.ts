@@ -72,21 +72,33 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post("/auth/register", async (request, reply) => {
     const body = registerBodySchema.parse(request.body);
 
-    const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } });
-    if (existing) {
+    const existing = await prisma.user.findUnique({
+      where: { email: body.email },
+      select: { id: true, passwordHash: true }
+    });
+    if (existing?.passwordHash) {
       throw new AppError(409, "an account with this email already exists", "email_taken");
     }
 
     const passwordHash = await bcrypt.hash(body.password, BCRYPT_ROUNDS);
 
-    const user = await prisma.user.create({
-      data: {
-        email: body.email,
-        name: body.name,
-        university: body.university,
-        passwordHash
-      }
-    });
+    const user = existing
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            name: body.name,
+            university: body.university,
+            passwordHash
+          }
+        })
+      : await prisma.user.create({
+          data: {
+            email: body.email,
+            name: body.name,
+            university: body.university,
+            passwordHash
+          }
+        });
 
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     const session = await prisma.session.create({ data: { userId: user.id, expiresAt } });
