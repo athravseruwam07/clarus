@@ -9,7 +9,6 @@ import {
   Target
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,16 +36,15 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <motion.aside
-      animate={{ width: isOpen ? 220 : 60 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
+    <aside
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
       className={cn(
-        "hidden md:flex flex-col h-[calc(100vh-1rem)] shrink-0 overflow-hidden rounded-2xl",
+        "hidden md:flex flex-col h-[calc(100vh-1rem)] shrink-0 overflow-hidden rounded-2xl transition-[width] duration-200 ease-in-out",
         "sidebar-surface backdrop-blur-md",
         "sticky top-2 m-2 mr-3"
       )}
+      style={{ width: isOpen ? 220 : 60 }}
     >
       {/* Top: Logo */}
       <Link href="/dashboard" className="sidebar-brand flex h-14 shrink-0 items-center bg-surface-1 px-3 hover:opacity-80 transition-opacity duration-150">
@@ -59,20 +57,11 @@ export function Sidebar() {
             className="h-full w-full object-cover"
           />
         </div>
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <motion.span
-              key="logo-label"
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: "auto" }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="ml-2.5 text-sm font-semibold tracking-tight text-foreground overflow-hidden whitespace-nowrap"
-            >
-              Clarus
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {isOpen ? (
+          <span className="ml-2.5 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight text-foreground">
+            Clarus
+          </span>
+        ) : null}
       </Link>
 
       {/* Middle: Nav */}
@@ -99,20 +88,11 @@ export function Sidebar() {
               <item.icon
                 className={cn("h-4 w-4 shrink-0", isActive ? "text-foreground" : "text-foreground/75")}
               />
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.span
-                    key={`label-${item.href}`}
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: "auto" }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="truncate overflow-hidden whitespace-nowrap"
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {isOpen ? (
+                <span className="truncate overflow-hidden whitespace-nowrap">
+                  {item.label}
+                </span>
+              ) : null}
             </Link>
           );
         })}
@@ -129,22 +109,13 @@ export function Sidebar() {
           )}
         >
           <Settings2 className="h-4 w-4 shrink-0" />
-          <AnimatePresence initial={false}>
-            {isOpen && (
-              <motion.span
-                key="settings-label"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                Settings
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {isOpen ? (
+            <span className="overflow-hidden whitespace-nowrap">
+              Settings
+            </span>
+          ) : null}
         </Link>
       </div>
-    </motion.aside>
+    </aside>
   );
 }
