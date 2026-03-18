@@ -1,11 +1,13 @@
 import type { TimelineEventDTO } from "@/lib/api";
 
+const ASSIGNMENT_TITLE_PATTERN = /\bassignment\b/i;
 const EXAM_TITLE_PATTERN = /\b(midterm|mid-term|final\s*exam|exam)\b/i;
 const QUIZ_TITLE_PATTERN = /\bquiz\b/i;
 const LAB_TITLE_PATTERN = /\blab\b/i;
 const TUTORIAL_TITLE_PATTERN = /\b(tutorial|tut)\b/i;
 const OFFICE_HOURS_TITLE_PATTERN = /\boffice\s*hours?\b/i;
 const CLASS_TITLE_PATTERN = /\b(lecture|class|seminar|workshop|studio|recitation)\b/i;
+const DROPBOX_URL_PATTERN = /\/dropbox\/|folder_submit_files/i;
 
 export type AgendaCategory =
   | "assignment"
@@ -20,8 +22,27 @@ export type AgendaCategory =
   | "content"
   | "other";
 
+function isDropboxLinkedCalendarEvent(event: TimelineEventDTO): boolean {
+  if (event.sourceType !== "calendar") {
+    return false;
+  }
+
+  const viewUrl = event.viewUrl?.trim() ?? "";
+  return DROPBOX_URL_PATTERN.test(viewUrl);
+}
+
+function isAssignmentLikeTitle(title: string): boolean {
+  return ASSIGNMENT_TITLE_PATTERN.test(title) && !QUIZ_TITLE_PATTERN.test(title) && !EXAM_TITLE_PATTERN.test(title);
+}
+
 export function classifyEvent(event: TimelineEventDTO): AgendaCategory {
+  const title = event.title.trim();
+
   if (event.sourceType === "dropbox_folder" || event.associatedEntityType === "D2L.LE.Dropbox.Dropbox") {
+    return "assignment";
+  }
+
+  if (isDropboxLinkedCalendarEvent(event) || isAssignmentLikeTitle(title)) {
     return "assignment";
   }
 
@@ -34,7 +55,6 @@ export function classifyEvent(event: TimelineEventDTO): AgendaCategory {
   }
 
   if (event.sourceType === "content_module" || event.sourceType === "content_topic") {
-    const title = event.title.trim();
     if (EXAM_TITLE_PATTERN.test(title)) return "exam";
     if (QUIZ_TITLE_PATTERN.test(title)) return "quiz";
     if (LAB_TITLE_PATTERN.test(title)) return "lab";
@@ -45,11 +65,9 @@ export function classifyEvent(event: TimelineEventDTO): AgendaCategory {
   }
 
   if (event.sourceType === "quiz" || event.associatedEntityType === "D2L.LE.Quizzing.Quiz") {
-    const title = event.title.trim();
     return EXAM_TITLE_PATTERN.test(title) ? "exam" : "quiz";
   }
 
-  const title = event.title.trim();
   if (EXAM_TITLE_PATTERN.test(title)) return "exam";
   if (QUIZ_TITLE_PATTERN.test(title)) return "quiz";
   if (LAB_TITLE_PATTERN.test(title)) return "lab";

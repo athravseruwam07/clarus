@@ -173,19 +173,45 @@ export function deduplicateBySource(
   preferredDateKind: TimelineDateKind
 ): TimelineEventDTO[] {
   const byKey = new Map<string, TimelineEventDTO>();
+  const blockedAssociatedEntities = new Set<string>();
 
-  for (const event of events) {
+  const prioritized = [...events].sort((left, right) => {
+    const leftScore =
+      (left.sourceType !== "calendar" ? 2 : 0) +
+      (left.dateKind === preferredDateKind ? 1 : 0);
+    const rightScore =
+      (right.sourceType !== "calendar" ? 2 : 0) +
+      (right.dateKind === preferredDateKind ? 1 : 0);
+
+    return rightScore - leftScore;
+  });
+
+  for (const event of prioritized) {
     const key = `${event.sourceType}:${event.sourceId}`;
+    const associatedEntityKey =
+      event.associatedEntityType && event.associatedEntityId
+        ? `${event.orgUnitId}:${event.associatedEntityType}:${event.associatedEntityId}`
+        : null;
     const existing = byKey.get(key);
+
+    if (associatedEntityKey && blockedAssociatedEntities.has(associatedEntityKey)) {
+      continue;
+    }
 
     if (!existing) {
       byKey.set(key, event);
+      if (associatedEntityKey && event.sourceType !== "calendar") {
+        blockedAssociatedEntities.add(associatedEntityKey);
+      }
       continue;
     }
 
     // Prefer the preferred dateKind; if neither matches keep the first one.
     if (existing.dateKind !== preferredDateKind && event.dateKind === preferredDateKind) {
       byKey.set(key, event);
+      if (associatedEntityKey && event.sourceType !== "calendar") {
+        blockedAssociatedEntities.add(associatedEntityKey);
+      }
     }
   }
 
