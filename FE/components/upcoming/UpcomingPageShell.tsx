@@ -42,6 +42,10 @@ function courseFilterLabel(course: Course): string {
   return course.courseName ?? course.courseCode ?? "Untitled course";
 }
 
+function normalizeCourseText(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
 export default function UpcomingPageShell({ children }: UpcomingPageShellProps) {
   const pathname = usePathname();
 
@@ -55,6 +59,23 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+
+  const currentTermCourses = useMemo(() => getCurrentTermCourses(courses), [courses]);
+
+  const currentTermCourseIds = useMemo(
+    () => new Set(currentTermCourses.map((course) => course.brightspaceCourseId)),
+    [currentTermCourses]
+  );
+
+  const currentTermCourseNames = useMemo(
+    () => new Set(currentTermCourses.map((course) => normalizeCourseText(course.courseName)).filter(Boolean)),
+    [currentTermCourses]
+  );
+
+  const currentTermCourseCodes = useMemo(
+    () => new Set(currentTermCourses.map((course) => normalizeCourseText(course.courseCode)).filter(Boolean)),
+    [currentTermCourses]
+  );
 
   const loadData = useCallback(async () => {
     const cachedEvents = dataCache.upcomingEvents.get();
@@ -146,13 +167,41 @@ export default function UpcomingPageShell({ children }: UpcomingPageShellProps) 
   }, [isSyncing, loadData]);
 
   const filteredEvents = useMemo(() => {
-    if (!selectedCourseId) return events;
-    return events.filter((e) => e.orgUnitId === selectedCourseId);
-  }, [events, selectedCourseId]);
+    const activeCourseEvents =
+      courses.length > 0
+        ? events.filter((event) => {
+            if (!currentTermCourseIds.has(event.orgUnitId)) {
+              return false;
+            }
+
+            const eventCourseName = normalizeCourseText(event.courseName);
+            const eventCourseCode = normalizeCourseText(event.courseCode);
+
+            if (!eventCourseName && !eventCourseCode) {
+              return true;
+            }
+
+            if (eventCourseName && currentTermCourseNames.has(eventCourseName)) {
+              return true;
+            }
+
+            if (eventCourseCode && currentTermCourseCodes.has(eventCourseCode)) {
+              return true;
+            }
+
+            return false;
+          })
+        : events;
+
+    if (!selectedCourseId) {
+      return activeCourseEvents;
+    }
+
+    return activeCourseEvents.filter((event) => event.orgUnitId === selectedCourseId);
+  }, [courses.length, currentTermCourseCodes, currentTermCourseIds, currentTermCourseNames, events, selectedCourseId]);
 
   // Deduplicate course list for filter buttons using brightspaceCourseId.
   const uniqueCourses = useMemo(() => {
-    const currentTermCourses = getCurrentTermCourses(courses);
     const seen = new Set<string>();
     return currentTermCourses.filter((c) => {
       if (seen.has(c.brightspaceCourseId)) return false;

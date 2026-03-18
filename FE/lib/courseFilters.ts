@@ -66,15 +66,30 @@ function extractTaggedTerm(text: string): { season: "winter" | "spring" | "fall"
   };
 }
 
+function extractTaggedYear(text: string): number | null {
+  const explicitYearMatch =
+    text.match(/\((20\d{2})\)/) ??
+    text.match(/(?:-|–)\s*(20\d{2})\b/) ??
+    text.match(/\b(20\d{2})\b/);
+
+  if (!explicitYearMatch) {
+    return null;
+  }
+
+  return Number(explicitYearMatch[1]!);
+}
+
 function hasCurrentTermTextHint(course: Course, now: Date): boolean {
   const text = normalizeCourseText(course);
   return getCurrentTermTokens(now).some((token) => text.includes(token));
 }
 
 function hasExplicitMismatchedTerm(course: Course, now: Date): boolean {
-  const taggedTerm = extractTaggedTerm(normalizeCourseText(course));
+  const normalized = normalizeCourseText(course);
+  const taggedTerm = extractTaggedTerm(normalized);
   if (!taggedTerm) {
-    return false;
+    const taggedYear = extractTaggedYear(normalized);
+    return taggedYear !== null && taggedYear !== now.getFullYear();
   }
 
   const currentTerm = getAcademicTerm(now);
