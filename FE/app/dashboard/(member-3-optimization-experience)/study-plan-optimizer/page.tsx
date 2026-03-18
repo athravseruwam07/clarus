@@ -1,20 +1,28 @@
 "use client";
 
 import {
+  BarChart3,
   BookOpen,
   CalendarDays,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Clock3,
   FileText,
   FolderOpen,
   Info,
+  Layers3,
   Loader2,
+  ListChecks,
   Pencil,
   RefreshCcw,
+  ShieldCheck,
   Sparkles,
+  Target,
   TriangleAlert
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -67,6 +75,7 @@ type PlannerProfileResolved = {
 type ProfileKey = keyof PlannerProfile;
 type RecomputeMode = "initial" | "session_skipped" | "workload_changed";
 type SessionStatus = "pending" | "in_progress" | "completed" | "skipped";
+type WorkspacePanel = "schedule" | "priority" | "details";
 type FrictionReason =
   | "too_tired"
   | "too_busy"
@@ -156,6 +165,14 @@ type GeneratedPlan = {
   diffLines: string[];
 };
 
+type PlanOverviewStat = {
+  label: string;
+  value: string;
+  helper: string;
+  icon: LucideIcon;
+  iconClassName: string;
+};
+
 type BehaviorEvent = {
   sessionId: string;
   itemId: string;
@@ -187,6 +204,76 @@ const defaultProfile: PlannerProfile = {
   outsideLoad: null,
   reminderAggressiveness: null
 };
+
+function formatHourLabel(hours: number): string {
+  const rounded = Math.round(hours * 10) / 10;
+  const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${display}h`;
+}
+
+function buildPlanOverviewStats(plan: GeneratedPlan): PlanOverviewStat[] {
+  const totalBlocks = plan.sessions.length;
+  const remainingGap = Math.max(0, plan.quality.requiredHours - plan.quality.plannedHours);
+
+  const coverageValue =
+    totalBlocks <= 0
+      ? "No study blocks yet"
+      : `${formatHourLabel(plan.quality.plannedHours)} across ${totalBlocks} ${totalBlocks === 1 ? "block" : "blocks"}`;
+  const coverageHelper =
+    remainingGap > 0.1
+      ? `${formatHourLabel(remainingGap)} of work still needs time if your workload grows.`
+      : "Your current due work fits inside the plan.";
+
+  const bufferValue =
+    plan.quality.bufferAchievedPct >= 90
+      ? "Most deadlines have breathing room"
+      : plan.quality.bufferAchievedPct >= 70
+        ? "Some deadlines are a bit tight"
+        : "Several tasks are close to due dates";
+  const bufferHelper =
+    plan.quality.bufferAchievedPct >= 90
+      ? "The schedule pulls most work earlier instead of leaving it to the last minute."
+      : plan.quality.bufferAchievedPct >= 70
+        ? "A few items still land close to their deadlines."
+        : "You may need more time or earlier starts to avoid last-minute work.";
+
+  const workloadValue =
+    plan.quality.heavyWeekCoveragePct >= 90
+      ? "Busy weeks are already covered"
+      : plan.quality.heavyWeekCoveragePct >= 70
+        ? "Most busy weeks are covered"
+        : "Heavier weeks still look tight";
+  const workloadHelper =
+    plan.quality.heavyWeekCoveragePct >= 90
+      ? "Higher-load weeks already have study time reserved."
+      : plan.quality.heavyWeekCoveragePct >= 70
+        ? "Most peak weeks are protected, but a few may still feel compressed."
+        : "The plan may feel overloaded when deadlines cluster.";
+
+  return [
+    {
+      label: "Time scheduled",
+      value: coverageValue,
+      helper: coverageHelper,
+      icon: BarChart3,
+      iconClassName: "bg-primary/12 text-primary"
+    },
+    {
+      label: "Deadline buffer",
+      value: bufferValue,
+      helper: bufferHelper,
+      icon: ShieldCheck,
+      iconClassName: "bg-emerald-500/12 text-emerald-600"
+    },
+    {
+      label: "Workload fit",
+      value: workloadValue,
+      helper: workloadHelper,
+      icon: Layers3,
+      iconClassName: "bg-amber-500/12 text-amber-600"
+    }
+  ];
+}
 
 const requiredProfileKeys: ProfileKey[] = [
   "weekdayBudget",
@@ -320,6 +407,7 @@ export default function WorkPlanOptimizerPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<WorkspacePanel>("priority");
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedDayIso, setSelectedDayIso] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -845,6 +933,7 @@ export default function WorkPlanOptimizerPage() {
       setSelectedDayIso(nextSelectedDay);
       setSelectedWeekIndex(getWeekIndexForDate(nextPlan.days, nextSelectedDay));
       setSelectedSessionId(nextSelectedSession);
+      setActiveWorkspacePanel("priority");
       if (mode === "initial") {
         setProfileSubmittedAtIso(new Date().toISOString());
       }
@@ -906,12 +995,13 @@ export default function WorkPlanOptimizerPage() {
 
   function focusSessionDetails(sessionId: string) {
     setSelectedSessionId(sessionId);
+    setActiveWorkspacePanel("details");
     if (typeof document === "undefined") {
       return;
     }
 
-    const detailsPanel = document.getElementById("session-details-panel");
-    detailsPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const workspacePanel = document.getElementById("optimizer-workspace");
+    workspacePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function focusSessionInSchedule(sessionId: string) {
@@ -927,13 +1017,14 @@ export default function WorkPlanOptimizerPage() {
     setSelectedSessionId(session.id);
     setSelectedDayIso(session.dateIso);
     setSelectedWeekIndex(getWeekIndexForDate(plan.days, session.dateIso));
+    setActiveWorkspacePanel("schedule");
 
     if (typeof document === "undefined") {
       return;
     }
 
-    const schedulePanel = document.getElementById("schedule-panel");
-    schedulePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const workspacePanel = document.getElementById("optimizer-workspace");
+    workspacePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function goToPreviousWeek() {
@@ -1125,7 +1216,12 @@ export default function WorkPlanOptimizerPage() {
           <Card>
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base">This Week&apos;s Strategy</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  This Week&apos;s Strategy
+                </CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => setWizardOpen(true)}>
                     <Pencil className="h-4 w-4" />
@@ -1144,41 +1240,110 @@ export default function WorkPlanOptimizerPage() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{plan.strategySummary}</p>
-              <div className="flex flex-wrap gap-2">
-                {plan.profileChips.map((chip) => (
-                  <Badge key={chip} variant="secondary">
-                    {chip}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Built around your saved availability, work style, and deadline preferences.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge variant="secondary">
-                    planned {plan.quality.plannedHours}h / required {plan.quality.requiredHours}h
-                  </Badge>
-                  <Badge variant="secondary">buffer {plan.quality.bufferAchievedPct}%</Badge>
-                  <Badge variant="secondary">heavy-week coverage {plan.quality.heavyWeekCoveragePct}%</Badge>
-                </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {buildPlanOverviewStats(plan).map((stat) => (
+                  <div key={stat.label} className="rounded-lg border border-border/70 bg-secondary/20 p-3">
+                    <div className="flex items-start gap-3">
+                      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", stat.iconClassName)}>
+                        <stat.icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{stat.value}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{stat.helper}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {plan.diffLines.length > 0 ? (
-                <div className="rounded-md border border-border/70 bg-secondary/20 p-2 text-xs text-muted-foreground">
-                  {plan.diffLines.map((line) => (
-                    <p key={line}>- {line}</p>
-                  ))}
+                <div className="rounded-md border border-border/70 bg-secondary/20 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What changed</p>
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    {plan.diffLines.slice(0, 3).map((line) => (
+                      <p key={line}>- {line}</p>
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </CardContent>
           </Card>
 
-          <section className="space-y-4">
+          <section id="optimizer-workspace" className="space-y-4">
+            <div className="grid gap-2 md:grid-cols-3">
+              {([
+                {
+                  key: "priority",
+                  title: "Priority",
+                  description: "See the main task and why it matters now.",
+                  icon: Target
+                },
+                {
+                  key: "schedule",
+                  title: "Schedule",
+                  description: "Browse your planned week and study blocks.",
+                  icon: CalendarRange
+                },
+                {
+                  key: "details",
+                  title: "Session Details",
+                  description: "Inspect one selected block in depth.",
+                  icon: ListChecks
+                }
+              ] as Array<{
+                key: WorkspacePanel;
+                title: string;
+                description: string;
+                icon: LucideIcon;
+              }>).map((panel) => (
+                <button
+                  key={panel.key}
+                  type="button"
+                  onClick={() => setActiveWorkspacePanel(panel.key)}
+                  className={cn(
+                    "rounded-xl border px-4 py-3 text-left transition-colors",
+                    activeWorkspacePanel === panel.key
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-border/70 bg-secondary/20 hover:bg-secondary/30"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                        activeWorkspacePanel === panel.key
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-foreground/75"
+                      )}
+                    >
+                      <panel.icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{panel.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{panel.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {activeWorkspacePanel === "schedule" ? (
             <Card id="schedule-panel">
               <CardHeader className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-xl">Schedule</CardTitle>
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/12 text-primary">
+                        <CalendarRange className="h-5 w-5" />
+                      </span>
+                      Schedule
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {PLANNING_WEEKS}-week horizon
                     </p>
@@ -1230,10 +1395,11 @@ export default function WorkPlanOptimizerPage() {
                         <p className="text-xs font-medium text-foreground">{day.dayLabel}</p>
                         <p className="text-xs text-muted-foreground">{formatDateShort(day.dateIso)}</p>
                         <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{activeWeekSessionCounts.get(day.dateIso) ?? 0} block(s)</span>
-                          <span>
-                            {day.usedMinutes}/{day.capacityMinutes}m
+                          <span className="flex items-center gap-1">
+                            <Clock3 className="h-3 w-3" />
+                            {activeWeekSessionCounts.get(day.dateIso) ?? 0} block(s)
                           </span>
+                          <span>{day.usedMinutes}/{day.capacityMinutes}m</span>
                         </div>
                       </button>
                     );
@@ -1360,10 +1526,17 @@ export default function WorkPlanOptimizerPage() {
                 </div>
               </CardContent>
             </Card>
+            ) : null}
 
+            {activeWorkspacePanel === "priority" ? (
             <Card id="prioritization-engine">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-xl md:text-2xl">What to Prioritize Now</CardTitle>
+                <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <Target className="h-5 w-5" />
+                  </span>
+                  What to Prioritize Now
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Clear next action from deadline pressure, risk, complexity, effort, and grade impact.
                 </p>
@@ -1373,9 +1546,10 @@ export default function WorkPlanOptimizerPage() {
                   <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-4">
                       <div className="rounded-xl border border-primary/35 bg-primary/10 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <Sparkles className="h-3.5 w-3.5" />
                           Highest leverage task
-                        </p>
+                        </div>
                         <p className="mt-2 text-xl font-semibold text-foreground">{plan.topTask.title}</p>
                         <p className="mt-2 text-sm text-muted-foreground">{topTaskGuidance.summary}</p>
                       </div>
@@ -1384,15 +1558,19 @@ export default function WorkPlanOptimizerPage() {
                         {topTaskGuidance.reasons.slice(0, 4).map((reason) => (
                           <div
                             key={reason}
-                            className="rounded-lg border border-border/70 bg-secondary/20 p-3 text-sm text-foreground"
+                            className="flex items-start gap-2 rounded-lg border border-border/70 bg-secondary/20 p-3 text-sm text-foreground"
                           >
-                            {reason}
+                            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary/80" />
+                            <span>{reason}</span>
                           </div>
                         ))}
                       </div>
 
                       <div className="rounded-xl border border-primary/45 bg-primary/15 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next step</p>
+                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Next step
+                        </div>
                         <p className="mt-1 text-base font-medium text-foreground">{topTaskGuidance.nextStep}</p>
                       </div>
 
@@ -1477,10 +1655,17 @@ export default function WorkPlanOptimizerPage() {
                 )}
               </CardContent>
             </Card>
+            ) : null}
 
+            {activeWorkspacePanel === "details" ? (
             <Card id="session-details-panel">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-xl md:text-2xl">Session Details</CardTitle>
+                <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <ListChecks className="h-5 w-5" />
+                  </span>
+                  Session Details
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Click any schedule block to inspect rationale, resources, and one-click actions.
                 </p>
@@ -1507,15 +1692,24 @@ export default function WorkPlanOptimizerPage() {
 
                         <div className="mt-4 grid gap-3 md:grid-cols-3">
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Why now</p>
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Why now
+                            </div>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.rationale}</p>
                           </div>
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Dependency</p>
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                              <Layers3 className="h-3.5 w-3.5" />
+                              Dependency
+                            </div>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.dependencies.join(" -> ")}</p>
                           </div>
                           <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">If you do one thing</p>
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              If you do one thing
+                            </div>
                             <p className="mt-1 text-sm text-foreground">{selectedSession.ifOnlyOneThing}</p>
                           </div>
                         </div>
@@ -1618,6 +1812,7 @@ export default function WorkPlanOptimizerPage() {
                 )}
               </CardContent>
             </Card>
+            ) : null}
           </section>
         </div>
       ) : null}
