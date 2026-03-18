@@ -707,13 +707,13 @@ function DeleteAccountCard() {
 
         <div className="space-y-2">
           <Label htmlFor="delete-confirm" className="text-sm">
-            Type <span className="font-mono text-foreground">{CONFIRM_PHRASE}</span> to confirm
+            Type <span className="text-foreground">"{CONFIRM_PHRASE}"</span> to confirm
           </Label>
           <Input
             id="delete-confirm"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={CONFIRM_PHRASE}
+            placeholder={`"${CONFIRM_PHRASE}"`}
             disabled={deleting}
             className="border-destructive/40 focus-visible:ring-destructive"
           />
