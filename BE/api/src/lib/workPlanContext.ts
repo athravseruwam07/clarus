@@ -100,6 +100,8 @@ interface ParsedRawItem {
   riskScore: number;
   gradeWeight: number;
   recentlyChanged: boolean;
+  taskUrlOverride?: string | null;
+  submissionUrlOverride?: string | null;
 }
 
 interface WorkPlanContextOptions {
@@ -267,7 +269,15 @@ async function buildCourseContext(input: {
     courseId
   });
 
+  const timelineFallbackItems = await parseTimelineFallbackItems({
+    userId: user.id,
+    courseId,
+    baseUrl: user.institutionUrl!,
+    now: new Date()
+  });
+
   const rawItems = dedupeParsedItems([
+    ...timelineFallbackItems,
     ...parseDropboxItems(dropboxData?.data, courseId),
     ...parseQuizItems(quizzesData?.data, courseId),
     ...parseDiscussionItems(discussionForumsData?.data, courseId),
@@ -359,20 +369,24 @@ async function buildCourseContext(input: {
               })
             ];
 
-      const taskUrl = taskContentLink?.url
-        ? taskContentLink.url
-        : buildTaskUrl({
-            baseUrl: user.institutionUrl!,
-            courseId,
-            type: item.type,
-            itemId: item.id
-          });
-      const submissionUrl = buildSubmissionUrl({
-        baseUrl: user.institutionUrl!,
-        courseId,
-        type: item.type,
-        itemId: item.id
-      });
+      const taskUrl =
+        item.taskUrlOverride ??
+        (taskContentLink?.url
+          ? taskContentLink.url
+          : buildTaskUrl({
+              baseUrl: user.institutionUrl!,
+              courseId,
+              type: item.type,
+              itemId: item.id
+            }));
+      const submissionUrl =
+        item.submissionUrlOverride ??
+        buildSubmissionUrl({
+          baseUrl: user.institutionUrl!,
+          courseId,
+          type: item.type,
+          itemId: item.id
+        });
 
       return {
         id: item.id,
@@ -514,6 +528,260 @@ function parseDropboxItems(source: unknown, courseId: string): ParsedRawItem[] {
   });
 
   return items;
+}
+
+async function parseTimelineFallbackItems(input: {
+  userId: string;
+  courseId: string;
+  baseUrl: string;
+  now: Date;
+}): Promise<ParsedRawItem[]> {
+  const minDueAt = new Date(input.now.getTime() - 1000 * 60 * 60 * 24 * 2);
+  const maxDueAt = new Date(input.now.getTime() + 1000 * 60 * 60 * 24 * 180);
+
+  const events = await prisma.timelineEvent.findMany({
+    where: {
+      userId: input.userId,
+      brightspaceOrgUnitId: input.courseId,
+      startAt: {
+        gte: minDueAt,
+        lte: maxDueAt
+      },
+      dateKind: {
+        in: ["due", "event", "end"]
+      }
+    },
+    orderBy: [{ startAt: "asc" }, { updatedAt: "desc" }],
+    take: 60
+  });
+
+  const items = events.flatMap((event) => {
+    const parsed = parseTimelineFallbackItem({
+      event,
+      courseId: input.courseId,
+      baseUrl: input.baseUrl
+    });
+
+    return parsed ? [parsed] : [];
+  });
+
+  return dedupeParsedItems(items);
+}
+
+function parseTimelineFallbackItem(input: {
+  event: {
+    sourceType: string;
+    sourceId: string;
+    title: string;
+    description: string | null;
+    startAt: Date;
+    updatedAt: Date;
+    associatedEntityType: string | null;
+    associatedEntityId: string | null;
+    viewUrl: string | null;
+  };
+  courseId: string;
+  baseUrl: string;
+}): ParsedRawItem | null {
+  const type = inferTimelineWorkItemType(input.event);
+  if (!type) {
+    return null;
+  }
+
+  const title = input.event.title.trim();
+  if (!title) {
+    return null;
+  }
+
+  const sourceId = resolveTimelineSourceId(input.event);
+  const id = buildTimelineFallbackItemId({
+    courseId: input.courseId,
+    type,
+    sourceId
+  });
+
+  const complexityScore = inferTimelineComplexityScore(type, title);
+  const riskScore = inferTimelineRiskScore(type, complexityScore);
+  const gradeWeight = inferTimelineGradeWeight(type, title);
+  const detailsText = input.event.description ?? "";
+  const taskUrlOverride =
+    input.event.viewUrl ??
+    buildTaskUrl({
+      baseUrl: input.baseUrl,
+      courseId: input.courseId,
+      type,
+      itemId: id
+    });
+  const submissionUrlOverride =
+    input.event.viewUrl ??
+    buildSubmissionUrl({
+      baseUrl: input.baseUrl,
+      courseId: input.courseId,
+      type,
+      itemId: id
+    });
+
+  return {
+    id,
+    title,
+    detailsText,
+    type,
+    dueAt: input.event.startAt.toISOString(),
+    estimatedMinutes: inferTimelineEstimatedMinutes(type, complexityScore),
+    complexityScore,
+    riskScore,
+    gradeWeight,
+    recentlyChanged: isRecentlyChanged(input.event.updatedAt.toISOString()),
+    taskUrlOverride,
+    submissionUrlOverride
+  };
+}
+
+function inferTimelineWorkItemType(input: {
+  sourceType: string;
+  title: string;
+  associatedEntityType: string | null;
+}): WorkItemType | null {
+  if (input.sourceType === "dropbox_folder" || input.associatedEntityType === "D2L.LE.Dropbox.Dropbox") {
+    return "assignment";
+  }
+
+  if (input.sourceType === "quiz" || input.associatedEntityType === "D2L.LE.Quizzing.Quiz") {
+    return "quiz";
+  }
+
+  if (input.sourceType === "discussion_topic" || input.sourceType === "discussion_forum") {
+    return "discussion";
+  }
+
+  if (input.associatedEntityType === "D2L.LE.Content.ContentObject.TopicCO") {
+    return "assignment";
+  }
+
+  if (input.sourceType !== "calendar") {
+    return null;
+  }
+
+  const title = input.title.toLowerCase();
+  if (/\b(project|capstone)\b/.test(title)) {
+    return "project";
+  }
+  if (/\blab\b/.test(title)) {
+    return "lab";
+  }
+  if (/\b(quiz|test|exam|midterm|final)\b/.test(title)) {
+    return "quiz";
+  }
+  if (/\b(discussion|forum|post|reply)\b/.test(title)) {
+    return "discussion";
+  }
+  if (/\b(assignment|report|essay|paper|reflection|response|submission|deliverable|proposal|homework|worksheet|scavenger)\b/.test(title)) {
+    return "assignment";
+  }
+
+  return null;
+}
+
+function resolveTimelineSourceId(input: {
+  sourceType: string;
+  sourceId: string;
+  associatedEntityType: string | null;
+  associatedEntityId: string | null;
+}): string {
+  if (input.associatedEntityType === "D2L.LE.Dropbox.Dropbox" && input.associatedEntityId) {
+    return input.associatedEntityId;
+  }
+
+  if (input.associatedEntityType === "D2L.LE.Quizzing.Quiz" && input.associatedEntityId) {
+    return input.associatedEntityId;
+  }
+
+  if (input.sourceType === "dropbox_folder" || input.sourceType === "quiz") {
+    return input.sourceId;
+  }
+
+  return input.associatedEntityId ?? input.sourceId;
+}
+
+function buildTimelineFallbackItemId(input: {
+  courseId: string;
+  type: WorkItemType;
+  sourceId: string;
+}): string {
+  if (input.type === "assignment" || input.type === "project") {
+    return `asg-${input.courseId}-${input.sourceId}`;
+  }
+
+  if (input.type === "quiz") {
+    return `quiz-${input.courseId}-${input.sourceId}`;
+  }
+
+  if (input.type === "discussion") {
+    return `disc-${input.courseId}-${input.sourceId}`;
+  }
+
+  return `timeline-${input.courseId}-${input.sourceId}`;
+}
+
+function inferTimelineEstimatedMinutes(type: WorkItemType, complexityScore: number): number {
+  if (type === "assignment" || type === "project") {
+    return clamp(Math.round(complexityScore * 2), 45, 420);
+  }
+
+  if (type === "quiz") {
+    return clamp(Math.round(complexityScore * 1.35), 25, 180);
+  }
+
+  if (type === "lab") {
+    return clamp(Math.round(complexityScore * 1.6), 35, 240);
+  }
+
+  return clamp(Math.round(complexityScore * 1.2), 20, 120);
+}
+
+function inferTimelineComplexityScore(type: WorkItemType, title: string): number {
+  const base =
+    type === "project"
+      ? 72
+      : type === "assignment"
+        ? 60
+        : type === "lab"
+          ? 54
+          : type === "quiz"
+            ? 46
+            : 42;
+
+  return clamp(base + title.length / 4, 28, 90);
+}
+
+function inferTimelineRiskScore(type: WorkItemType, complexityScore: number): number {
+  const base =
+    type === "project"
+      ? 62
+      : type === "assignment"
+        ? 56
+        : type === "quiz"
+          ? 52
+          : 44;
+
+  return clamp(base + complexityScore / 5, 35, 92);
+}
+
+function inferTimelineGradeWeight(type: WorkItemType, title: string): number {
+  const lowerTitle = title.toLowerCase();
+  const bonusPenalty = lowerTitle.includes("bonus") ? -4 : 0;
+  const base =
+    type === "project"
+      ? 18
+      : type === "assignment"
+        ? 14
+        : type === "quiz"
+          ? 10
+          : type === "lab"
+            ? 11
+            : 8;
+
+  return clamp(base + bonusPenalty, 2, 30);
 }
 
 function parseQuizItems(source: unknown, courseId: string): ParsedRawItem[] {
