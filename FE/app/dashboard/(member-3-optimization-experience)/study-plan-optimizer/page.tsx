@@ -345,6 +345,11 @@ export default function WorkPlanOptimizerPage() {
       }),
     [optimizerPromptFrequency, profileSubmittedAtIso]
   );
+  const isWizardReviewMode = requiredAnswered && (wizardOpen || isPreferenceResubmissionDue);
+  const wizardProgressCount = isWizardReviewMode ? wizardStep + 1 : answeredCount;
+  const wizardProgressLabel = isWizardReviewMode
+    ? `${wizardStep + 1}/${wizardQuestions.length} Review`
+    : `${answeredCount}/${wizardQuestions.length} Answered`;
 
   const selectedDaySessions = useMemo(() => {
     if (!plan || !selectedDayIso) {
@@ -1003,12 +1008,12 @@ export default function WorkPlanOptimizerPage() {
             <CardHeader className="space-y-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Quick Setup Wizard</CardTitle>
-                <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} Answered</Badge>
+                <Badge variant="secondary">{wizardProgressLabel}</Badge>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-secondary/70">
                 <div
                   className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${(answeredCount / wizardQuestions.length) * 100}%` }}
+                  style={{ width: `${(wizardProgressCount / wizardQuestions.length) * 100}%` }}
                 />
               </div>
             </CardHeader>
@@ -1024,7 +1029,7 @@ export default function WorkPlanOptimizerPage() {
                 className="rounded-md border border-border/70 bg-card/70 p-4 animate-slide-in"
               >
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Question {wizardStep + 1} / {wizardQuestions.length}
+                  {isWizardReviewMode ? "Review" : "Question"} {wizardStep + 1} / {wizardQuestions.length}
                 </p>
                 <p className="mt-1 text-sm font-medium">{question.prompt}</p>
                 <div className="mt-3 grid gap-2">
@@ -1635,19 +1640,19 @@ export default function WorkPlanOptimizerPage() {
               <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Quick Setup Wizard</CardTitle>
-                  <Badge variant="secondary">{answeredCount}/{wizardQuestions.length} Answered</Badge>
+                  <Badge variant="secondary">{wizardProgressLabel}</Badge>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-secondary/70">
                   <div
                     className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${(answeredCount / wizardQuestions.length) * 100}%` }}
+                    style={{ width: `${(wizardProgressCount / wizardQuestions.length) * 100}%` }}
                   />
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div key={`${question.key}-modal-${wizardStep}`} className="rounded-md border border-border/70 bg-card/70 p-4 animate-slide-in">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Question {wizardStep + 1} / {wizardQuestions.length}
+                    {isWizardReviewMode ? "Review" : "Question"} {wizardStep + 1} / {wizardQuestions.length}
                   </p>
                   <p className="mt-1 text-sm font-medium">{question.prompt}</p>
                   <div className="mt-3 grid gap-2">
