@@ -40,6 +40,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentTermCourses } from "@/lib/courseFilters";
 import { dataCache } from "@/lib/dataCache";
+import TodoChecklist from "@/components/todo/TodoChecklist";
+import { buildTodoItems } from "@/lib/todoItems";
 import { buildOverviewHref, deduplicateBySource } from "@/lib/upcomingUtils";
 
 type ConnectionState = "loading" | "connected" | "expired" | "disconnected";
@@ -209,38 +211,7 @@ export default function DashboardPage() {
   const currentTermCourses = useMemo(() => getCurrentTermCourses(courses), [courses]);
   const fallbackWorkItems = useMemo(() => context?.workItems.slice(0, 8) ?? [], [context?.workItems]);
 
-  const todoItems = useMemo(() => {
-    if (!context) return [];
-
-    const prioritized = [...context.workItems]
-      .sort((a, b) => b.priorityScore - a.priorityScore)
-      .slice(0, 3);
-
-    const checklistBackedTasks = prioritized.flatMap((item) => {
-      const checklist = item.checklistTasks.slice(0, 2);
-      if (checklist.length === 0) {
-        return [
-          {
-            id: `${item.id}:fallback`,
-            title: item.title,
-            action: `Start the next concrete step for "${item.title}".`,
-            dueText: dueInDaysText(item.dueAt),
-            href: item.taskUrl
-          }
-        ];
-      }
-
-      return checklist.map((task) => ({
-        id: `${item.id}:${task.id}`,
-        title: item.title,
-        action: task.text,
-        dueText: dueInDaysText(item.dueAt),
-        href: item.taskUrl
-      }));
-    });
-
-    return checklistBackedTasks.slice(0, 6);
-  }, [context]);
+  const todoItems = useMemo(() => buildTodoItems(context, { taskLimit: 3, checklistPerItem: 2, maxItems: 3 }), [context]);
 
   const riskCopy = useMemo(
     () => buildRiskCopy(topTaskItem, context?.workItems ?? []),
@@ -540,41 +511,30 @@ export default function DashboardPage() {
 
         <Card className="card-glow animate-fade-up overflow-hidden" style={{ animationDelay: "225ms" }}>
           <div className="h-1 w-full bg-gradient-to-r from-foreground/65 via-foreground/15 to-transparent" />
-          <CardHeader className="pb-3">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
             <OverviewCardTitle icon={ListTodo} title="To Do" iconClassName="text-foreground" />
+            <Link
+              href={"/dashboard/todo" as any}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+            >
+              See all
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </CardHeader>
           <CardContent className="space-y-2.5 text-sm text-muted-foreground">
             {isLoadingOverview ? (
               <p>Loading tasks...</p>
             ) : todoItems.length > 0 ? (
-              todoItems.map((item) => (
-                <label
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-md border border-border/80 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/40"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4"
-                    checked={Boolean(checkedTodoIds[item.id])}
-                    onChange={(event) =>
-                      setCheckedTodoIds((prev) => ({
-                        ...prev,
-                        [item.id]: event.target.checked
-                      }))
-                    }
-                  />
-                  <div className="min-w-0">
-                    <a href={item.href} target="_blank" rel="noreferrer" className="block text-sm text-foreground hover:underline">
-                      {item.title}
-                    </a>
-                    <p className="text-xs text-muted-foreground">{item.action}</p>
-                    <p className="inline-flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {startCase(item.dueText)}
-                    </p>
-                  </div>
-                </label>
-              ))
+              <TodoChecklist
+                items={todoItems}
+                checkedIds={checkedTodoIds}
+                onToggle={(id, checked) =>
+                  setCheckedTodoIds((prev) => ({
+                    ...prev,
+                    [id]: checked
+                  }))
+                }
+              />
             ) : (
               <p>No active to-do items yet. Run sync to load upcoming coursework tasks.</p>
             )}
