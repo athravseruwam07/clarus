@@ -9,6 +9,7 @@ import { WHOAMI_API_PATH } from "./valence.js";
 
 const LE_VERSIONS = ["1.75", "1.74", "1.73", "1.71", "1.69", "1.66", "1.64", "1.60", "1.58"];
 const WORK_PLAN_CONTEXT_CACHE_TTL_MS = 2 * 60 * 1000;
+const MAX_CONTEXT_COURSES = 6;
 
 type WorkItemType = "assignment" | "quiz" | "discussion" | "project" | "lab" | "other";
 
@@ -206,6 +207,7 @@ async function generateWorkPlanContext(user: User): Promise<WorkPlanContextRespo
 
 async function getActiveCourses(userId: string): Promise<Course[]> {
   const now = new Date();
+  const prioritizedCourseIds = await getPrioritizedCourseIdsFromTimeline(userId, now);
 
   const courses = await prisma.course.findMany({
     where: {
@@ -213,14 +215,119 @@ async function getActiveCourses(userId: string): Promise<Course[]> {
       isActive: true
     },
     orderBy: [{ endDate: "asc" }, { updatedAt: "desc" }],
-    take: 12
+    take: 16
   });
 
-  return courses.filter((course) => {
+  const filtered = courses.filter((course) => {
     const startsOk = !course.startDate || course.startDate <= now;
     const endsOk = !course.endDate || course.endDate >= now;
     return startsOk && endsOk;
   });
+
+  if (prioritizedCourseIds.length === 0) {
+    return filtered.slice(0, MAX_CONTEXT_COURSES);
+  }
+
+  const priorityIndex = new Map(prioritizedCourseIds.map((courseId, index) => [courseId, index] as const));
+
+  return filtered
+    .sort((a, b) => {
+      const aPriority = priorityIndex.get(a.brightspaceCourseId);
+      const bPriority = priorityIndex.get(b.brightspaceCourseId);
+
+      if (aPriority !== undefined && bPriority !== undefined) {
+        return aPriority - bPriority;
+      }
+
+      if (aPriority !== undefined) {
+        return -1;
+      }
+
+      if (bPriority !== undefined) {
+        return 1;
+      }
+
+      const aEnd = a.endDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bEnd = b.endDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (aEnd !== bEnd) {
+        return aEnd - bEnd;
+      }
+
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
+    })
+    .slice(0, MAX_CONTEXT_COURSES);
+}
+
+async function getPrioritizedCourseIdsFromTimeline(userId: string, now: Date): Promise<string[]> {
+  const minDueAt = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2);
+  const maxDueAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 180);
+
+  const events = await prisma.timelineEvent.findMany({
+    where: {
+      userId,
+      startAt: {
+        gte: minDueAt,
+        lte: maxDueAt
+      },
+      dateKind: {
+        in: ["due", "event", "end"]
+      }
+    },
+    select: {
+      brightspaceOrgUnitId: true,
+      startAt: true,
+      sourceType: true,
+      title: true,
+      associatedEntityType: true
+    },
+    orderBy: [{ startAt: "asc" }, { updatedAt: "desc" }],
+    take: 120
+  });
+
+  const prioritized = new Set<string>();
+
+  for (const event of events) {
+    if (!isPlanningRelevantTimelineEvent(event)) {
+      continue;
+    }
+
+    prioritized.add(event.brightspaceOrgUnitId);
+    if (prioritized.size >= MAX_CONTEXT_COURSES) {
+      break;
+    }
+  }
+
+  return Array.from(prioritized);
+}
+
+function isPlanningRelevantTimelineEvent(input: {
+  sourceType: string;
+  title: string;
+  associatedEntityType: string | null;
+}): boolean {
+  if (input.sourceType === "dropbox_folder" || input.associatedEntityType === "D2L.LE.Dropbox.Dropbox") {
+    return true;
+  }
+
+  if (input.sourceType === "quiz" || input.associatedEntityType === "D2L.LE.Quizzing.Quiz") {
+    return true;
+  }
+
+  if (input.sourceType === "discussion_topic" || input.sourceType === "discussion_forum") {
+    return true;
+  }
+
+  if (input.associatedEntityType === "D2L.LE.Content.ContentObject.TopicCO") {
+    return true;
+  }
+
+  if (input.sourceType !== "calendar") {
+    return false;
+  }
+
+  return /\b(assignment|report|essay|paper|reflection|response|submission|deliverable|proposal|homework|worksheet|scavenger|quiz|test|exam|midterm|final|project|lab|discussion|forum|post|reply)\b/i.test(
+    input.title
+  );
 }
 
 async function buildCourseContext(input: {
