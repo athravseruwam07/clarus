@@ -462,15 +462,6 @@ input:-webkit-autofill:focus {
     linear-gradient(180deg, hsl(var(--landing-space)), hsl(var(--landing-space-2)));
 }
 
-.landing-space-surface--reverse {
-  background:
-    radial-gradient(circle at 18% 16%, hsl(var(--landing-nebula-a) / 0.08), transparent 22%),
-    radial-gradient(circle at 82% 18%, hsl(var(--landing-nebula-b) / 0.06), transparent 20%),
-    radial-gradient(circle at 24% 82%, hsl(var(--landing-nebula-b) / 0.05), transparent 18%),
-    radial-gradient(circle at 76% 84%, hsl(var(--landing-nebula-a) / 0.05), transparent 18%),
-    linear-gradient(180deg, hsl(var(--landing-space-2)), hsl(var(--landing-space)));
-}
-
 .landing-galaxy {
   z-index: 0;
 }
