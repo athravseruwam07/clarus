@@ -453,6 +453,37 @@ input:-webkit-autofill:focus {
   scroll-snap-stop: always;
 }
 
+.landing-fixed-theme {
+  color-scheme: dark;
+  --background: 0 0% 4%;
+  --foreground: 0 0% 94%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 94%;
+  --primary: 0 0% 92%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 88%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 62%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 94%;
+  --border: 0 0% 16%;
+  --input: 0 0% 16%;
+  --ring: 0 0% 82%;
+  --surface-0: 0 0% 4%;
+  --surface-1: 0 0% 7%;
+  --surface-2: 0 0% 11%;
+  --surface-3: 0 0% 15%;
+  --surface-4: 0 0% 20%;
+  --landing-space: 0 0% 3%;
+  --landing-space-2: 0 0% 6%;
+  --landing-star: 0 0% 98%;
+  --landing-star-soft: 0 0% 76%;
+  --landing-nebula-a: 0 0% 100%;
+  --landing-nebula-b: 0 0% 86%;
+  --landing-shadow: 0 0% 0%;
+}
+
 .landing-space-surface {
   background:
     radial-gradient(circle at 18% 16%, hsl(var(--landing-nebula-a) / 0.08), transparent 22%),

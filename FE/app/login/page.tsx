@@ -24,7 +24,7 @@ const CORE_FEATURES = [
 
 export default function LoginPage() {
   return (
-    <main className="landing-space-surface relative min-h-screen overflow-hidden">
+    <main className="landing-fixed-theme landing-space-surface relative min-h-screen overflow-hidden text-foreground">
       <PixelGalaxyBackground />
       <div className="landing-snap relative h-screen overflow-y-auto scroll-smooth">
         <section className="landing-panel relative flex min-h-screen items-center overflow-hidden px-5 py-16 md:px-8">
