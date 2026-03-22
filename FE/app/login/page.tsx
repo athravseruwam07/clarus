@@ -45,9 +45,6 @@ export default function LoginPage() {
             <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground md:text-6xl">
               Turn Brightspace into a brighter space.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-              One connected workspace for deadlines, priorities, and study execution.
-            </p>
             <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary">
               <ArrowDown className="h-4 w-4 animate-bounce" />
               Scroll to explore
@@ -59,9 +56,6 @@ export default function LoginPage() {
           <div className="mx-auto w-full max-w-6xl">
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">What Clarus does</h2>
-              <p className="mt-3 text-muted-foreground">
-                Three core capabilities designed for student execution, not dashboard noise.
-              </p>
             </div>
 
             <div className="grid gap-5 md:grid-cols-3">
@@ -86,17 +80,11 @@ export default function LoginPage() {
         </section>
 
         <section className="landing-panel flex min-h-screen items-center px-5 py-16 md:px-8">
-          <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1fr_0.95fr]">
+          <div className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-6xl items-center gap-10 lg:grid-cols-[1fr_0.95fr]">
             <div className="space-y-4">
-              <p className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-foreground/70">
-                Your account
-              </p>
               <h2 className="font-display text-3xl font-semibold leading-[1.1] tracking-[-0.03em] md:text-5xl">
                 Sign in or create your Clarus account.
               </h2>
-              <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-                Your account keeps your workspace, settings, and study data across sessions. Connect Brightspace right after — or continue as a guest.
-              </p>
             </div>
 
             <div className="w-full">
