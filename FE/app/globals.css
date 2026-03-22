@@ -40,6 +40,17 @@
   --sidebar-collapsed-width: 56px;
   --sidebar-tint: 0 0% 100%;
   --sidebar-tint-opacity: 0.022;
+
+  --landing-space: 0 0% 3%;
+  --landing-space-2: 0 0% 6%;
+  --landing-star: 0 0% 98%;
+  --landing-star-soft: 0 0% 76%;
+  --landing-nebula-a: 0 0% 100%;
+  --landing-nebula-b: 0 0% 86%;
+  --landing-grid: 0 0% 100%;
+  --landing-planet-a: 0 0% 100%;
+  --landing-planet-b: 0 0% 72%;
+  --landing-shadow: 0 0% 0%;
 }
 
 .light {
@@ -70,6 +81,17 @@
 
   --sidebar-tint: 0 0% 0%;
   --sidebar-tint-opacity: 0.026;
+
+  --landing-space: 0 0% 98%;
+  --landing-space-2: 0 0% 94%;
+  --landing-star: 0 0% 12%;
+  --landing-star-soft: 0 0% 36%;
+  --landing-nebula-a: 0 0% 0%;
+  --landing-nebula-b: 0 0% 22%;
+  --landing-grid: 0 0% 0%;
+  --landing-planet-a: 0 0% 12%;
+  --landing-planet-b: 0 0% 34%;
+  --landing-shadow: 0 0% 100%;
 }
 
 /* ─── Accent: Interactive element overrides ─────────────────────────────────
@@ -429,4 +451,268 @@ input:-webkit-autofill:focus {
 .landing-panel {
   scroll-snap-align: start;
   scroll-snap-stop: always;
+}
+
+.landing-space-surface {
+  background:
+    radial-gradient(circle at 18% 16%, hsl(var(--landing-nebula-a) / 0.08), transparent 22%),
+    radial-gradient(circle at 82% 18%, hsl(var(--landing-nebula-b) / 0.06), transparent 20%),
+    radial-gradient(circle at 24% 82%, hsl(var(--landing-nebula-b) / 0.05), transparent 18%),
+    radial-gradient(circle at 76% 84%, hsl(var(--landing-nebula-a) / 0.05), transparent 18%),
+    linear-gradient(180deg, hsl(var(--landing-space)), hsl(var(--landing-space-2)));
+}
+
+.landing-space-surface--reverse {
+  background:
+    radial-gradient(circle at 18% 16%, hsl(var(--landing-nebula-a) / 0.08), transparent 22%),
+    radial-gradient(circle at 82% 18%, hsl(var(--landing-nebula-b) / 0.06), transparent 20%),
+    radial-gradient(circle at 24% 82%, hsl(var(--landing-nebula-b) / 0.05), transparent 18%),
+    radial-gradient(circle at 76% 84%, hsl(var(--landing-nebula-a) / 0.05), transparent 18%),
+    linear-gradient(180deg, hsl(var(--landing-space-2)), hsl(var(--landing-space)));
+}
+
+.landing-galaxy {
+  z-index: 0;
+}
+
+.landing-galaxy__base {
+  background: inherit;
+}
+
+.landing-galaxy__stars::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  background: hsl(var(--landing-star));
+  border-radius: 999px;
+}
+
+.landing-galaxy__stars--tiny {
+  opacity: 0.7;
+}
+
+.landing-galaxy__stars--tiny::before {
+  width: 1.5px;
+  height: 1.5px;
+  box-shadow:
+    24px 42px hsl(var(--landing-star-soft)),
+    72px 118px hsl(var(--landing-star)),
+    118px 66px hsl(var(--landing-star-soft)),
+    156px 182px hsl(var(--landing-star)),
+    220px 104px hsl(var(--landing-star-soft)),
+    282px 46px hsl(var(--landing-star)),
+    344px 136px hsl(var(--landing-star-soft)),
+    402px 82px hsl(var(--landing-star)),
+    468px 164px hsl(var(--landing-star-soft)),
+    522px 58px hsl(var(--landing-star)),
+    596px 128px hsl(var(--landing-star-soft)),
+    648px 200px hsl(var(--landing-star)),
+    722px 92px hsl(var(--landing-star-soft)),
+    786px 160px hsl(var(--landing-star)),
+    848px 54px hsl(var(--landing-star-soft)),
+    914px 118px hsl(var(--landing-star)),
+    980px 188px hsl(var(--landing-star-soft)),
+    1042px 84px hsl(var(--landing-star)),
+    1116px 150px hsl(var(--landing-star-soft)),
+    1188px 38px hsl(var(--landing-star)),
+    1262px 110px hsl(var(--landing-star-soft)),
+    1334px 176px hsl(var(--landing-star)),
+    1408px 72px hsl(var(--landing-star-soft)),
+    1478px 142px hsl(var(--landing-star)),
+    1544px 54px hsl(var(--landing-star-soft)),
+    1602px 126px hsl(var(--landing-star)),
+    1688px 202px hsl(var(--landing-star-soft)),
+    1744px 96px hsl(var(--landing-star)),
+    1818px 168px hsl(var(--landing-star-soft)),
+    1880px 64px hsl(var(--landing-star)),
+    1946px 134px hsl(var(--landing-star-soft)),
+    2014px 190px hsl(var(--landing-star)),
+    78px 312px hsl(var(--landing-star-soft)),
+    152px 260px hsl(var(--landing-star)),
+    236px 348px hsl(var(--landing-star-soft)),
+    324px 286px hsl(var(--landing-star)),
+    404px 372px hsl(var(--landing-star-soft)),
+    476px 250px hsl(var(--landing-star)),
+    558px 334px hsl(var(--landing-star-soft)),
+    632px 276px hsl(var(--landing-star)),
+    708px 356px hsl(var(--landing-star-soft)),
+    788px 236px hsl(var(--landing-star)),
+    862px 320px hsl(var(--landing-star-soft)),
+    944px 268px hsl(var(--landing-star)),
+    1028px 360px hsl(var(--landing-star-soft)),
+    1102px 246px hsl(var(--landing-star)),
+    1184px 336px hsl(var(--landing-star-soft)),
+    1268px 282px hsl(var(--landing-star)),
+    1340px 366px hsl(var(--landing-star-soft)),
+    1422px 254px hsl(var(--landing-star)),
+    1498px 342px hsl(var(--landing-star-soft)),
+    1582px 274px hsl(var(--landing-star)),
+    1664px 364px hsl(var(--landing-star-soft)),
+    1738px 244px hsl(var(--landing-star)),
+    1814px 328px hsl(var(--landing-star-soft)),
+    1896px 286px hsl(var(--landing-star)),
+    1972px 358px hsl(var(--landing-star-soft)),
+    2042px 268px hsl(var(--landing-star)),
+    106px 518px hsl(var(--landing-star-soft)),
+    208px 604px hsl(var(--landing-star)),
+    304px 556px hsl(var(--landing-star-soft)),
+    418px 648px hsl(var(--landing-star)),
+    516px 598px hsl(var(--landing-star-soft)),
+    624px 690px hsl(var(--landing-star)),
+    732px 612px hsl(var(--landing-star-soft)),
+    846px 704px hsl(var(--landing-star)),
+    954px 626px hsl(var(--landing-star-soft)),
+    1062px 718px hsl(var(--landing-star)),
+    1176px 644px hsl(var(--landing-star-soft)),
+    1282px 736px hsl(var(--landing-star)),
+    1396px 664px hsl(var(--landing-star-soft)),
+    1506px 754px hsl(var(--landing-star)),
+    1614px 676px hsl(var(--landing-star-soft)),
+    1728px 768px hsl(var(--landing-star)),
+    1842px 694px hsl(var(--landing-star-soft)),
+    1958px 786px hsl(var(--landing-star)),
+    92px 866px hsl(var(--landing-star-soft)),
+    226px 948px hsl(var(--landing-star)),
+    346px 902px hsl(var(--landing-star-soft)),
+    482px 988px hsl(var(--landing-star)),
+    608px 930px hsl(var(--landing-star-soft)),
+    742px 1016px hsl(var(--landing-star)),
+    866px 956px hsl(var(--landing-star-soft)),
+    998px 1038px hsl(var(--landing-star)),
+    1128px 974px hsl(var(--landing-star-soft)),
+    1254px 1058px hsl(var(--landing-star)),
+    1388px 996px hsl(var(--landing-star-soft)),
+    1516px 1074px hsl(var(--landing-star)),
+    1648px 1010px hsl(var(--landing-star-soft)),
+    1784px 1092px hsl(var(--landing-star)),
+    1908px 1022px hsl(var(--landing-star-soft)),
+    62px 154px hsl(var(--landing-star)),
+    274px 222px hsl(var(--landing-star-soft)),
+    504px 314px hsl(var(--landing-star)),
+    692px 404px hsl(var(--landing-star-soft)),
+    928px 214px hsl(var(--landing-star)),
+    1186px 418px hsl(var(--landing-star-soft)),
+    1434px 232px hsl(var(--landing-star)),
+    1666px 332px hsl(var(--landing-star-soft)),
+    1886px 432px hsl(var(--landing-star)),
+    144px 612px hsl(var(--landing-star-soft)),
+    366px 694px hsl(var(--landing-star)),
+    588px 784px hsl(var(--landing-star-soft)),
+    824px 622px hsl(var(--landing-star)),
+    1048px 714px hsl(var(--landing-star-soft)),
+    1288px 808px hsl(var(--landing-star)),
+    1518px 648px hsl(var(--landing-star-soft)),
+    1742px 742px hsl(var(--landing-star)),
+    1962px 834px hsl(var(--landing-star-soft)),
+    124px 1088px hsl(var(--landing-star)),
+    418px 1124px hsl(var(--landing-star-soft)),
+    722px 1096px hsl(var(--landing-star)),
+    1018px 1142px hsl(var(--landing-star-soft)),
+    1324px 1104px hsl(var(--landing-star)),
+    1618px 1138px hsl(var(--landing-star-soft)),
+    1912px 1098px hsl(var(--landing-star));
+}
+
+.landing-galaxy__stars--small::before {
+  width: 2.5px;
+  height: 2.5px;
+  background: hsl(var(--landing-star));
+  box-shadow:
+    94px 94px hsl(var(--landing-star)),
+    248px 154px hsl(var(--landing-star)),
+    406px 112px hsl(var(--landing-star)),
+    612px 86px hsl(var(--landing-star)),
+    788px 164px hsl(var(--landing-star)),
+    958px 124px hsl(var(--landing-star)),
+    1144px 76px hsl(var(--landing-star)),
+    1312px 142px hsl(var(--landing-star)),
+    1492px 102px hsl(var(--landing-star)),
+    1680px 172px hsl(var(--landing-star)),
+    1860px 128px hsl(var(--landing-star)),
+    1988px 82px hsl(var(--landing-star)),
+    146px 448px hsl(var(--landing-star)),
+    332px 512px hsl(var(--landing-star)),
+    514px 462px hsl(var(--landing-star)),
+    688px 536px hsl(var(--landing-star)),
+    876px 478px hsl(var(--landing-star)),
+    1062px 548px hsl(var(--landing-star)),
+    1248px 504px hsl(var(--landing-star)),
+    1426px 572px hsl(var(--landing-star)),
+    1614px 486px hsl(var(--landing-star)),
+    1798px 552px hsl(var(--landing-star)),
+    1984px 496px hsl(var(--landing-star)),
+    164px 704px hsl(var(--landing-star)),
+    318px 768px hsl(var(--landing-star)),
+    484px 712px hsl(var(--landing-star)),
+    652px 784px hsl(var(--landing-star)),
+    816px 730px hsl(var(--landing-star)),
+    986px 802px hsl(var(--landing-star)),
+    1156px 748px hsl(var(--landing-star)),
+    1322px 820px hsl(var(--landing-star)),
+    1494px 762px hsl(var(--landing-star)),
+    1662px 838px hsl(var(--landing-star)),
+    1832px 778px hsl(var(--landing-star)),
+    1988px 844px hsl(var(--landing-star)),
+    86px 270px hsl(var(--landing-star)),
+    286px 370px hsl(var(--landing-star)),
+    548px 318px hsl(var(--landing-star)),
+    742px 434px hsl(var(--landing-star)),
+    982px 342px hsl(var(--landing-star)),
+    1244px 420px hsl(var(--landing-star)),
+    1486px 326px hsl(var(--landing-star)),
+    1726px 438px hsl(var(--landing-star)),
+    1946px 358px hsl(var(--landing-star)),
+    228px 878px hsl(var(--landing-star)),
+    522px 936px hsl(var(--landing-star)),
+    818px 886px hsl(var(--landing-star)),
+    1112px 954px hsl(var(--landing-star)),
+    1408px 904px hsl(var(--landing-star)),
+    1702px 968px hsl(var(--landing-star));
+}
+
+.landing-galaxy__stars--medium {
+  opacity: 0.9;
+}
+
+.landing-galaxy__stars--medium::before {
+  width: 4px;
+  height: 4px;
+  background: hsl(var(--landing-star));
+  box-shadow:
+    88px 132px hsl(var(--landing-star)),
+    314px 96px hsl(var(--landing-star)),
+    548px 184px hsl(var(--landing-star)),
+    824px 122px hsl(var(--landing-star)),
+    1092px 206px hsl(var(--landing-star)),
+    1386px 144px hsl(var(--landing-star)),
+    1652px 228px hsl(var(--landing-star)),
+    1918px 166px hsl(var(--landing-star)),
+    216px 438px hsl(var(--landing-star)),
+    492px 522px hsl(var(--landing-star)),
+    764px 454px hsl(var(--landing-star)),
+    1046px 540px hsl(var(--landing-star)),
+    1328px 472px hsl(var(--landing-star)),
+    1604px 558px hsl(var(--landing-star)),
+    1886px 490px hsl(var(--landing-star)),
+    164px 784px hsl(var(--landing-star)),
+    438px 868px hsl(var(--landing-star)),
+    716px 812px hsl(var(--landing-star)),
+    998px 894px hsl(var(--landing-star)),
+    1274px 838px hsl(var(--landing-star)),
+    1552px 922px hsl(var(--landing-star)),
+    1832px 858px hsl(var(--landing-star)),
+    256px 242px hsl(var(--landing-star)),
+    694px 286px hsl(var(--landing-star)),
+    1188px 308px hsl(var(--landing-star)),
+    1626px 274px hsl(var(--landing-star)),
+    362px 934px hsl(var(--landing-star)),
+    946px 906px hsl(var(--landing-star)),
+    1548px 948px hsl(var(--landing-star));
+}
+
+.landing-galaxy__vignette {
+  background:
+    radial-gradient(circle at center, transparent 48%, hsl(var(--landing-shadow) / 0.08) 100%);
 }
