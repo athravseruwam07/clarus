@@ -454,15 +454,15 @@ export function AuthPanel() {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Tab switcher */}
-        <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-secondary/20 p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-secondary/15 p-1">
           <button
             type="button"
             onClick={() => setActiveTab("signin")}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
               activeTab === "signin"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-secondary/80 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(0,0,0,0.08)]"
+                : "text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
             )}
           >
             Sign in
@@ -473,8 +473,8 @@ export function AuthPanel() {
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
               activeTab === "signup"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-secondary/80 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(0,0,0,0.08)]"
+                : "text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
             )}
           >
             Sign up
