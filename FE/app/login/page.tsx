@@ -29,7 +29,7 @@ export default function LoginPage() {
       <div className="landing-snap relative h-screen overflow-y-auto scroll-smooth">
         <section className="landing-panel relative flex min-h-screen items-center overflow-hidden px-5 py-16 md:px-8">
           <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-            <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
+            <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_0_26px_rgba(255,255,255,0.08),0_18px_50px_rgba(0,0,0,0.45)]">
               <Image
                 alt="Clarus logo"
                 className="h-full w-full scale-[1.1] object-cover translate-y-1"
