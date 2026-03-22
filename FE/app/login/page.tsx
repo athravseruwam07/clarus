@@ -2,6 +2,7 @@ import { ArrowDown, CalendarClock, CheckCircle2, ShieldCheck } from "lucide-reac
 import Image from "next/image";
 
 import { AuthPanel } from "@/components/auth/AuthPanel";
+import PixelGalaxyBackground from "@/components/marketing/PixelGalaxyBackground";
 
 const CORE_FEATURES = [
   {
@@ -23,14 +24,11 @@ const CORE_FEATURES = [
 
 export default function LoginPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_12%_5%,rgba(255,255,255,0.08),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_80%,rgba(255,255,255,0.055),transparent_42%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_100%,rgba(255,255,255,0.03),transparent_60%)]" />
-
+    <main className="landing-space-surface relative min-h-screen overflow-hidden">
+      <PixelGalaxyBackground />
       <div className="landing-snap relative h-screen overflow-y-auto scroll-smooth">
-        <section className="landing-panel flex min-h-screen items-center px-5 py-16 md:px-8">
-          <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
+        <section className="landing-panel relative flex min-h-screen items-center overflow-hidden px-5 py-16 md:px-8">
+          <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center text-center">
             <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
               <Image
                 alt="Clarus logo"
