@@ -1,55 +1,97 @@
 # Clarus
 
-Clarus is an ai-powered control system for D2L/Brightspace that eliminates friction and tells students exactly what to do and where to find what they need.
+Clarus is an AI-powered academic copilot for D2L/Brightspace that helps students cut through LMS friction and understand exactly what to do next.
 
-## vision
+Instead of forcing students to dig through course shells, modules, announcements, Dropbox folders, quizzes, and calendar items, Clarus aims to turn Brightspace into a clearer command center for priorities, planning, and execution.
 
-Clarus is not just a planner. It is an ai academic copilot that:
-- syncs your lms (D2L Brightspace)
-- detects what changed (due dates, rubrics, instructions)
-- breaks assignments into actionable tasks
-- predicts heavy weeks (workload radar)
-- generates study blocks
-- tells students exactly where to find the right module, lecture, reading, or file
+## 🏁 Project Background
 
-### ai academic navigation engine
+Clarus began at **CTRL+HACK+DEL 2.0** at **York University**.
 
-The core differentiator is semantic academic navigation. Later phases ingest assignments, rubrics, module structure, announcements, discussion prompts, quiz topics, and linked resources to map:
+The initial hackathon team was:
+- **Athrav Seruwam**: frontend/dashboard experience, onboarding and calendar-oriented product flows, AI chat/demo-facing UI, and the hackathon demo video
+- **Matthew Kim**: backend/product integration, auth and account flow improvements, login/landing experience, planning logic, and post-hackathon product polish
+- **Ali Husseini**: weekly workload features, account/settings work, sidebar/UI updates, optimizer refinements, and cross-platform/dev-environment support
+
+Since the hackathon, the project has continued to evolve into a more structured full-stack system with a stronger dashboard, planning workflows, sync logic, and student-facing usability improvements.
+
+## ✨ What Clarus Does
+
+Clarus is not just a planner. It is meant to function as an **AI academic control layer** on top of D2L/Brightspace by helping students:
+
+- sync their LMS into one workspace
+- identify upcoming assignments, quizzes, exams, and events
+- surface the highest-leverage next task
+- break work into actionable steps
+- understand heavier weeks before they arrive
+- generate study plans and workload views
+- navigate to the exact course content they need
+
+## 🧠 Core Vision
+
+The long-term goal is an academic navigation engine that connects:
 
 `modules -> topics -> resources -> assignment actions`
 
-When a student opens an assignment, Clarus aims to answer:
+So instead of students asking:
 
-"to complete this, go to module 3 -> lecture 3.2 slides (pages 14-22), read chapter 6 elastic collisions, and review practice set #3 question 4."
+> “Where do I even start?”
 
-Phase 1 delivers a hackathon-ready foundation for this system.
+Clarus can eventually answer with something closer to:
 
-## phase 1 mvp scope
+> “Review module 3, lecture 3.2 slides, chapter 6, and practice set 3 question 4 before starting this assignment.”
 
-- connect to D2L via hackathon auth strategy (option b2)
-- retrieve real enrolled courses through `/d2l/api/*` json
-- show a clean dashboard command center
-- keep architecture extensible for phase 2+ (assignments, content map, ai planning, change detection)
+## 🚀 Phase 1 MVP
 
-## auth strategy (hackathon option b2)
+The current MVP focuses on the hackathon-to-MVP foundation:
 
-This repo uses a hackathon-friendly connector:
+- connect to D2L/Brightspace
+- retrieve real enrolled course data through D2L APIs
+- sync course and timeline information into a student dashboard
+- support secure session-based access through a Playwright-powered connector
+- keep the architecture extensible for future planning, AI guidance, and semantic navigation features
 
-`playwright login (manual popup) -> capture storageState -> d2l /d2l/api json`
+## 🛠 Tech Stack
 
-two modes are supported:
-- manual (default ui): you pick your university and sign in inside a popup window. clarus never receives your password.
-- credentials (optional): api can forward username/password once for schools without sso/2fa.
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Backend
+- Node.js
+- Fastify
+- TypeScript
+- Zod
+
+### Data / Infra
+- PostgreSQL
+- Prisma
+- Docker Compose
+
+### Automation / Integration
+- Playwright
+
+## 🔐 Auth Strategy
+
+Clarus uses a hackathon-friendly Brightspace connector flow:
+
+`Playwright login -> capture storageState -> D2L /d2l/api JSON`
+
+Two modes are supported:
+- **Manual login (default)**: users pick their university and sign in through a popup/browser flow. Clarus does not receive or store their password.
+- **Credentials mode (optional)**: the API can forward username/password once for environments without SSO/2FA.
 
 Important constraints:
 - no browser extension
-- no html scraping for course data
+- no HTML scraping for course data
 - passwords are never persisted
-- credentials exist only in memory during login attempt
+- credentials only exist in memory during login attempts
 - only encrypted Playwright `storageState` is stored in Postgres
-- connector endpoints are protected by internal secret header
+- connector endpoints are protected by an internal shared secret
 
-## repo structure
+## 📁 Repo Structure
 
 ```text
 Clarus/
@@ -58,10 +100,11 @@ Clarus/
 │   ├── api/
 │   ├── connector/
 │   └── docker-compose.yml
+├── docs/
 └── README.md
 ```
 
-## environment
+## ⚙️ Environment
 
 ### `BE/api/.env`
 
@@ -99,52 +142,56 @@ NEXT_PUBLIC_API_URL=http://localhost:4001
 NEXT_PUBLIC_DEFAULT_INSTANCE_URL=https://yourschool.brightspace.com
 ```
 
-Important (local auth): keep the hostname consistent between frontend and API.
-If FE runs on `http://localhost:3000`, set `NEXT_PUBLIC_API_URL=http://localhost:4001`.
-If FE runs on `http://127.0.0.1:3000`, set `NEXT_PUBLIC_API_URL=http://127.0.0.1:4001`.
+Important local auth note:
+- if FE runs on `http://localhost:3000`, set `NEXT_PUBLIC_API_URL=http://localhost:4001`
+- if FE runs on `http://127.0.0.1:3000`, set `NEXT_PUBLIC_API_URL=http://127.0.0.1:4001`
 
-## run instructions
+Keep the hostname consistent between frontend and API so cookies behave correctly.
 
-### easiest path (single command)
+## ▶️ Run Instructions
 
-from repo root:
+### Easiest path
+
+From the repo root:
 
 ```bash
 npm run setup
 npm run dev
 ```
 
-these commands are now cross-platform and work in PowerShell, cmd, zsh, and bash.
+This starts:
+- Postgres (Docker)
+- connector on `:4002`
+- API on `:4001`
+- frontend on `:3000`
 
-this starts:
-- postgres (docker)
-- connector (`:4002`)
-- api (`:4001`)
-- frontend (`:3000`)
+To stop app services, press `Ctrl + C` in the terminal running `npm run dev`.
 
-press `ctrl+c` in the terminal running `npm run dev` to stop app services.
-postgres keeps running in docker until you run:
+To stop Postgres:
 
 ```bash
 npm run db:down
 ```
 
-### manual path
+### Manual path
 
-1) start postgres
+1. Start Postgres
+
 ```bash
 cd BE
 docker compose up -d
 ```
 
-2) start connector
+2. Start connector
+
 ```bash
 cd BE/connector
 npm install
 npm run dev
 ```
 
-3) start api
+3. Start API
+
 ```bash
 cd BE/api
 npm install
@@ -152,28 +199,29 @@ npx prisma db push
 npm run dev
 ```
 
-4) start frontend
+4. Start frontend
+
 ```bash
 cd FE
 npm install
 npm run dev
 ```
 
-visit:
+Visit:
 
 `http://localhost:3000`
 
-## api endpoints
+## 🔌 API Endpoints
 
-### public frontend-facing api (`BE/api`)
+### Public frontend-facing API (`BE/api`)
 - `POST /v1/d2l/connect`
 - `GET /v1/d2l/status`
 - `POST /v1/d2l/disconnect`
 - `POST /v1/sync/courses`
 - `GET /v1/courses`
-- `GET /v1/sync/logs` (optional helper)
+- `GET /v1/sync/logs`
 
-### internal connector api (`BE/connector`)
+### Internal connector API (`BE/connector`)
 - `POST /internal/login`
 - `POST /internal/login/manual`
 - `POST /internal/request`
@@ -182,60 +230,75 @@ All connector routes require:
 
 `x-internal-secret: CONNECTOR_INTERNAL_SECRET`
 
-## limitations in phase 1
+## 🧩 Feature Scaffolding
 
-- some schools use custom sso/duo flows that may block automated login
-- selector overrides may be needed for custom login forms
-- this phase syncs courses only (no assignment/content semantic map yet)
+The repo includes parallel workstream scaffolds so multiple team members can build at the same time:
 
-## parallel feature scaffolding
-
-The repo now includes merged-plan scaffolds (MVP + deep AI features) so a 3-person team can build in parallel:
-
-- frontend lane workspaces under `FE/app/dashboard/(member-*)/*`
-- backend lane workstreams under `BE/api/src/routes/workstreams/*`
+- frontend workspaces under `FE/app/dashboard/(member-*)/*`
+- backend workstreams under `BE/api/src/routes/workstreams/*`
 - demo flow endpoints under `BE/api/src/routes/demo.flow.ts`
-- full lane/task mapping and demo script in `docs/workstreams.md`
-- feature-by-feature owner/route/API matrix in `docs/feature-matrix.md`
+- planning docs in `docs/workstreams.md`
+- owner/route/API mapping in `docs/feature-matrix.md`
 
-## troubleshooting
+## ⚠️ Current Limitations
 
-- login fails with custom sso/duo:
+- some schools use custom SSO/Duo flows that may block automated login
+- selector overrides may be needed for custom login forms
+- this phase is still primarily a course/timeline foundation, not the full semantic academic navigation engine
+
+## 🧪 Troubleshooting
+
+- **Login fails with custom SSO/Duo**
   - set `PLAYWRIGHT_HEADFUL=true`
   - set `PLAYWRIGHT_SLOWMO_MS=100`
   - set `PLAYWRIGHT_AUTH_WAIT_MS=180000`
   - provide `BS_USER_SELECTOR`, `BS_PASS_SELECTOR`, `BS_SUBMIT_SELECTOR`
-- login opens a separate browser window and you want a new tab in your current chrome:
-  - this is only possible in local dev by attaching to chrome over the devtools protocol
-  - start a dedicated chrome instance with remote debugging:
-    - any OS:
-      ```bash
-      npm run chrome:debug
-      ```
-    - optional override if auto-detection fails:
-      ```bash
-      CLARUS_CHROME_BIN=/path/to/chrome npm run chrome:debug
-      ```
-      PowerShell:
-      ```powershell
-      $env:CLARUS_CHROME_BIN='C:\Program Files\Google\Chrome\Application\chrome.exe'
-      npm run chrome:debug
-      ```
-  - set `PLAYWRIGHT_CONNECT_OVER_CDP=true` in `BE/connector/.env` and restart the connector
-- connector unavailable:
-  - verify connector is running at `http://localhost:4002`
-  - verify `CONNECTOR_INTERNAL_SECRET` matches in api and connector env files
-- login redirects back to `/login` after success:
-  - ensure FE and API use the same host label (`localhost` with `localhost`, or `127.0.0.1` with `127.0.0.1`)
-  - mixed hostnames can prevent session cookies from being sent consistently
-- status shows expired:
-  - reconnect from `/login`
-- no courses after sync:
-  - confirm D2L account has active enrollments and rerun sync
 
-## security notes
+- **Login opens a separate browser window and you want a new tab in Chrome**
+  - start a dedicated Chrome instance with remote debugging:
+
+  ```bash
+  npm run chrome:debug
+  ```
+
+  - optional override:
+
+  ```bash
+  CLARUS_CHROME_BIN=/path/to/chrome npm run chrome:debug
+  ```
+
+- **Connector unavailable**
+  - verify connector is running at `http://localhost:4002`
+  - verify `CONNECTOR_INTERNAL_SECRET` matches in API and connector env files
+
+- **Login redirects back to `/login` after success**
+  - ensure FE and API use the same host label
+  - mixed hostnames like `localhost` vs `127.0.0.1` can break cookies
+
+- **Status shows expired**
+  - reconnect from `/login`
+
+- **No courses after sync**
+  - confirm the D2L account has active enrollments
+  - rerun course sync
+
+## 🛡 Security Notes
 
 - never persist passwords
 - never log credentials
-- never log raw storageState
-- encrypt storageState at rest with `crypto-js` aes
+- never log raw Playwright `storageState`
+- encrypt session state at rest
+
+## 👩‍💻 Team
+
+Built initially at **CTRL+HACK+DEL 2.0 @ York University** by:
+
+- **Athrav Seruwam** — dashboard/frontend systems, onboarding and calendar flows, AI chat/demo UX, and the hackathon demo video
+- **Matthew Kim** — integration-heavy product development, login/auth polish, planning logic, dashboard usability improvements, and backend-connected student workflows
+- **Ali Husseini** — workload and optimizer features, account/settings flows, sidebar/UI improvements, and local development compatibility work
+
+## 🙌 Acknowledgements
+
+Thanks to the organizers of **CTRL+HACK+DEL 2.0** at **York University** for creating the space to build the first version of Clarus.
+
+Clarus started as a hackathon build, but it has grown into a much more serious exploration of how AI can reduce academic friction in real student workflows.
