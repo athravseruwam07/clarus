@@ -1,26 +1,9 @@
-import { ArrowDown, CalendarClock, CheckCircle2, ShieldCheck } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import Image from "next/image";
 
 import { AuthPanel } from "@/components/auth/AuthPanel";
+import FeatureShowcaseCards from "@/components/marketing/FeatureShowcaseCards";
 import PixelGalaxyBackground from "@/components/marketing/PixelGalaxyBackground";
-
-const CORE_FEATURES = [
-  {
-    title: "Unified workload timeline",
-    description: "Assignments, quizzes, exams, and events synced into one live academic view.",
-    icon: CalendarClock
-  },
-  {
-    title: "Actionable daily plan",
-    description: "Priority-ranked next steps with plain-language guidance you can execute now.",
-    icon: CheckCircle2
-  },
-  {
-    title: "Secure Brightspace connection",
-    description: "Sign in through your school login flow while Clarus handles setup in the background.",
-    icon: ShieldCheck
-  }
-] as const;
 
 export default function LoginPage() {
   return (
@@ -58,24 +41,7 @@ export default function LoginPage() {
               <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">What Clarus does</h2>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              {CORE_FEATURES.map((feature) => {
-                const Icon = feature.icon;
-
-                return (
-                  <article
-                    key={feature.title}
-                    className="card-glow rounded-2xl border border-border/50 bg-surface-1/80 p-8 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
-                  >
-                    <div className="mb-5 inline-flex rounded-xl border border-white/10 bg-white/[0.08] p-3 text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.3),_inset_0_1px_0_rgba(255,255,255,0.08)]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <h3 className="font-display text-lg font-semibold leading-snug tracking-[-0.02em]">{feature.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{feature.description}</p>
-                  </article>
-                );
-              })}
-            </div>
+            <FeatureShowcaseCards />
           </div>
         </section>
 
