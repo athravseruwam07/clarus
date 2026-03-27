@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Building2,
@@ -63,20 +63,69 @@ const CONNECTION_STEPS = [
   }
 ] as const;
 
-function TimelineDemoCard() {
-  const [activeDay, setActiveDay] = useState(0);
-  const activeTimeline = TIMELINE_DAYS[activeDay];
+function useDemoAutoplay(isHovered: boolean) {
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const resumeTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (resumeTimeoutRef.current !== null) {
+        window.clearTimeout(resumeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHovered) {
+      setIsUserInteracting(false);
+      if (resumeTimeoutRef.current !== null) {
+        window.clearTimeout(resumeTimeoutRef.current);
+        resumeTimeoutRef.current = null;
+      }
+    }
+  }, [isHovered]);
+
+  const registerInteraction = () => {
+    setIsUserInteracting(true);
+    if (resumeTimeoutRef.current !== null) {
+      window.clearTimeout(resumeTimeoutRef.current);
+    }
+    resumeTimeoutRef.current = window.setTimeout(() => {
+      setIsUserInteracting(false);
+      resumeTimeoutRef.current = null;
+    }, 2600);
+  };
+
+  return {
+    shouldAutoplay: isHovered && !isUserInteracting,
+    registerInteraction
+  };
+}
+
+function TimelineDemoCard() {
+  const [activeDay, setActiveDay] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const activeTimeline = TIMELINE_DAYS[activeDay];
+  const { shouldAutoplay, registerInteraction } = useDemoAutoplay(isHovered);
+
+  useEffect(() => {
+    if (!shouldAutoplay) {
+      return undefined;
+    }
+
     const intervalId = window.setInterval(() => {
       setActiveDay((current) => (current + 1) % TIMELINE_DAYS.length);
     }, 2200);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [shouldAutoplay]);
 
   return (
-    <article className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5">
+    <article
+      className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex items-center gap-4">
         <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.08] p-3 text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.3),_inset_0_1px_0_rgba(255,255,255,0.08)]">
           <CalendarClock className="h-5 w-5" />
@@ -90,10 +139,10 @@ function TimelineDemoCard() {
         A live academic view that keeps cycling through due dates, blocks, and upcoming work.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mt-6 flex h-[320px] flex-col rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/45">
           <span>Live timeline</span>
-          <span>Playing</span>
+          <span>{activeTimeline.date}</span>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {TIMELINE_DAYS.map((day, index) => {
@@ -107,7 +156,10 @@ function TimelineDemoCard() {
                     ? "border-white/20 bg-white/[0.10] text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.28)]"
                     : "border-white/8 bg-white/[0.03] text-foreground/65 hover:border-white/15 hover:bg-white/[0.06]"
                 }`}
-                onClick={() => setActiveDay(index)}
+                onClick={() => {
+                  registerInteraction();
+                  setActiveDay(index);
+                }}
                 type="button"
               >
                 <div className="text-xs font-medium">{day.label}</div>
@@ -117,7 +169,7 @@ function TimelineDemoCard() {
           })}
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 flex-1 space-y-2">
           {activeTimeline.items.map((item) => (
             <div
               key={item.title}
@@ -135,10 +187,16 @@ function TimelineDemoCard() {
 
 function DailyPlanDemoCard() {
   const [completed, setCompleted] = useState<boolean[]>([true, false, false]);
+  const [isHovered, setIsHovered] = useState(false);
   const completedCount = completed.filter(Boolean).length;
   const progress = (completedCount / PLAN_TASKS.length) * 100;
+  const { shouldAutoplay, registerInteraction } = useDemoAutoplay(isHovered);
 
   useEffect(() => {
+    if (!shouldAutoplay) {
+      return undefined;
+    }
+
     const sequences: boolean[][] = [
       [true, false, false],
       [true, true, false],
@@ -154,10 +212,14 @@ function DailyPlanDemoCard() {
     }, 1900);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [shouldAutoplay]);
 
   return (
-    <article className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5">
+    <article
+      className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex items-center gap-4">
         <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.08] p-3 text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.3),_inset_0_1px_0_rgba(255,255,255,0.08)]">
           <CheckCircle2 className="h-5 w-5" />
@@ -171,7 +233,7 @@ function DailyPlanDemoCard() {
         A small guided plan that keeps progressing on its own, with tasks you can still toggle yourself.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mt-6 flex h-[320px] flex-col rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] uppercase tracking-[0.2em] text-foreground/45">Today&apos;s plan</div>
@@ -181,7 +243,7 @@ function DailyPlanDemoCard() {
           </div>
           <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-foreground/70">
             <Clock3 className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-            Live demo
+            90 min left
           </div>
         </div>
 
@@ -192,7 +254,7 @@ function DailyPlanDemoCard() {
           />
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 flex-1 space-y-2">
           {PLAN_TASKS.map((task, index) => {
             const isDone = completed[index];
 
@@ -204,11 +266,12 @@ function DailyPlanDemoCard() {
                     ? "border-white/10 bg-white/[0.08]"
                     : "border-white/8 bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.06]"
                 }`}
-                onClick={() =>
+                onClick={() => {
+                  registerInteraction();
                   setCompleted((current) =>
                     current.map((value, currentIndex) => (currentIndex === index ? !value : value))
-                  )
-                }
+                  );
+                }}
                 type="button"
               >
                 {isDone ? (
@@ -233,18 +296,28 @@ function DailyPlanDemoCard() {
 
 function ConnectionDemoCard() {
   const [activeStep, setActiveStep] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const currentStep = CONNECTION_STEPS[activeStep];
+  const { shouldAutoplay, registerInteraction } = useDemoAutoplay(isHovered);
 
   useEffect(() => {
+    if (!shouldAutoplay) {
+      return undefined;
+    }
+
     const intervalId = window.setInterval(() => {
       setActiveStep((current) => (current + 1) % CONNECTION_STEPS.length);
     }, 2300);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [shouldAutoplay]);
 
   return (
-    <article className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5">
+    <article
+      className="card-glow flex h-full flex-col rounded-2xl border border-border/50 bg-surface-1/80 p-6 shadow-[0_2px_8px_rgba(0,0,0,0.3),_0_12px_40px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex items-center gap-4">
         <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.08] p-3 text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.3),_inset_0_1px_0_rgba(255,255,255,0.08)]">
           <ShieldCheck className="h-5 w-5" />
@@ -258,10 +331,10 @@ function ConnectionDemoCard() {
         A looping secure setup preview that shows the login flow Clarus guides in the background.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mt-6 flex h-[320px] flex-col rounded-2xl border border-white/8 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-foreground/45">
           <LockKeyhole className="h-3.5 w-3.5" />
-          Playing secure flow
+          Secure setup
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -279,7 +352,10 @@ function ConnectionDemoCard() {
                       ? "border-white/10 bg-white/[0.06] text-foreground/80"
                       : "border-white/8 bg-white/[0.03] text-foreground/55 hover:border-white/15 hover:bg-white/[0.06]"
                 }`}
-                onClick={() => setActiveStep(index)}
+                onClick={() => {
+                  registerInteraction();
+                  setActiveStep(index);
+                }}
                 type="button"
               >
                 <div className="truncate text-xs font-medium">{step.label}</div>
@@ -288,7 +364,7 @@ function ConnectionDemoCard() {
           })}
         </div>
 
-        <div className="mt-4 rounded-xl border border-white/8 bg-white/[0.04] p-4">
+        <div className="mt-4 flex-1 rounded-xl border border-white/8 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2">
             <div className="rounded-lg border border-white/10 bg-white/[0.06] p-2">
               {activeStep === 0 ? (
@@ -310,7 +386,10 @@ function ConnectionDemoCard() {
             {activeStep < 2 ? (
               <button
                 className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-foreground transition hover:bg-white/[0.09]"
-                onClick={() => setActiveStep((current) => Math.min(current + 1, CONNECTION_STEPS.length - 1))}
+                onClick={() => {
+                  registerInteraction();
+                  setActiveStep((current) => Math.min(current + 1, CONNECTION_STEPS.length - 1));
+                }}
                 type="button"
               >
                 Next
@@ -319,7 +398,10 @@ function ConnectionDemoCard() {
             ) : (
               <button
                 className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-foreground transition hover:bg-white/[0.09]"
-                onClick={() => setActiveStep(0)}
+                onClick={() => {
+                  registerInteraction();
+                  setActiveStep(0);
+                }}
                 type="button"
               >
                 Replay
