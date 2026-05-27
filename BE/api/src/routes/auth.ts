@@ -30,6 +30,12 @@ const changePasswordBodySchema = z.object({
   newPassword: z.string().min(8, "new password must be at least 8 characters")
 });
 
+const updateUiSettingsBodySchema = z.object({
+  theme: z.enum(["dark", "light"]),
+  accent: z.enum(["default", "teal", "violet", "amber"]),
+  optimizerPreferencePromptFrequency: z.enum(["daily", "weekly", "biweekly", "monthly", "never"]).optional()
+});
+
 function writeSessionCookie(reply: FastifyReply, sessionId: string, expiresAt: Date): void {
   const cookieWriter =
     "setCookie" in reply && typeof reply.setCookie === "function"
@@ -61,6 +67,48 @@ function clearSessionCookie(reply: FastifyReply): void {
     reply.cookie(SESSION_COOKIE_NAME, "", {
       path: "/",
       httpOnly: true,
+      sameSite: "lax",
+      expires: new Date(0)
+    });
+  }
+}
+
+const UI_COOKIE_NAME = "clarus_ui";
+
+function writeUiCookie(
+  reply: FastifyReply,
+  theme: string,
+  accent: string,
+  expiresAt: Date,
+  optimizerFrequency?: string | null
+): void {
+  const cookieWriter =
+    "setCookie" in reply && typeof reply.setCookie === "function"
+      ? reply.setCookie.bind(reply)
+      : "cookie" in reply && typeof reply.cookie === "function"
+        ? reply.cookie.bind(reply)
+        : null;
+
+  if (!cookieWriter) return;
+
+  cookieWriter(UI_COOKIE_NAME, JSON.stringify({ theme, accent, optimizerPreferencePromptFrequency: optimizerFrequency ?? "weekly" }), {
+    path: "/",
+    httpOnly: false,
+    sameSite: "lax",
+    expires: expiresAt
+  });
+}
+
+function clearUiCookie(reply: FastifyReply): void {
+  if ("clearCookie" in reply && typeof reply.clearCookie === "function") {
+    reply.clearCookie(UI_COOKIE_NAME, { path: "/" });
+    return;
+  }
+
+  if ("cookie" in reply && typeof reply.cookie === "function") {
+    reply.cookie(UI_COOKIE_NAME, "", {
+      path: "/",
+      httpOnly: false,
       sameSite: "lax",
       expires: new Date(0)
     });
@@ -104,6 +152,7 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
     const session = await prisma.session.create({ data: { userId: user.id, expiresAt } });
 
     writeSessionCookie(reply, session.id, expiresAt);
+    writeUiCookie(reply, "dark", "default", expiresAt);
 
     return {
       ok: true,
@@ -121,7 +170,7 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
 
     const user = await prisma.user.findUnique({
       where: { email: body.email },
-      select: { id: true, name: true, email: true, university: true, passwordHash: true }
+      select: { id: true, name: true, email: true, university: true, passwordHash: true, uiTheme: true, uiAccent: true, uiOptimizerFrequency: true }
     });
 
     if (!user || !user.passwordHash) {
@@ -138,6 +187,7 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
     const session = await prisma.session.create({ data: { userId: user.id, expiresAt } });
 
     writeSessionCookie(reply, session.id, expiresAt);
+    writeUiCookie(reply, user.uiTheme ?? "dark", user.uiAccent ?? "default", expiresAt, user.uiOptimizerFrequency);
 
     return {
       ok: true,
@@ -160,6 +210,7 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
 
       await prisma.session.delete({ where: { id: request.auth.session.id } }).catch(() => undefined);
       clearSessionCookie(reply);
+      clearUiCookie(reply);
 
       return { ok: true };
     }
@@ -180,7 +231,10 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
         name: user.name,
         email: user.email,
         university: user.university,
-        hasClarusAccount: user.passwordHash !== null
+        hasClarusAccount: user.passwordHash !== null,
+        uiTheme: user.uiTheme ?? "dark",
+        uiAccent: user.uiAccent ?? "default",
+        uiOptimizerFrequency: user.uiOptimizerFrequency ?? "weekly"
       };
     }
   );
@@ -252,6 +306,34 @@ const authRoute: FastifyPluginAsync = async (fastify) => {
       await prisma.user.delete({ where: { id: request.auth.user.id } });
 
       clearSessionCookie(reply);
+      clearUiCookie(reply);
+
+      return { ok: true };
+    }
+  );
+  // PATCH /v1/auth/ui-settings — save theme and accent to account + refresh cookie
+  fastify.patch(
+    "/auth/ui-settings",
+    { preHandler: fastify.requireAuth },
+    async (request, reply) => {
+      if (!request.auth) {
+        throw new AppError(401, "authentication required", "unauthorized");
+      }
+
+      const body = updateUiSettingsBodySchema.parse(request.body);
+
+      await prisma.user.update({
+        where: { id: request.auth.user.id },
+        data: {
+          uiTheme: body.theme,
+          uiAccent: body.accent,
+          ...(body.optimizerPreferencePromptFrequency !== undefined
+            ? { uiOptimizerFrequency: body.optimizerPreferencePromptFrequency }
+            : {})
+        }
+      });
+
+      writeUiCookie(reply, body.theme, body.accent, request.auth.session.expiresAt, body.optimizerPreferencePromptFrequency ?? request.auth.user.uiOptimizerFrequency);
 
       return { ok: true };
     }

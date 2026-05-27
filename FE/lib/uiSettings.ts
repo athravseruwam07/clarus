@@ -8,7 +8,7 @@ export interface UiSettings {
   optimizerPreferencePromptFrequency: OptimizerPreferencePromptFrequency;
 }
 
-export const UI_SETTINGS_STORAGE_KEY = "clarus.ui.settings.v1";
+export const UI_COOKIE_NAME = "clarus_ui";
 export const UI_SETTINGS_EVENT = "clarus:ui-settings-changed";
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
@@ -55,28 +55,24 @@ function sanitizeUiSettings(value: unknown): UiSettings {
 }
 
 export function readUiSettings(): UiSettings {
-  if (typeof window === "undefined") {
+  if (typeof document === "undefined") {
     return DEFAULT_UI_SETTINGS;
   }
 
   try {
-    const raw = window.localStorage.getItem(UI_SETTINGS_STORAGE_KEY);
-    if (!raw) {
+    const match = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${UI_COOKIE_NAME}=`));
+
+    if (!match) {
       return DEFAULT_UI_SETTINGS;
     }
 
-    return sanitizeUiSettings(JSON.parse(raw));
+    const value = decodeURIComponent(match.slice(UI_COOKIE_NAME.length + 1));
+    return sanitizeUiSettings(JSON.parse(value));
   } catch {
     return DEFAULT_UI_SETTINGS;
   }
-}
-
-export function writeUiSettings(settings: UiSettings): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(UI_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 }
 
 export function applyUiSettings(settings: UiSettings): void {

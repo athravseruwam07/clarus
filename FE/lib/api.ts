@@ -1248,6 +1248,9 @@ export interface ClarusAuthResponse {
 
 export interface ClarusProfileResponse extends ClarusUserPayload {
   hasClarusAccount: boolean;
+  uiTheme: string;
+  uiAccent: string;
+  uiOptimizerFrequency: string;
 }
 
 export async function registerClarus(payload: {
@@ -1282,6 +1285,17 @@ export async function getClarusProfile(): Promise<ClarusProfileResponse> {
 
 export async function updateClarusProfile(payload: { name: string }): Promise<{ ok: true; user: ClarusUserPayload }> {
   return request<{ ok: true; user: ClarusUserPayload }>("/v1/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateUiSettings(payload: {
+  theme: "dark" | "light";
+  accent: "default" | "teal" | "violet" | "amber";
+  optimizerPreferencePromptFrequency?: "daily" | "weekly" | "biweekly" | "monthly" | "never";
+}): Promise<{ ok: true }> {
+  return request<{ ok: true }>("/v1/auth/ui-settings", {
     method: "PATCH",
     body: JSON.stringify(payload)
   });

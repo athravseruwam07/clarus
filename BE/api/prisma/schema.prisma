@@ -19,6 +19,11 @@ model User {
   passwordHash              String?   @map("password_hash")
   university                String?   @map("university")
 
+  // ui preferences
+  uiTheme                   String?   @map("ui_theme")
+  uiAccent                  String?   @map("ui_accent")
+  uiOptimizerFrequency      String?   @map("ui_optimizer_frequency")
+
   // encrypted playwright storage state (cookies + local storage)
   brightspaceStateEncrypted String?   @db.Text @map("brightspace_state_encrypted")
   stateLastVerifiedAt       DateTime? @map("state_last_verified_at")

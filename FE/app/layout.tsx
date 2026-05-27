@@ -35,12 +35,19 @@ export const metadata: Metadata = {
 const uiSettingsBootstrapScript = `
 (() => {
   try {
-    const key = "clarus.ui.settings.v1";
+    const cookieName = "clarus_ui";
     const validAccents = ["default", "teal", "violet", "amber"];
 
-    const parsed = JSON.parse(window.localStorage.getItem(key) || "null") || {};
-    const theme = parsed.theme === "light" ? "light" : "dark";
-    const accent = validAccents.includes(parsed.accent) ? parsed.accent : "default";
+    let theme = "dark";
+    let accent = "default";
+
+    const match = document.cookie.split("; ").find(function(row) { return row.startsWith(cookieName + "="); });
+    if (match) {
+      const raw = decodeURIComponent(match.slice(cookieName.length + 1));
+      const parsed = JSON.parse(raw);
+      if (parsed.theme === "light") theme = "light";
+      if (validAccents.includes(parsed.accent)) accent = parsed.accent;
+    }
 
     const root = document.documentElement;
     root.classList.remove("light", "dark", "reduce-motion", "high-contrast", "minimal-effects",

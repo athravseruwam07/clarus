@@ -182,11 +182,15 @@ type BehaviorEvent = {
   createdAt: string;
 };
 
+<<<<<<< Updated upstream
 const PROFILE_STORAGE_KEY = "clarus.optimizer.profile.v3";
 const BEHAVIOR_STORAGE_KEY = "clarus.optimizer.behavior.v3";
 const PROFILE_SUBMITTED_AT_STORAGE_KEY = "clarus.optimizer.profile-submitted-at.v1";
+=======
+>>>>>>> Stashed changes
 const OPTIMIZER_STATE_TARGET_TYPE = "work_plan_optimizer" as const;
 const OPTIMIZER_STATE_TARGET_KEY = "quick_setup_v1";
+const BEHAVIOR_STATE_TARGET_KEY = "behavior_history_v1";
 
 type PersistedOptimizerState = {
   profile: PlannerProfile;
@@ -588,6 +592,7 @@ export default function WorkPlanOptimizerPage() {
   }, [loadContext]);
 
   useEffect(() => {
+<<<<<<< Updated upstream
     if (typeof window === "undefined") {
       return;
     }
@@ -632,6 +637,11 @@ export default function WorkPlanOptimizerPage() {
     } finally {
       setHasHydratedLocalState(true);
     }
+=======
+    // State is loaded exclusively from the account (remote). Mark local hydration
+    // complete immediately so the remote hydration effect can proceed.
+    setHasHydratedLocalState(true);
+>>>>>>> Stashed changes
   }, []);
 
   useEffect(() => {
@@ -665,6 +675,21 @@ export default function WorkPlanOptimizerPage() {
           const detail = error instanceof Error ? error.message : "Failed to restore setup";
           toast.error("Could not restore quick setup", { description: detail });
         }
+      }
+
+      try {
+        const behaviorState = await getItemState({
+          targetType: OPTIMIZER_STATE_TARGET_TYPE,
+          targetKey: BEHAVIOR_STATE_TARGET_KEY
+        });
+        if (!cancelled && behaviorState.notesText) {
+          const parsed = JSON.parse(behaviorState.notesText) as BehaviorEvent[];
+          if (Array.isArray(parsed)) {
+            setBehaviorEvents(parsed.slice(0, 100));
+          }
+        }
+      } catch {
+        // No behavior history yet — keep empty array.
       } finally {
         if (!cancelled) {
           setHasHydratedRemoteState(true);
@@ -680,14 +705,19 @@ export default function WorkPlanOptimizerPage() {
   }, [hasHydratedLocalState]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!hasHydratedLocalState || !hasHydratedRemoteState) {
       return;
     }
 
-    if (!hasHydratedLocalState) {
-      return;
-    }
+    const timeoutId = window.setTimeout(() => {
+      void putItemState({
+        targetType: OPTIMIZER_STATE_TARGET_TYPE,
+        targetKey: BEHAVIOR_STATE_TARGET_KEY,
+        notesText: JSON.stringify(behaviorEvents.slice(0, 100))
+      }).catch(() => undefined);
+    }, 400);
 
+<<<<<<< Updated upstream
     window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
   }, [hasHydratedLocalState, profile]);
 
@@ -718,6 +748,10 @@ export default function WorkPlanOptimizerPage() {
 
     window.localStorage.setItem(BEHAVIOR_STORAGE_KEY, JSON.stringify(behaviorEvents));
   }, [behaviorEvents, hasHydratedLocalState]);
+=======
+    return () => window.clearTimeout(timeoutId);
+  }, [behaviorEvents, hasHydratedLocalState, hasHydratedRemoteState]);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!hasHydratedLocalState || !hasHydratedRemoteState) {

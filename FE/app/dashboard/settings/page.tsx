@@ -34,8 +34,7 @@ import {
   type OptimizerPreferencePromptFrequency,
   type UiSettings,
   applyUiSettings,
-  loadAndApplyUiSettings,
-  writeUiSettings
+  loadAndApplyUiSettings
 } from "@/lib/uiSettings";
 import {
   ApiError,
@@ -47,7 +46,8 @@ import {
   getCalendarFeedAccess,
   getClarusProfile,
   getD2LStatus,
-  updateClarusProfile
+  updateClarusProfile,
+  updateUiSettings
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -753,22 +753,22 @@ export default function SettingsPage() {
   function setTheme(theme: UiSettings["theme"]) {
     const next = { ...settings, theme };
     setSettings(next);
-    writeUiSettings(next);
     applyUiSettings(next);
+    void updateUiSettings(next).catch(() => undefined);
   }
 
   function setAccent(accent: AccentColor) {
     const next = { ...settings, accent };
     setSettings(next);
-    writeUiSettings(next);
     applyUiSettings(next);
+    void updateUiSettings(next).catch(() => undefined);
   }
 
   function setOptimizerPreferencePromptFrequency(frequency: OptimizerPreferencePromptFrequency) {
     const next = { ...settings, optimizerPreferencePromptFrequency: frequency };
     setSettings(next);
-    writeUiSettings(next);
     applyUiSettings(next);
+    void updateUiSettings(next).catch(() => undefined);
   }
 
   const hasClarusAccount = clarusProfile?.hasClarusAccount === true;
