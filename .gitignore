@@ -24,3 +24,5 @@ logs/
 
 # generated caches
 *.tsbuildinfo
+
+clarus.md
